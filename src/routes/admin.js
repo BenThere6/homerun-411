@@ -2,13 +2,13 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const auth = require('../middleware/auth');
-const isAdmin = require('../middleware/isAdmin'); // Assuming isAdmin middleware checks if user is admin
+const auth = require('../middleware/auth.js');
+const isAdmin = require('../middleware/isAdmin');
 const User = require('../models/User');
 const Park = require('../models/Park');
 
 // Admin route to get all users
-router.get('/admin/users', auth, isAdmin, async (req, res) => {
+router.get('/admin/users', authenticate, checkAdmin, async (req, res) => {
   try {
     const users = await User.find();
     res.json(users);
@@ -18,7 +18,7 @@ router.get('/admin/users', auth, isAdmin, async (req, res) => {
 });
 
 // Admin route to delete a user by ID
-router.delete('/admin/users/:userId', auth, isAdmin, async (req, res) => {
+router.delete('/admin/users/:userId', authenticate, checkAdmin, async (req, res) => {
   try {
     const userId = req.params.userId;
     const user = await User.findByIdAndDelete(userId);
@@ -34,10 +34,10 @@ router.delete('/admin/users/:userId', auth, isAdmin, async (req, res) => {
 });
 
 // Admin route to update a park by ID
-router.patch('/admin/parks/:parkId', auth, isAdmin, async (req, res) => {
+router.patch('/admin/parks/:parkId', authenticate, checkAdmin, async (req, res) => {
   try {
     const parkId = req.params.parkId;
-    const updateFields = req.body; // Fields to update
+    const updateFields = req.body;
 
     const park = await Park.findByIdAndUpdate(parkId, updateFields, { new: true });
 
@@ -51,7 +51,7 @@ router.patch('/admin/parks/:parkId', auth, isAdmin, async (req, res) => {
   }
 });
 
-// Example route to create a new admin user (for demo purposes)
+// Route to create a new admin user (for demo purposes)
 router.post('/admin/create-admin', async (req, res) => {
   try {
     const { email, password } = req.body;
