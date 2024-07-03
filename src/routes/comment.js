@@ -41,17 +41,6 @@ router.get('/comments', async (req, res) => {
   }
 });
 
-// Get all comments for a specific post
-router.get('/posts/:postId/comments', async (req, res) => {
-  try {
-    const { postId } = req.params;
-    const comments = await Comment.find({ referencedPost: postId });
-    res.json(comments);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
 // Get a specific comment by ID
 router.get('/comments/:id', getComment, (req, res) => {
   res.json(res.comment);

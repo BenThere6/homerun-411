@@ -103,6 +103,17 @@ router.get('/posts/:id', getPost, (req, res) => {
   res.json(res.post);
 });
 
+// Get all comments for a specific post
+router.get('/posts/:postId/comments', async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const comments = await Comment.find({ referencedPost: postId });
+    res.json(comments);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Update post by ID
 router.patch('/posts/:id', auth, getPost, async (req, res) => {
   if (req.body.title != null) {
