@@ -112,4 +112,25 @@ router.delete('/users/:id', getUser, async (req, res) => {
   }
 });
 
+// DELETE /users/favorite-parks/:parkId
+router.delete('/users/favorite-parks/:parkId', async (req, res) => {
+  try {
+    const parkId = req.params.parkId;
+
+    // Assuming authentication middleware sets req.user with the logged-in user's data
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Remove park from favoriteParks if exists
+    user.favoriteParks = user.favoriteParks.filter(p => p.toString() !== parkId);
+    await user.save();
+
+    res.json(user.favoriteParks);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;
