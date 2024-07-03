@@ -19,6 +19,25 @@ async function getDugoutSwapItem(req, res, next) {
   next();
 }
 
+// Middleware function to check if the requester is either admin or the item's seller
+async function canDeleteDugoutSwapItem(req, res, next) {
+  const item = res.item;
+  const userId = req.user.id;
+
+  // Check if requester is admin
+  if (req.user.isAdmin) {
+    return next();
+  }
+
+  // Check if requester is the seller of the item
+  if (item.seller.toString() === userId) {
+    return next();
+  }
+
+  // If not admin or seller, unauthorized
+  return res.status(403).json({ message: 'Unauthorized to delete this dugout swap item' });
+}
+
 // Create a new dugout swap item
 router.post('/', auth, async (req, res) => {
   try {
@@ -88,7 +107,7 @@ router.patch('/:id', auth, getDugoutSwapItem, async (req, res) => {
 });
 
 // Delete a specific dugout swap item by ID
-router.delete('/:id', auth, getDugoutSwapItem, async (req, res) => {
+router.delete('/:id', auth, getDugoutSwapItem, canDeleteDugoutSwapItem, async (req, res) => {
   try {
     await res.item.remove();
     res.json({ message: 'Deleted dugout swap item' });
