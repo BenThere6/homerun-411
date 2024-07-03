@@ -48,6 +48,18 @@ router.get('/posts', async (req, res) => {
   }
 });
 
+// GET /posts/search?tag={tag}
+router.get('/posts/search', async (req, res) => {
+  try {
+    const tag = req.query.tag;
+    const posts = await Post.find({ tags: tag });
+
+    res.json(posts);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Get post by ID
 router.get('/posts/:id', getPost, (req, res) => {
   res.json(res.post);

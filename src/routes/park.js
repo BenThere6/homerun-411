@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Park = require('../models/Park');
+const Weather = require('../models/Weather');
 
 // Middleware function to fetch a park by ID
 async function getPark(req, res, next) {
@@ -79,6 +80,56 @@ router.get('/parks', async (req, res) => {
   try {
     const parks = await Park.find();
     res.json(parks);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /parks/search?latitude={latitude}&longitude={longitude}
+router.get('/parks/search', async (req, res) => {
+  try {
+    const { latitude, longitude } = req.query;
+
+    // Find parks near the provided coordinates within a certain radius (using MongoDB geospatial queries)
+    const parks = await Park.find({
+      coordinates: {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: [parseFloat(longitude), parseFloat(latitude)],
+          },
+          $maxDistance: 10000, // Maximum distance in meters (adjust as needed)
+        },
+      },
+    });
+
+    res.json(parks);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /parks/:parkId/weather
+router.get('/parks/:parkId/weather', async (req, res) => {
+  try {
+    const parkId = req.params.parkId;
+
+    // Assuming Weather model is correctly populated with weather data for each park
+    const weather = await Weather.findOne({ park: parkId }).sort({ updatedAt: -1 });
+
+    res.json(weather);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /parks/:parkId/amenities
+router.get('/parks/:parkId/amenities', async (req, res) => {
+  try {
+    const parkId = req.params.parkId;
+    const amenities = await NearestAmenity.find({ referencedPark: parkId });
+
+    res.json(amenities);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

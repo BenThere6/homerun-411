@@ -45,6 +45,20 @@ router.get('/messages', async (req, res) => {
   }
 });
 
+// GET /messages/conversations
+router.get('/messages/conversations', async (req, res) => {
+  try {
+    // Assuming authentication middleware sets req.user with the logged-in user's data
+    const conversations = await Message.distinct('sender', { receiver: req.user.id })
+      .populate('sender')
+      .exec();
+
+    res.json(conversations);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Get a specific message by ID
 router.get('/messages/:id', getMessage, (req, res) => {
   res.json(res.message);
@@ -68,6 +82,27 @@ router.patch('/messages/:id', getMessage, async (req, res) => {
   try {
     res.message.updatedAt = Date.now();
     const updatedMessage = await res.message.save();
+    res.json(updatedMessage);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// PATCH /messages/:messageId/mark-read
+router.patch('/messages/:messageId/mark-read', async (req, res) => {
+  try {
+    const messageId = req.params.messageId;
+
+    // Assuming authentication middleware sets req.user with the logged-in user's data
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res.status(404).json({ message: 'Message not found' });
+    }
+
+    message.read = true;
+    message.updatedAt = Date.now();
+
+    const updatedMessage = await message.save();
     res.json(updatedMessage);
   } catch (err) {
     res.status(400).json({ message: err.message });
