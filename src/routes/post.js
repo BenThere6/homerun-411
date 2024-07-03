@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Post = require('../models/Post');
+const Comment = require('../models/Comment'); // Assuming Comment model is imported
 
 // Middleware function to fetch post by ID
 async function getPost(req, res, next) {
@@ -19,7 +20,7 @@ async function getPost(req, res, next) {
 }
 
 // Create a new post
-router.post('/posts', async (req, res) => {
+router.post('/posts', auth, async (req, res) => {
   try {
     const { title, content, author, tags, referencedPark } = req.body;
 
@@ -39,7 +40,7 @@ router.post('/posts', async (req, res) => {
 });
 
 // POST /posts/:postId/comments
-router.post('/posts/:postId/comments', async (req, res) => {
+router.post('/posts/:postId/comments', auth, async (req, res) => {
   try {
     const postId = req.params.postId;
     const { content } = req.body;
@@ -102,7 +103,7 @@ router.get('/posts/:id', getPost, (req, res) => {
 });
 
 // Update post by ID
-router.patch('/posts/:id', getPost, async (req, res) => {
+router.patch('/posts/:id', auth, getPost, async (req, res) => {
   if (req.body.title != null) {
     res.post.title = req.body.title;
   }
@@ -126,7 +127,7 @@ router.patch('/posts/:id', getPost, async (req, res) => {
 });
 
 // Delete post by ID
-router.delete('/posts/:id', getPost, async (req, res) => {
+router.delete('/posts/:id', auth, getPost, async (req, res) => {
   try {
     await res.post.remove();
     res.json({ message: 'Deleted post' });

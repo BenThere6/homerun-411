@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const DugoutSwapItem = require('../models/DugoutSwapItem');
+const auth = require('../middleware/auth');
 
 // Middleware function to fetch a dugout swap item by ID
 async function getDugoutSwapItem(req, res, next) {
@@ -19,7 +20,7 @@ async function getDugoutSwapItem(req, res, next) {
 }
 
 // Create a new dugout swap item
-router.post('/dugoutswapitems', async (req, res) => {
+router.post('/dugoutswapitems', auth, async (req, res) => {
   try {
     const { name, description, price, condition, imageURL, seller, category, zipCode } = req.body;
     const newItem = new DugoutSwapItem({
@@ -40,7 +41,7 @@ router.post('/dugoutswapitems', async (req, res) => {
 });
 
 // Get all dugout swap items
-router.get('/dugoutswapitems', async (req, res) => {
+router.get('/dugoutswapitems', auth, async (req, res) => {
   try {
     const items = await DugoutSwapItem.find();
     res.json(items);
@@ -50,12 +51,12 @@ router.get('/dugoutswapitems', async (req, res) => {
 });
 
 // Get a specific dugout swap item by ID
-router.get('/dugoutswapitems/:id', getDugoutSwapItem, (req, res) => {
+router.get('/dugoutswapitems/:id', auth, getDugoutSwapItem, (req, res) => {
   res.json(res.item);
 });
 
 // Update a specific dugout swap item by ID
-router.patch('/dugoutswapitems/:id', getDugoutSwapItem, async (req, res) => {
+router.patch('/dugoutswapitems/:id', auth, getDugoutSwapItem, async (req, res) => {
   if (req.body.name != null) {
     res.item.name = req.body.name;
   }
@@ -87,7 +88,7 @@ router.patch('/dugoutswapitems/:id', getDugoutSwapItem, async (req, res) => {
 });
 
 // Delete a specific dugout swap item by ID
-router.delete('/dugoutswapitems/:id', getDugoutSwapItem, async (req, res) => {
+router.delete('/dugoutswapitems/:id', auth, getDugoutSwapItem, async (req, res) => {
   try {
     await res.item.remove();
     res.json({ message: 'Deleted dugout swap item' });

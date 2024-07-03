@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Weather = require('../models/Weather');
+const auth = require('../middleware/auth'); // Import the auth middleware
 
 // Middleware function to fetch weather by ID
 async function getWeather(req, res, next) {
@@ -19,7 +20,7 @@ async function getWeather(req, res, next) {
 }
 
 // Create weather data for a park
-router.post('/weather', async (req, res) => {
+router.post('/weather', auth, async (req, res) => { // Apply auth middleware
   try {
     const { park, temperature, conditions } = req.body;
 
@@ -52,7 +53,7 @@ router.get('/weather/:id', getWeather, (req, res) => {
 });
 
 // Update weather data by ID
-router.patch('/weather/:id', getWeather, async (req, res) => {
+router.patch('/weather/:id', auth, getWeather, async (req, res) => { // Apply auth middleware
   if (req.body.temperature != null) {
     res.weather.temperature = req.body.temperature;
   }
@@ -69,7 +70,7 @@ router.patch('/weather/:id', getWeather, async (req, res) => {
 });
 
 // Delete weather data by ID
-router.delete('/weather/:id', getWeather, async (req, res) => {
+router.delete('/weather/:id', auth, getWeather, async (req, res) => { // Apply auth middleware
   try {
     await res.weather.remove();
     res.json({ message: 'Deleted weather data' });

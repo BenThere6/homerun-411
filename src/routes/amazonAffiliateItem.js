@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const AmazonAffiliateItem = require('../models/AmazonAffiliateItem');
+const auth = require('../middleware/auth');
 
 // GET all items
-router.get('/', async (req, res) => {
+router.get('/', auth, async (req, res) => {
   try {
     const items = await AmazonAffiliateItem.find();
     res.json(items);
@@ -13,12 +14,12 @@ router.get('/', async (req, res) => {
 });
 
 // GET one item
-router.get('/:id', getAmazonAffiliateItem, (req, res) => {
+router.get('/:id', auth, getAmazonAffiliateItem, (req, res) => {
   res.json(res.item);
 });
 
 // POST create an item
-router.post('/', async (req, res) => {
+router.post('/', auth, async (req, res) => {
   const item = new AmazonAffiliateItem({
     name: req.body.name,
     description: req.body.description,
@@ -38,7 +39,7 @@ router.post('/', async (req, res) => {
 });
 
 // PATCH update an item
-router.patch('/:id', getAmazonAffiliateItem, async (req, res) => {
+router.patch('/:id', auth, getAmazonAffiliateItem, async (req, res) => {
   if (req.body.name != null) {
     res.item.name = req.body.name;
   }
@@ -69,7 +70,7 @@ router.patch('/:id', getAmazonAffiliateItem, async (req, res) => {
 });
 
 // DELETE an item
-router.delete('/:id', getAmazonAffiliateItem, async (req, res) => {
+router.delete('/:id', auth, getAmazonAffiliateItem, async (req, res) => {
   try {
     await res.item.remove();
     res.json({ message: 'Deleted item' });

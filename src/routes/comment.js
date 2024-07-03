@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Comment = require('../models/Comment');
+const auth = require('../middleware/auth');
 
 // Middleware function to fetch a comment by ID
 async function getComment(req, res, next) {
@@ -19,7 +20,7 @@ async function getComment(req, res, next) {
 }
 
 // Create a new comment
-router.post('/comments', async (req, res) => {
+router.post('/comments', auth, async (req, res) => {
   try {
     const { referencedPost, content, author } = req.body;
     const comment = new Comment({ referencedPost, content, author });
@@ -57,7 +58,7 @@ router.get('/comments/:id', getComment, (req, res) => {
 });
 
 // Update a specific comment by ID
-router.patch('/comments/:id', getComment, async (req, res) => {
+router.patch('/comments/:id', auth, getComment, async (req, res) => {
   if (req.body.content != null) {
     res.comment.content = req.body.content;
   }
@@ -72,7 +73,7 @@ router.patch('/comments/:id', getComment, async (req, res) => {
 });
 
 // Delete a specific comment by ID
-router.delete('/comments/:id', getComment, async (req, res) => {
+router.delete('/comments/:id', auth, getComment, async (req, res) => {
   try {
     await res.comment.remove();
     res.json({ message: 'Deleted comment' });

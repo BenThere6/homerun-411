@@ -1,9 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const auth = require('../middleware/auth.js');
-const isAdmin = require('../middleware/isAdmin');
+const authenticate = require('../middleware/auth.js');
+const checkAdmin = require('../middleware/isAdmin');
 const User = require('../models/User');
 const Park = require('../models/Park');
 

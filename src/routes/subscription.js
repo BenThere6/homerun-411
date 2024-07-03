@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Subscription = require('../models/Subscription');
+const auth = require('../middleware/auth'); // Import the auth middleware
 
 // Middleware function to fetch a subscription by ID
 async function getSubscription(req, res, next) {
@@ -19,7 +20,7 @@ async function getSubscription(req, res, next) {
 }
 
 // Create a new subscription
-router.post('/subscriptions', async (req, res) => {
+router.post('/subscriptions', auth, async (req, res) => { // Apply auth middleware
   try {
     const { user, startDate, endDate } = req.body;
 
@@ -37,7 +38,7 @@ router.post('/subscriptions', async (req, res) => {
 });
 
 // Get all subscriptions
-router.get('/subscriptions', async (req, res) => {
+router.get('/subscriptions', auth, async (req, res) => { // Apply auth middleware
   try {
     const subscriptions = await Subscription.find();
     res.json(subscriptions);
@@ -47,12 +48,12 @@ router.get('/subscriptions', async (req, res) => {
 });
 
 // Get a specific subscription by ID
-router.get('/subscriptions/:id', getSubscription, (req, res) => {
+router.get('/subscriptions/:id', auth, getSubscription, (req, res) => { // Apply auth middleware
   res.json(res.subscription);
 });
 
 // Update a specific subscription by ID
-router.patch('/subscriptions/:id', getSubscription, async (req, res) => {
+router.patch('/subscriptions/:id', auth, getSubscription, async (req, res) => { // Apply auth middleware
   if (req.body.startDate != null) {
     res.subscription.startDate = req.body.startDate;
   }
@@ -69,7 +70,7 @@ router.patch('/subscriptions/:id', getSubscription, async (req, res) => {
 });
 
 // Delete a specific subscription by ID
-router.delete('/subscriptions/:id', getSubscription, async (req, res) => {
+router.delete('/subscriptions/:id', auth, getSubscription, async (req, res) => { // Apply auth middleware
   try {
     await res.subscription.remove();
     res.json({ message: 'Deleted subscription' });

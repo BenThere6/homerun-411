@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Message = require('../models/Message');
+const auth = require('../middleware/auth');
 
 // Middleware function to fetch a message by ID
 async function getMessage(req, res, next) {
@@ -19,7 +20,7 @@ async function getMessage(req, res, next) {
 }
 
 // Create a new message
-router.post('/messages', async (req, res) => {
+router.post('/messages', auth, async (req, res) => {
   try {
     const { sender, receiver, content, referencedItem } = req.body;
     const newMessage = new Message({
@@ -36,7 +37,7 @@ router.post('/messages', async (req, res) => {
 });
 
 // Get all messages
-router.get('/messages', async (req, res) => {
+router.get('/messages', auth, async (req, res) => {
   try {
     const messages = await Message.find();
     res.json(messages);
@@ -46,7 +47,7 @@ router.get('/messages', async (req, res) => {
 });
 
 // GET /messages/conversations
-router.get('/messages/conversations', async (req, res) => {
+router.get('/messages/conversations', auth, async (req, res) => {
   try {
     // Assuming authentication middleware sets req.user with the logged-in user's data
     const conversations = await Message.distinct('sender', { receiver: req.user.id })
@@ -60,12 +61,12 @@ router.get('/messages/conversations', async (req, res) => {
 });
 
 // Get a specific message by ID
-router.get('/messages/:id', getMessage, (req, res) => {
+router.get('/messages/:id', auth, getMessage, (req, res) => {
   res.json(res.message);
 });
 
 // Update a specific message by ID
-router.patch('/messages/:id', getMessage, async (req, res) => {
+router.patch('/messages/:id', auth, getMessage, async (req, res) => {
   if (req.body.sender != null) {
     res.message.sender = req.body.sender;
   }
@@ -89,7 +90,7 @@ router.patch('/messages/:id', getMessage, async (req, res) => {
 });
 
 // PATCH /messages/:messageId/mark-read
-router.patch('/messages/:messageId/mark-read', async (req, res) => {
+router.patch('/messages/:messageId/mark-read', auth, async (req, res) => {
   try {
     const messageId = req.params.messageId;
 
@@ -110,7 +111,7 @@ router.patch('/messages/:messageId/mark-read', async (req, res) => {
 });
 
 // Delete a specific message by ID
-router.delete('/messages/:id', getMessage, async (req, res) => {
+router.delete('/messages/:id', auth, getMessage, async (req, res) => {
   try {
     await res.message.remove();
     res.json({ message: 'Deleted message' });

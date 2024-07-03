@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const NearestAmenity = require('../models/NearestAmenity');
+const auth = require('../middleware/auth');
 
 // Middleware function to fetch an amenity by ID
 async function getAmenity(req, res, next) {
@@ -19,7 +20,7 @@ async function getAmenity(req, res, next) {
 }
 
 // Create a new amenity
-router.post('/amenities', async (req, res) => {
+router.post('/amenities', auth, async (req, res) => {
   try {
     const { referencedPark, locationType, address, coordinates, distanceFromPark } = req.body;
     const newAmenity = new NearestAmenity({
@@ -52,7 +53,7 @@ router.get('/amenities/:id', getAmenity, (req, res) => {
 });
 
 // Update a specific amenity by ID
-router.patch('/amenities/:id', getAmenity, async (req, res) => {
+router.patch('/amenities/:id', auth, getAmenity, async (req, res) => {
   if (req.body.referencedPark != null) {
     res.amenity.referencedPark = req.body.referencedPark;
   }
@@ -78,7 +79,7 @@ router.patch('/amenities/:id', getAmenity, async (req, res) => {
 });
 
 // Delete a specific amenity by ID
-router.delete('/amenities/:id', getAmenity, async (req, res) => {
+router.delete('/amenities/:id', auth, getAmenity, async (req, res) => {
   try {
     await res.amenity.remove();
     res.json({ message: 'Deleted amenity' });

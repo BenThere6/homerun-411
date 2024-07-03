@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const auth = require('../middleware/auth');
 
 // Middleware function to fetch a user by ID
 async function getUser(req, res, next) {
@@ -39,17 +40,15 @@ router.post('/users', async (req, res) => {
 });
 
 // POST /users/favorite-parks/:parkId
-router.post('/users/favorite-parks/:parkId', async (req, res) => {
+router.post('/users/favorite-parks/:parkId', auth, async (req, res) => {
   try {
     const parkId = req.params.parkId;
 
-    // Assuming authentication middleware sets req.user with the logged-in user's data
     const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Add park to favoriteParks if not already added
     if (!user.favoriteParks.includes(parkId)) {
       user.favoriteParks.push(parkId);
       await user.save();
@@ -62,7 +61,7 @@ router.post('/users/favorite-parks/:parkId', async (req, res) => {
 });
 
 // Get all users
-router.get('/users', async (req, res) => {
+router.get('/users', auth, async (req, res) => {
   try {
     const users = await User.find();
     res.json(users);
@@ -72,7 +71,7 @@ router.get('/users', async (req, res) => {
 });
 
 // GET /users/search?email={email}
-router.get('/users/search', async (req, res) => {
+router.get('/users/search', auth, async (req, res) => {
   try {
     const userEmail = req.query.email;
     const users = await User.find({ email: { $regex: userEmail, $options: 'i' } });
@@ -84,12 +83,12 @@ router.get('/users/search', async (req, res) => {
 });
 
 // Get a specific user by ID
-router.get('/users/:id', getUser, (req, res) => {
+router.get('/users/:id', auth, getUser, (req, res) => {
   res.json(res.user);
 });
 
 // Update a specific user by ID
-router.patch('/users/:id', getUser, async (req, res) => {
+router.patch('/users/:id', auth, getUser, async (req, res) => {
   if (req.body.email != null) {
     res.user.email = req.body.email;
   }
@@ -115,7 +114,7 @@ router.patch('/users/:id', getUser, async (req, res) => {
 });
 
 // Delete a specific user by ID
-router.delete('/users/:id', getUser, async (req, res) => {
+router.delete('/users/:id', auth, getUser, async (req, res) => {
   try {
     await res.user.remove();
     res.json({ message: 'Deleted user' });
@@ -125,17 +124,15 @@ router.delete('/users/:id', getUser, async (req, res) => {
 });
 
 // DELETE /users/favorite-parks/:parkId
-router.delete('/users/favorite-parks/:parkId', async (req, res) => {
+router.delete('/users/favorite-parks/:parkId', auth, async (req, res) => {
   try {
     const parkId = req.params.parkId;
 
-    // Assuming authentication middleware sets req.user with the logged-in user's data
     const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Remove park from favoriteParks if exists
     user.favoriteParks = user.favoriteParks.filter(p => p.toString() !== parkId);
     await user.save();
 
