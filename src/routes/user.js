@@ -38,6 +38,29 @@ router.post('/users', async (req, res) => {
   }
 });
 
+// POST /users/favorite-parks/:parkId
+router.post('/users/favorite-parks/:parkId', async (req, res) => {
+  try {
+    const parkId = req.params.parkId;
+
+    // Assuming authentication middleware sets req.user with the logged-in user's data
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Add park to favoriteParks if not already added
+    if (!user.favoriteParks.includes(parkId)) {
+      user.favoriteParks.push(parkId);
+      await user.save();
+    }
+
+    res.json(user.favoriteParks);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Get all users
 router.get('/users', async (req, res) => {
   try {
