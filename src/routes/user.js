@@ -62,7 +62,7 @@ router.post('/users/favorite-parks/:parkId', auth, async (req, res) => {
 });
 
 // Get all users
-router.get('/users', isAdmin, async (req, res) => {
+router.get('/users', auth, isAdmin, async (req, res) => {
   try {
     const users = await User.find();
     res.json(users);
@@ -72,7 +72,7 @@ router.get('/users', isAdmin, async (req, res) => {
 });
 
 // GET /users/search?email={email}
-router.get('/users/search', isAdmin, async (req, res) => {
+router.get('/users/search', auth, isAdmin, async (req, res) => {
   try {
     const userEmail = req.query.email;
     const users = await User.find({ email: { $regex: userEmail, $options: 'i' } });

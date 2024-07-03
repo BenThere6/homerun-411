@@ -20,7 +20,7 @@ router.get('/:id', auth, getAmazonAffiliateItem, (req, res) => {
 });
 
 // POST create an item
-router.post('/', isAdmin, async (req, res) => {
+router.post('/', auth, isAdmin, async (req, res) => {
   const item = new AmazonAffiliateItem({
     name: req.body.name,
     description: req.body.description,
@@ -40,7 +40,7 @@ router.post('/', isAdmin, async (req, res) => {
 });
 
 // PATCH update an item
-router.patch('/:id', isAdmin, getAmazonAffiliateItem, async (req, res) => {
+router.patch('/:id', auth, isAdmin, getAmazonAffiliateItem, async (req, res) => {
   if (req.body.name != null) {
     res.item.name = req.body.name;
   }
@@ -71,7 +71,7 @@ router.patch('/:id', isAdmin, getAmazonAffiliateItem, async (req, res) => {
 });
 
 // DELETE an item
-router.delete('/:id', isAdmin, getAmazonAffiliateItem, async (req, res) => {
+router.delete('/:id', auth, isAdmin, getAmazonAffiliateItem, async (req, res) => {
   try {
     await res.item.remove();
     res.json({ message: 'Deleted item' });

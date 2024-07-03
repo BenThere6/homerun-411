@@ -4,44 +4,9 @@ const bcrypt = require('bcryptjs');
 const authenticate = require('../middleware/auth.js');
 const checkAdmin = require('../middleware/isAdmin');
 const User = require('../models/User');
-const Park = require('../models/Park');
-
-// Admin route to delete a user by ID
-router.delete('/admin/users/:userId', authenticate, checkAdmin, async (req, res) => {
-  try {
-    const userId = req.params.userId;
-    const user = await User.findByIdAndDelete(userId);
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    res.json({ message: 'User deleted successfully' });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// Admin route to update a park by ID
-router.patch('/admin/parks/:parkId', authenticate, checkAdmin, async (req, res) => {
-  try {
-    const parkId = req.params.parkId;
-    const updateFields = req.body;
-
-    const park = await Park.findByIdAndUpdate(parkId, updateFields, { new: true });
-
-    if (!park) {
-      return res.status(404).json({ message: 'Park not found' });
-    }
-
-    res.json(park);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
 
 // Route to create a new admin user (for demo purposes)
-router.post('/admin/create-admin', async (req, res) => {
+router.post('/admin/create-admin', authenticate, checkAdmin, async (req, res) => {
   try {
     const { email, password } = req.body;
 
