@@ -20,7 +20,7 @@ async function getComment(req, res, next) {
 }
 
 // Create a new comment
-router.post('/comments', auth, async (req, res) => {
+router.post('/', auth, async (req, res) => {
   try {
     const { referencedPost, content, author } = req.body;
     const comment = new Comment({ referencedPost, content, author });
@@ -32,7 +32,7 @@ router.post('/comments', auth, async (req, res) => {
 });
 
 // Get all comments
-router.get('/comments', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const comments = await Comment.find();
     res.json(comments);
@@ -42,12 +42,12 @@ router.get('/comments', async (req, res) => {
 });
 
 // Get a specific comment by ID
-router.get('/comments/:id', getComment, (req, res) => {
+router.get('/:id', getComment, (req, res) => {
   res.json(res.comment);
 });
 
 // Update a specific comment by ID
-router.patch('/comments/:id', auth, getComment, async (req, res) => {
+router.patch('/:id', auth, getComment, async (req, res) => {
   if (req.body.content != null) {
     res.comment.content = req.body.content;
   }
@@ -62,7 +62,7 @@ router.patch('/comments/:id', auth, getComment, async (req, res) => {
 });
 
 // Delete a specific comment by ID
-router.delete('/comments/:id', auth, getComment, async (req, res) => {
+router.delete('/:id', auth, getComment, async (req, res) => {
   try {
     await res.comment.remove();
     res.json({ message: 'Deleted comment' });

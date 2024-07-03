@@ -23,7 +23,7 @@ async function getPark(req, res, next) {
 }
 
 // Create a new park
-router.post('/parks', auth, isAdmin, async (req, res) => {
+router.post('/', auth, isAdmin, async (req, res) => {
   try {
     const {
       name,
@@ -79,7 +79,7 @@ router.post('/parks', auth, isAdmin, async (req, res) => {
 });
 
 // Get all parks
-router.get('/parks', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const parks = await Park.find();
     res.json(parks);
@@ -88,8 +88,8 @@ router.get('/parks', async (req, res) => {
   }
 });
 
-// GET /parks/search?name={parkName}
-router.get('/parks/search', async (req, res) => {
+// Search parks by name
+router.get('/search', async (req, res) => {
   try {
     const parkName = req.query.name;
     const parks = await Park.find({ name: { $regex: parkName, $options: 'i' } });
@@ -100,8 +100,8 @@ router.get('/parks/search', async (req, res) => {
   }
 });
 
-// GET /parks/search?latitude={latitude}&longitude={longitude}
-router.get('/parks/nearby', async (req, res) => {
+// Search parks by coordinates
+router.get('/nearby', async (req, res) => {
   try {
     const { latitude, longitude } = req.query;
 
@@ -124,8 +124,8 @@ router.get('/parks/nearby', async (req, res) => {
   }
 });
 
-// GET /parks/:parkId/weather
-router.get('/parks/:parkId/weather', async (req, res) => {
+// Get weather for a specific park by ID
+router.get('/:parkId/weather', async (req, res) => {
   try {
     const parkId = req.params.parkId;
 
@@ -138,8 +138,8 @@ router.get('/parks/:parkId/weather', async (req, res) => {
   }
 });
 
-// GET /parks/:parkId/amenities
-router.get('/parks/:parkId/amenities', async (req, res) => {
+// Get amenities for a specific park by ID
+router.get('/:parkId/amenities', async (req, res) => {
   try {
     const parkId = req.params.parkId;
     const amenities = await NearestAmenity.find({ referencedPark: parkId });
@@ -151,83 +151,40 @@ router.get('/parks/:parkId/amenities', async (req, res) => {
 });
 
 // Get a specific park by ID
-router.get('/parks/:parkId', async (req, res) => {
-  try {
-    const parkId = req.params.parkId;
-    const park = await Park.findById(parkId);
-
-    if (!park) {
-      return res.status(404).json({ message: 'Park not found' });
-    }
-
-    res.json(park);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+router.get('/:id', getPark, (req, res) => {
+  res.json(res.park);
 });
 
 // Update a specific park by ID
-router.patch('/parks/:id', auth, isAdmin, getPark, async (req, res) => {
-  if (req.body.name != null) {
-    res.park.name = req.body.name;
-  }
-  if (req.body.coordinates != null) {
-    res.park.coordinates = req.body.coordinates;
-  }
-  if (req.body.interactiveMapPositionDetails != null) {
-    res.park.interactiveMapPositionDetails = req.body.interactiveMapPositionDetails;
-  }
-  if (req.body.satelliteImageUrl != null) {
-    res.park.satelliteImageUrl = req.body.satelliteImageUrl;
-  }
-  if (req.body.pictures != null) {
-    res.park.pictures = req.body.pictures;
-  }
-  if (req.body.closestParkingToField != null) {
-    res.park.closestParkingToField = req.body.closestParkingToField;
-  }
-  if (req.body.bleachers != null) {
-    res.park.bleachers = req.body.bleachers;
-  }
-  if (req.body.handicapAccess != null) {
-    res.park.handicapAccess = req.body.handicapAccess;
-  }
-  if (req.body.concessions != null) {
-    res.park.concessions = req.body.concessions;
-  }
-  if (req.body.coolersAllowed != null) {
-    res.park.coolersAllowed = req.body.coolersAllowed;
-  }
-  if (req.body.canopiesAllowed != null) {
-    res.park.canopiesAllowed = req.body.canopiesAllowed;
-  }
-  if (req.body.surfaceMaterial != null) {
-    res.park.surfaceMaterial = req.body.surfaceMaterial;
-  }
-  if (req.body.lights != null) {
-    res.park.lights = req.body.lights;
-  }
-  if (req.body.restrooms != null) {
-    res.park.restrooms = req.body.restrooms;
-  }
-  if (req.body.fenceDistance != null) {
-    res.park.fenceDistance = req.body.fenceDistance;
-  }
-  if (req.body.powerWaterAccess != null) {
-    res.park.powerWaterAccess = req.body.powerWaterAccess;
-  }
-  if (req.body.cellReception != null) {
-    res.park.cellReception = req.body.cellReception;
-  }
-  if (req.body.shadedAreas != null) {
-    res.park.shadedAreas = req.body.shadedAreas;
-  }
-  if (req.body.playground != null) {
-    res.park.playground = req.body.playground;
-  }
-  if (req.body.moundType != null) {
-    res.park.moundType = req.body.moundType;
-  }
+router.patch('/:id', auth, isAdmin, getPark, async (req, res) => {
+  const updateFields = [
+    'name',
+    'coordinates',
+    'interactiveMapPositionDetails',
+    'satelliteImageUrl',
+    'pictures',
+    'closestParkingToField',
+    'bleachers',
+    'handicapAccess',
+    'concessions',
+    'coolersAllowed',
+    'canopiesAllowed',
+    'surfaceMaterial',
+    'lights',
+    'restrooms',
+    'fenceDistance',
+    'powerWaterAccess',
+    'cellReception',
+    'shadedAreas',
+    'playground',
+    'moundType',
+  ];
+
+  updateFields.forEach(field => {
+    if (req.body[field] != null) {
+      res.park[field] = req.body[field];
+    }
+  });
 
   try {
     const updatedPark = await res.park.save();
@@ -238,7 +195,7 @@ router.patch('/parks/:id', auth, isAdmin, getPark, async (req, res) => {
 });
 
 // Delete a specific park by ID
-router.delete('/parks/:id', auth, isAdmin, getPark, async (req, res) => {
+router.delete('/:id', auth, isAdmin, getPark, async (req, res) => {
   try {
     await res.park.remove();
     res.json({ message: 'Deleted park' });

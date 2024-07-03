@@ -21,7 +21,7 @@ async function getSubscription(req, res, next) {
 }
 
 // Create a new subscription
-router.post('/subscriptions', auth, async (req, res) => { // Apply auth middleware
+router.post('/', auth, async (req, res) => { // Apply auth middleware
   try {
     const { user, startDate, endDate } = req.body;
 
@@ -39,7 +39,7 @@ router.post('/subscriptions', auth, async (req, res) => { // Apply auth middlewa
 });
 
 // Get all subscriptions
-router.get('/subscriptions', auth, isAdmin, async (req, res) => { // Apply auth middleware
+router.get('/', auth, isAdmin, async (req, res) => { // Apply auth middleware
   try {
     const subscriptions = await Subscription.find();
     res.json(subscriptions);
@@ -49,12 +49,12 @@ router.get('/subscriptions', auth, isAdmin, async (req, res) => { // Apply auth 
 });
 
 // Get a specific subscription by ID
-router.get('/subscriptions/:id', auth, getSubscription, (req, res) => { // Apply auth middleware
+router.get('/:id', auth, getSubscription, (req, res) => { // Apply auth middleware
   res.json(res.subscription);
 });
 
 // Update a specific subscription by ID
-router.patch('/subscriptions/:id', auth, getSubscription, async (req, res) => { // Apply auth middleware
+router.patch('/:id', auth, getSubscription, async (req, res) => { // Apply auth middleware
   if (req.body.startDate != null) {
     res.subscription.startDate = req.body.startDate;
   }
@@ -71,7 +71,7 @@ router.patch('/subscriptions/:id', auth, getSubscription, async (req, res) => { 
 });
 
 // Delete a specific subscription by ID
-router.delete('/subscriptions/:id', auth, isAdmin, getSubscription, async (req, res) => { // Apply auth middleware
+router.delete('/:id', auth, isAdmin, getSubscription, async (req, res) => { // Apply auth middleware
   try {
     await res.subscription.remove();
     res.json({ message: 'Deleted subscription' });

@@ -21,7 +21,7 @@ async function getMapLabel(req, res, next) {
 }
 
 // Create a new map label
-router.post('/maplabels', auth, isAdmin, async (req, res) => {
+router.post('/', auth, isAdmin, async (req, res) => {
   try {
     const { referencedPark, labelName, coordinates } = req.body;
     const newLabel = new MapLabel({
@@ -37,7 +37,7 @@ router.post('/maplabels', auth, isAdmin, async (req, res) => {
 });
 
 // Get all map labels
-router.get('/maplabels', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const labels = await MapLabel.find();
     res.json(labels);
@@ -47,12 +47,12 @@ router.get('/maplabels', async (req, res) => {
 });
 
 // Get a specific map label by ID
-router.get('/maplabels/:id', getMapLabel, (req, res) => {
+router.get('/:id', getMapLabel, (req, res) => {
   res.json(res.label);
 });
 
 // Update a specific map label by ID
-router.patch('/maplabels/:id', auth, isAdmin, getMapLabel, async (req, res) => {
+router.patch('/:id', auth, isAdmin, getMapLabel, async (req, res) => {
   if (req.body.referencedPark != null) {
     res.label.referencedPark = req.body.referencedPark;
   }
@@ -72,7 +72,7 @@ router.patch('/maplabels/:id', auth, isAdmin, getMapLabel, async (req, res) => {
 });
 
 // Delete a specific map label by ID
-router.delete('/maplabels/:id', auth, isAdmin, getMapLabel, async (req, res) => {
+router.delete('/:id', auth, isAdmin, getMapLabel, async (req, res) => {
   try {
     await res.label.remove();
     res.json({ message: 'Deleted map label' });

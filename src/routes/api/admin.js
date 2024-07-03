@@ -6,7 +6,7 @@ const checkAdmin = require('../../middleware/isAdmin.js');
 const User = require('../../models/User.js');
 
 // Route to create a new admin user (for demo purposes)
-router.post('/admin/create-admin', authenticate, checkAdmin, async (req, res) => {
+router.post('/create-admin', authenticate, checkAdmin, async (req, res) => {
   try {
     const { email, password } = req.body;
 

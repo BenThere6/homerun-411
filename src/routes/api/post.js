@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Post = require('../../models/Post');
 const Comment = require('../../models/Comment'); // Assuming Comment model is imported
+const User = require('../../models/User'); // Assuming User model is imported
 const auth = require('../../middleware/auth');
 
 // Middleware function to fetch post by ID
@@ -21,7 +22,7 @@ async function getPost(req, res, next) {
 }
 
 // Create a new post
-router.post('/posts', auth, async (req, res) => {
+router.post('/', auth, async (req, res) => {
   try {
     const { title, content, author, tags, referencedPark } = req.body;
 
@@ -40,8 +41,8 @@ router.post('/posts', auth, async (req, res) => {
   }
 });
 
-// POST /posts/:postId/comments
-router.post('/posts/:postId/comments', auth, async (req, res) => {
+// Add a comment to a post
+router.post('/:postId/comments', auth, async (req, res) => {
   try {
     const postId = req.params.postId;
     const { content } = req.body;
@@ -66,7 +67,7 @@ router.post('/posts/:postId/comments', auth, async (req, res) => {
 });
 
 // Get all posts
-router.get('/posts', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const posts = await Post.find();
     res.json(posts);
@@ -75,23 +76,21 @@ router.get('/posts', async (req, res) => {
   }
 });
 
-// GET /posts/recent
-router.get('/posts/recent', async (req, res) => {
+// Get recent posts
+router.get('/recent', async (req, res) => {
   try {
     const recentPosts = await Post.find().sort({ createdAt: -1 }).limit(10);
-
     res.json(recentPosts);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// GET /posts/search?tag={tag}
-router.get('/posts/search', async (req, res) => {
+// Search posts by tag
+router.get('/search', async (req, res) => {
   try {
     const tag = req.query.tag;
     const posts = await Post.find({ tags: tag });
-
     res.json(posts);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -99,12 +98,12 @@ router.get('/posts/search', async (req, res) => {
 });
 
 // Get post by ID
-router.get('/posts/:id', getPost, (req, res) => {
+router.get('/:id', getPost, (req, res) => {
   res.json(res.post);
 });
 
 // Get all comments for a specific post
-router.get('/posts/:postId/comments', async (req, res) => {
+router.get('/:postId/comments', async (req, res) => {
   try {
     const { postId } = req.params;
     const comments = await Comment.find({ referencedPost: postId });
@@ -115,19 +114,15 @@ router.get('/posts/:postId/comments', async (req, res) => {
 });
 
 // Update post by ID
-router.patch('/posts/:id', auth, getPost, async (req, res) => {
-  if (req.body.title != null) {
-    res.post.title = req.body.title;
-  }
-  if (req.body.content != null) {
-    res.post.content = req.body.content;
-  }
-  if (req.body.tags != null) {
-    res.post.tags = req.body.tags;
-  }
-  if (req.body.referencedPark != null) {
-    res.post.referencedPark = req.body.referencedPark;
-  }
+router.patch('/:id', auth, getPost, async (req, res) => {
+  const updateFields = ['title', 'content', 'tags', 'referencedPark'];
+
+  updateFields.forEach(field => {
+    if (req.body[field] != null) {
+      res.post[field] = req.body[field];
+    }
+  });
+
   res.post.updatedAt = Date.now();
 
   try {
@@ -139,7 +134,7 @@ router.patch('/posts/:id', auth, getPost, async (req, res) => {
 });
 
 // Delete post by ID
-router.delete('/posts/:id', auth, getPost, async (req, res) => {
+router.delete('/:id', auth, getPost, async (req, res) => {
   try {
     await res.post.remove();
     res.json({ message: 'Deleted post' });

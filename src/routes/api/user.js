@@ -21,7 +21,7 @@ async function getUser(req, res, next) {
 }
 
 // Create a new user
-router.post('/users', async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { email, passwordHash, role, location, zipCode } = req.body;
 
@@ -40,8 +40,8 @@ router.post('/users', async (req, res) => {
   }
 });
 
-// POST /users/favorite-parks/:parkId
-router.post('/users/favorite-parks/:parkId', auth, async (req, res) => {
+// Add a favorite park
+router.post('/favorite-parks/:parkId', auth, async (req, res) => {
   try {
     const parkId = req.params.parkId;
 
@@ -62,7 +62,7 @@ router.post('/users/favorite-parks/:parkId', auth, async (req, res) => {
 });
 
 // Get all users
-router.get('/users', auth, isAdmin, async (req, res) => {
+router.get('/', auth, isAdmin, async (req, res) => {
   try {
     const users = await User.find();
     res.json(users);
@@ -71,8 +71,8 @@ router.get('/users', auth, isAdmin, async (req, res) => {
   }
 });
 
-// GET /users/search?email={email}
-router.get('/users/search', auth, isAdmin, async (req, res) => {
+// Search users by email
+router.get('/search', auth, isAdmin, async (req, res) => {
   try {
     const userEmail = req.query.email;
     const users = await User.find({ email: { $regex: userEmail, $options: 'i' } });
@@ -84,27 +84,19 @@ router.get('/users/search', auth, isAdmin, async (req, res) => {
 });
 
 // Get a specific user by ID
-router.get('/users/:id', auth, getUser, (req, res) => {
+router.get('/:id', auth, getUser, (req, res) => {
   res.json(res.user);
 });
 
 // Update a specific user by ID
-router.patch('/users/:id', auth, getUser, async (req, res) => {
-  if (req.body.email != null) {
-    res.user.email = req.body.email;
-  }
-  if (req.body.passwordHash != null) {
-    res.user.passwordHash = req.body.passwordHash;
-  }
-  if (req.body.role != null) {
-    res.user.role = req.body.role;
-  }
-  if (req.body.location != null) {
-    res.user.location = req.body.location;
-  }
-  if (req.body.zipCode != null) {
-    res.user.zipCode = req.body.zipCode;
-  }
+router.patch('/:id', auth, getUser, async (req, res) => {
+  const updateFields = ['email', 'passwordHash', 'role', 'location', 'zipCode'];
+
+  updateFields.forEach(field => {
+    if (req.body[field] != null) {
+      res.user[field] = req.body[field];
+    }
+  });
 
   try {
     const updatedUser = await res.user.save();
@@ -115,7 +107,7 @@ router.patch('/users/:id', auth, getUser, async (req, res) => {
 });
 
 // Delete a specific user by ID
-router.delete('/users/:userId', authenticate, checkAdmin, async (req, res) => {
+router.delete('/:userId', auth, isAdmin, async (req, res) => {
   try {
     const userId = req.params.userId;
     const user = await User.findByIdAndDelete(userId);
@@ -130,8 +122,8 @@ router.delete('/users/:userId', authenticate, checkAdmin, async (req, res) => {
   }
 });
 
-// DELETE /users/favorite-parks/:parkId
-router.delete('/users/favorite-parks/:parkId', auth, async (req, res) => {
+// Remove a favorite park
+router.delete('/favorite-parks/:parkId', auth, async (req, res) => {
   try {
     const parkId = req.params.parkId;
 

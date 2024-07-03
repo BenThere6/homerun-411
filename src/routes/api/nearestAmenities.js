@@ -21,7 +21,7 @@ async function getAmenity(req, res, next) {
 }
 
 // Create a new amenity
-router.post('/amenities', auth, isAdmin, async (req, res) => {
+router.post('/', auth, isAdmin, async (req, res) => {
   try {
     const { referencedPark, locationType, address, coordinates, distanceFromPark } = req.body;
     const newAmenity = new NearestAmenity({
@@ -39,7 +39,7 @@ router.post('/amenities', auth, isAdmin, async (req, res) => {
 });
 
 // Get all amenities
-router.get('/amenities', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const amenities = await NearestAmenity.find();
     res.json(amenities);
@@ -49,12 +49,12 @@ router.get('/amenities', async (req, res) => {
 });
 
 // Get a specific amenity by ID
-router.get('/amenities/:id', getAmenity, (req, res) => {
+router.get('/:id', getAmenity, (req, res) => {
   res.json(res.amenity);
 });
 
 // Update a specific amenity by ID
-router.patch('/amenities/:id', auth, isAdmin, getAmenity, async (req, res) => {
+router.patch('/:id', auth, isAdmin, getAmenity, async (req, res) => {
   if (req.body.referencedPark != null) {
     res.amenity.referencedPark = req.body.referencedPark;
   }
@@ -80,7 +80,7 @@ router.patch('/amenities/:id', auth, isAdmin, getAmenity, async (req, res) => {
 });
 
 // Delete a specific amenity by ID
-router.delete('/amenities/:id', auth, isAdmin, getAmenity, async (req, res) => {
+router.delete('/:id', auth, isAdmin, getAmenity, async (req, res) => {
   try {
     await res.amenity.remove();
     res.json({ message: 'Deleted amenity' });

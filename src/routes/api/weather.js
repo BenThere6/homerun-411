@@ -20,7 +20,7 @@ async function getWeather(req, res, next) {
 }
 
 // Create weather data for a park
-router.post('/weather', auth, async (req, res) => { // Apply auth middleware
+router.post('/', auth, async (req, res) => { // Apply auth middleware
   try {
     const { park, temperature, conditions } = req.body;
 
@@ -38,7 +38,7 @@ router.post('/weather', auth, async (req, res) => { // Apply auth middleware
 });
 
 // Get all weather data
-router.get('/weather', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const weatherData = await Weather.find();
     res.json(weatherData);
@@ -48,12 +48,12 @@ router.get('/weather', async (req, res) => {
 });
 
 // Get weather data by ID
-router.get('/weather/:id', getWeather, (req, res) => {
+router.get('/:id', getWeather, (req, res) => {
   res.json(res.weather);
 });
 
 // Update weather data by ID
-router.patch('/weather/:id', auth, getWeather, async (req, res) => { // Apply auth middleware
+router.patch('/:id', auth, getWeather, async (req, res) => { // Apply auth middleware
   if (req.body.temperature != null) {
     res.weather.temperature = req.body.temperature;
   }
@@ -70,7 +70,7 @@ router.patch('/weather/:id', auth, getWeather, async (req, res) => { // Apply au
 });
 
 // Delete weather data by ID
-router.delete('/weather/:id', auth, getWeather, async (req, res) => { // Apply auth middleware
+router.delete('/:id', auth, getWeather, async (req, res) => { // Apply auth middleware
   try {
     await res.weather.remove();
     res.json({ message: 'Deleted weather data' });
