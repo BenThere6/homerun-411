@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
-const auth = require('../middleware/auth');
-const isAdmin = require('../middleware/isAdmin');
+const User = require('../../models/User');
+const auth = require('../../middleware/auth');
+const isAdmin = require('../../middleware/isAdmin');
 
 // Middleware function to fetch a user by ID
 async function getUser(req, res, next) {

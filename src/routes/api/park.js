@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const Park = require('../models/Park');
-const Weather = require('../models/Weather');
-const NearestAmenity = require('../models/NearestAmenity');
-const auth = require('../middleware/auth');
-const isAdmin = require('../middleware/isAdmin');
+const Park = require('../../models/Park');
+const Weather = require('../../models/Weather');
+const NearestAmenity = require('../../models/NearestAmenity');
+const auth = require('../../middleware/auth');
+const isAdmin = require('../../middleware/isAdmin');
 
 // Middleware function to fetch a park by ID
 async function getPark(req, res, next) {

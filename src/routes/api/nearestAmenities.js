@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const NearestAmenity = require('../models/NearestAmenity');
-const auth = require('../middleware/auth');
-const isAdmin = require('../middleware/isAdmin');
+const NearestAmenity = require('../../models/NearestAmenity');
+const auth = require('../../middleware/auth');
+const isAdmin = require('../../middleware/isAdmin');
 
 // Middleware function to fetch an amenity by ID
 async function getAmenity(req, res, next) {

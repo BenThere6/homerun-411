@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const Post = require('../models/Post');
-const Comment = require('../models/Comment'); // Assuming Comment model is imported
-const auth = require('../middleware/auth');
+const Post = require('../../models/Post');
+const Comment = require('../../models/Comment'); // Assuming Comment model is imported
+const auth = require('../../middleware/auth');
 
 // Middleware function to fetch post by ID
 async function getPost(req, res, next) {

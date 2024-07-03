@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const MapLabel = require('../models/MapLabel');
-const auth = require('../middleware/auth');
-const isAdmin = require('../middleware/isAdmin');
+const MapLabel = require('../../models/MapLabel');
+const auth = require('../../middleware/auth');
+const isAdmin = require('../../middleware/isAdmin');
 
 // Middleware function to fetch a map label by ID
 async function getMapLabel(req, res, next) {

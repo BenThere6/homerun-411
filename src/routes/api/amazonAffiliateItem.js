@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const AmazonAffiliateItem = require('../models/AmazonAffiliateItem');
-const auth = require('../middleware/auth');
-const isAdmin = require('../middleware/isAdmin');
+const AmazonAffiliateItem = require('../../models/AmazonAffiliateItem');
+const auth = require('../../middleware/auth');
+const isAdmin = require('../../middleware/isAdmin');
 
 // GET all items
 router.get('/amazonaffiliateitem', auth, async (req, res) => {

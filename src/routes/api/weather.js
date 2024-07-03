@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const Weather = require('../models/Weather');
-const auth = require('../middleware/auth'); // Import the auth middleware
+const Weather = require('../../models/Weather');
+const auth = require('../../middleware/auth'); // Import the auth middleware
 
 // Middleware function to fetch weather by ID
 async function getWeather(req, res, next) {

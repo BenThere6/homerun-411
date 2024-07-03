@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const Subscription = require('../models/Subscription');
-const auth = require('../middleware/auth'); // Import the auth middleware
-const isAdmin = require('../middleware/isAdmin');
+const Subscription = require('../../models/Subscription');
+const auth = require('../../middleware/auth'); // Import the auth middleware
+const isAdmin = require('../../middleware/isAdmin');
 
 // Middleware function to fetch a subscription by ID
 async function getSubscription(req, res, next) {

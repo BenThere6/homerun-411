@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
-const authenticate = require('../middleware/auth.js');
-const checkAdmin = require('../middleware/isAdmin');
-const User = require('../models/User');
+const authenticate = require('../../middleware/auth.js');
+const checkAdmin = require('../../middleware/isAdmin.js');
+const User = require('../../models/User.js');
 
 // Route to create a new admin user (for demo purposes)
 router.post('/admin/create-admin', authenticate, checkAdmin, async (req, res) => {

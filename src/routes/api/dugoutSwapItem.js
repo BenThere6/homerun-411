@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const DugoutSwapItem = require('../models/DugoutSwapItem');
-const auth = require('../middleware/auth');
+const DugoutSwapItem = require('../../models/DugoutSwapItem');
+const auth = require('../../middleware/auth');
 
 // Middleware function to fetch a dugout swap item by ID
 async function getDugoutSwapItem(req, res, next) {
