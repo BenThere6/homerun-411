@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Subscription = require('../models/Subscription');
 const auth = require('../middleware/auth'); // Import the auth middleware
+const isAdmin = require('../middleware/isAdmin');
 
 // Middleware function to fetch a subscription by ID
 async function getSubscription(req, res, next) {
@@ -38,7 +39,7 @@ router.post('/subscriptions', auth, async (req, res) => { // Apply auth middlewa
 });
 
 // Get all subscriptions
-router.get('/subscriptions', auth, async (req, res) => { // Apply auth middleware
+router.get('/subscriptions', isAdmin, async (req, res) => { // Apply auth middleware
   try {
     const subscriptions = await Subscription.find();
     res.json(subscriptions);
@@ -70,7 +71,7 @@ router.patch('/subscriptions/:id', auth, getSubscription, async (req, res) => { 
 });
 
 // Delete a specific subscription by ID
-router.delete('/subscriptions/:id', auth, getSubscription, async (req, res) => { // Apply auth middleware
+router.delete('/subscriptions/:id', isAdmin, getSubscription, async (req, res) => { // Apply auth middleware
   try {
     await res.subscription.remove();
     res.json({ message: 'Deleted subscription' });

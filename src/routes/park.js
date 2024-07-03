@@ -3,7 +3,8 @@ const router = express.Router();
 const Park = require('../models/Park');
 const Weather = require('../models/Weather');
 const NearestAmenity = require('../models/NearestAmenity');
-const auth = require('../middleware/auth');
+// const auth = require('../middleware/auth');
+const isAdmin = require('../middleware/isAdmin');
 
 // Middleware function to fetch a park by ID
 async function getPark(req, res, next) {
@@ -22,7 +23,7 @@ async function getPark(req, res, next) {
 }
 
 // Create a new park
-router.post('/parks', auth, async (req, res) => {
+router.post('/parks', isAdmin, async (req, res) => {
   try {
     const {
       name,
@@ -166,7 +167,7 @@ router.get('/parks/:parkId', async (req, res) => {
 });
 
 // Update a specific park by ID
-router.patch('/parks/:id', auth, getPark, async (req, res) => {
+router.patch('/parks/:id', isAdmin, getPark, async (req, res) => {
   if (req.body.name != null) {
     res.park.name = req.body.name;
   }
@@ -237,7 +238,7 @@ router.patch('/parks/:id', auth, getPark, async (req, res) => {
 });
 
 // Delete a specific park by ID
-router.delete('/parks/:id', auth, getPark, async (req, res) => {
+router.delete('/parks/:id', isAdmin, getPark, async (req, res) => {
   try {
     await res.park.remove();
     res.json({ message: 'Deleted park' });

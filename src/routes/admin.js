@@ -6,16 +6,6 @@ const checkAdmin = require('../middleware/isAdmin');
 const User = require('../models/User');
 const Park = require('../models/Park');
 
-// Admin route to get all users
-router.get('/admin/users', authenticate, checkAdmin, async (req, res) => {
-  try {
-    const users = await User.find();
-    res.json(users);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
 // Admin route to delete a user by ID
 router.delete('/admin/users/:userId', authenticate, checkAdmin, async (req, res) => {
   try {

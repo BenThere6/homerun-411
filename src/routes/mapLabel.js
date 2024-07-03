@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const MapLabel = require('../models/MapLabel');
-const auth = require('../middleware/auth');
+// const auth = require('../middleware/auth');
+const isAdmin = require('../middleware/isAdmin');
 
 // Middleware function to fetch a map label by ID
 async function getMapLabel(req, res, next) {
@@ -20,7 +21,7 @@ async function getMapLabel(req, res, next) {
 }
 
 // Create a new map label
-router.post('/maplabels', auth, async (req, res) => {
+router.post('/maplabels', isAdmin, async (req, res) => {
   try {
     const { referencedPark, labelName, coordinates } = req.body;
     const newLabel = new MapLabel({
@@ -51,7 +52,7 @@ router.get('/maplabels/:id', getMapLabel, (req, res) => {
 });
 
 // Update a specific map label by ID
-router.patch('/maplabels/:id', auth, getMapLabel, async (req, res) => {
+router.patch('/maplabels/:id', isAdmin, getMapLabel, async (req, res) => {
   if (req.body.referencedPark != null) {
     res.label.referencedPark = req.body.referencedPark;
   }
@@ -71,7 +72,7 @@ router.patch('/maplabels/:id', auth, getMapLabel, async (req, res) => {
 });
 
 // Delete a specific map label by ID
-router.delete('/maplabels/:id', auth, getMapLabel, async (req, res) => {
+router.delete('/maplabels/:id', isAdmin, getMapLabel, async (req, res) => {
   try {
     await res.label.remove();
     res.json({ message: 'Deleted map label' });

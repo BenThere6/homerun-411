@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const isAdmin = require('../middleware/isAdmin');
 
 // Middleware function to fetch a user by ID
 async function getUser(req, res, next) {
@@ -61,7 +62,7 @@ router.post('/users/favorite-parks/:parkId', auth, async (req, res) => {
 });
 
 // Get all users
-router.get('/users', auth, async (req, res) => {
+router.get('/users', isAdmin, async (req, res) => {
   try {
     const users = await User.find();
     res.json(users);
@@ -71,7 +72,7 @@ router.get('/users', auth, async (req, res) => {
 });
 
 // GET /users/search?email={email}
-router.get('/users/search', auth, async (req, res) => {
+router.get('/users/search', isAdmin, async (req, res) => {
   try {
     const userEmail = req.query.email;
     const users = await User.find({ email: { $regex: userEmail, $options: 'i' } });
@@ -114,10 +115,16 @@ router.patch('/users/:id', auth, getUser, async (req, res) => {
 });
 
 // Delete a specific user by ID
-router.delete('/users/:id', auth, getUser, async (req, res) => {
+router.delete('/users/:userId', authenticate, checkAdmin, async (req, res) => {
   try {
-    await res.user.remove();
-    res.json({ message: 'Deleted user' });
+    const userId = req.params.userId;
+    const user = await User.findByIdAndDelete(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ message: 'User deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
