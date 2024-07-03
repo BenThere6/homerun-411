@@ -15,6 +15,18 @@ const userSchema = new mongoose.Schema({
     enum: ['User', 'Admin'],
     default: 'User',
   },
+  location: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      required: true,
+      default: 'Point',
+    },
+    coordinates: {
+      type: [Number], // [longitude, latitude]
+      required: true,
+    },
+  },
   zipCode: {
     type: String,
     required: true,
