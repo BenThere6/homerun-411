@@ -89,15 +89,4 @@ router.delete('/users/:id', getUser, async (req, res) => {
   }
 });
 
-// GET /users/profile
-router.get('/users/profile', async (req, res) => {
-  try {
-    // Assuming authentication middleware sets req.user with the logged-in user's data
-    const user = await User.findById(req.user.id).populate('favoriteParks recentlyVisitedParks');
-    res.json(user);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
 module.exports = router;
