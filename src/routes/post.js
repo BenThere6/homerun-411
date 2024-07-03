@@ -38,11 +38,47 @@ router.post('/posts', async (req, res) => {
   }
 });
 
+// POST /posts/:postId/comments
+router.post('/posts/:postId/comments', async (req, res) => {
+  try {
+    const postId = req.params.postId;
+    const { content } = req.body;
+
+    // Assuming authentication middleware sets req.user with the logged-in user's data
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const comment = new Comment({
+      referencedPost: postId,
+      content,
+      author: req.user.id,
+    });
+
+    await comment.save();
+    res.status(201).json(comment);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Get all posts
 router.get('/posts', async (req, res) => {
   try {
     const posts = await Post.find();
     res.json(posts);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /posts/recent
+router.get('/posts/recent', async (req, res) => {
+  try {
+    const recentPosts = await Post.find().sort({ createdAt: -1 }).limit(10);
+
+    res.json(recentPosts);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

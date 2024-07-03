@@ -71,6 +71,18 @@ router.get('/users', async (req, res) => {
   }
 });
 
+// GET /users/search?email={email}
+router.get('/users/search', async (req, res) => {
+  try {
+    const userEmail = req.query.email;
+    const users = await User.find({ email: { $regex: userEmail, $options: 'i' } });
+
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Get a specific user by ID
 router.get('/users/:id', getUser, (req, res) => {
   res.json(res.user);

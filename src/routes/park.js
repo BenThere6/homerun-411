@@ -85,6 +85,18 @@ router.get('/parks', async (req, res) => {
   }
 });
 
+// GET /parks/search?name={parkName}
+router.get('/parks/search', async (req, res) => {
+  try {
+    const parkName = req.query.name;
+    const parks = await Park.find({ name: { $regex: parkName, $options: 'i' } });
+
+    res.json(parks);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // GET /parks/search?latitude={latitude}&longitude={longitude}
 router.get('/parks/search', async (req, res) => {
   try {
@@ -136,8 +148,19 @@ router.get('/parks/:parkId/amenities', async (req, res) => {
 });
 
 // Get a specific park by ID
-router.get('/parks/:id', getPark, (req, res) => {
-  res.json(res.park);
+router.get('/parks/:parkId', async (req, res) => {
+  try {
+    const parkId = req.params.parkId;
+    const park = await Park.findById(parkId);
+
+    if (!park) {
+      return res.status(404).json({ message: 'Park not found' });
+    }
+
+    res.json(park);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 // Update a specific park by ID
