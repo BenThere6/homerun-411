@@ -14,6 +14,7 @@ const postRoutes = require('./api/post');
 const subscriptionRoutes = require('./api/subscription');
 const userRoutes = require('./api/user');
 const weatherRoutes = require('./api/weather');
+const checkinRoutes = require('./api/checkin');
 
 // Use the imported routes
 router.use('/admin', adminRoutes);
@@ -28,5 +29,6 @@ router.use('/post', postRoutes);
 router.use('/subscription', subscriptionRoutes);
 router.use('/user', userRoutes);
 router.use('/weather', weatherRoutes);
+router.use('/checkin', checkinRoutes);
 
 module.exports = router;
