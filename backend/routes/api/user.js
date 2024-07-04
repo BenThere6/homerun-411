@@ -211,16 +211,20 @@ router.delete('/favorite-parks/:parkId', auth, async (req, res) => {
   try {
     const parkId = req.params.parkId;
 
+    // Find the user by their authenticated ID
     const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // Filter out the parkId from user's favoriteParks array
     user.favoriteParks = user.favoriteParks.filter(p => p.toString() !== parkId);
     await user.save();
 
+    // Respond with updated list of favoriteParks
     res.json(user.favoriteParks);
   } catch (err) {
+    // Handle any errors that occur during the process
     res.status(500).json({ message: err.message });
   }
 });

@@ -197,8 +197,11 @@ router.patch('/:id', auth, isAdmin, getPark, async (req, res) => {
 // Delete a specific park by ID
 router.delete('/:id', auth, isAdmin, getPark, async (req, res) => {
   try {
-    await res.park.remove();
-    res.json({ message: 'Deleted park' });
+    const deletedPark = await Park.findByIdAndDelete(req.params.id);
+    if (!deletedPark) {
+      return res.status(404).json({ message: 'Park not found' });
+    }
+    res.json({ message: 'Park deleted successfully', deletedPark });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

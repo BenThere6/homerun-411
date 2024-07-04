@@ -64,8 +64,11 @@ router.patch('/:id', auth, getComment, async (req, res) => {
 // Delete a specific comment by ID
 router.delete('/:id', auth, getComment, async (req, res) => {
   try {
-    await res.comment.remove();
-    res.json({ message: 'Deleted comment' });
+    const deletedComment = await Comment.findByIdAndDelete(req.params.id);
+    if (!deletedComment) {
+      return res.status(404).json({ message: 'Comment not found' });
+    }
+    res.json({ message: 'Comment deleted successfully', deletedComment });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

@@ -74,8 +74,11 @@ router.patch('/:id', auth, getAppFeedback, async (req, res) => {
 // Delete app feedback by ID
 router.delete('/:id', auth, isAdmin, getAppFeedback, async (req, res) => {
   try {
-    await res.feedback.remove();
-    res.json({ message: 'App feedback deleted successfully' });
+    const deletedFeedback = await AppFeedback.findByIdAndDelete(req.params.id);
+    if (!deletedFeedback) {
+      return res.status(404).json({ message: 'App feedback not found' });
+    }
+    res.json({ message: 'App feedback deleted successfully', deletedFeedback });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

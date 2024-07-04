@@ -113,8 +113,11 @@ router.patch('/:id', auth, getDugoutSwapItem, async (req, res) => {
 // Delete a specific dugout swap item by ID
 router.delete('/:id', auth, getDugoutSwapItem, canDeleteDugoutSwapItem, async (req, res) => {
   try {
-    await res.item.remove();
-    res.json({ message: 'Deleted dugout swap item' });
+    const deletedItem = await DugoutSwapItem.findByIdAndDelete(req.params.id);
+    if (!deletedItem) {
+      return res.status(404).json({ message: 'Dugout swap item not found' });
+    }
+    res.json({ message: 'Dugout swap item deleted successfully', deletedItem });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

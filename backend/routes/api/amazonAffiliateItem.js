@@ -73,12 +73,15 @@ router.patch('/:id', auth, isAdmin, getAmazonAffiliateItem, async (req, res) => 
 // DELETE an item
 router.delete('/:id', auth, isAdmin, getAmazonAffiliateItem, async (req, res) => {
   try {
-    await res.item.remove();
-    res.json({ message: 'Deleted item' });
+    const deletedItem = await AmazonAffiliateItem.findByIdAndDelete(req.params.id);
+    if (!deletedItem) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
+    res.json({ message: 'Deleted item', deletedItem });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
-});
+})
 
 // Middleware function to get item by ID
 async function getAmazonAffiliateItem(req, res, next) {

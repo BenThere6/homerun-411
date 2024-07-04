@@ -70,8 +70,9 @@ router.patch('/:id', auth, getWeather, async (req, res) => { // Apply auth middl
 });
 
 // Delete weather data by ID
-router.delete('/:id', auth, getWeather, async (req, res) => { // Apply auth middleware
+router.delete('/:id', auth, getWeather, async (req, res) => {
   try {
+    // Assuming getWeather middleware sets the weather data on res.weather
     await res.weather.remove();
     res.json({ message: 'Deleted weather data' });
   } catch (err) {

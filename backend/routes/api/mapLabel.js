@@ -74,8 +74,11 @@ router.patch('/:id', auth, isAdmin, getMapLabel, async (req, res) => {
 // Delete a specific map label by ID
 router.delete('/:id', auth, isAdmin, getMapLabel, async (req, res) => {
   try {
-    await res.label.remove();
-    res.json({ message: 'Deleted map label' });
+    const deletedLabel = await MapLabel.findByIdAndDelete(req.params.id);
+    if (!deletedLabel) {
+      return res.status(404).json({ message: 'Map label not found' });
+    }
+    res.json({ message: 'Map label deleted successfully', deletedLabel });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

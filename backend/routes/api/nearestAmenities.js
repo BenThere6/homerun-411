@@ -82,8 +82,11 @@ router.patch('/:id', auth, isAdmin, getAmenity, async (req, res) => {
 // Delete a specific amenity by ID
 router.delete('/:id', auth, isAdmin, getAmenity, async (req, res) => {
   try {
-    await res.amenity.remove();
-    res.json({ message: 'Deleted amenity' });
+    const deletedAmenity = await Amenity.findByIdAndDelete(req.params.id);
+    if (!deletedAmenity) {
+      return res.status(404).json({ message: 'Amenity not found' });
+    }
+    res.json({ message: 'Amenity deleted successfully', deletedAmenity });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

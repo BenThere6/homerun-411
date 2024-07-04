@@ -71,10 +71,13 @@ router.patch('/:id', auth, getSubscription, async (req, res) => { // Apply auth 
 });
 
 // Delete a specific subscription by ID
-router.delete('/:id', auth, isAdmin, getSubscription, async (req, res) => { // Apply auth middleware
+router.delete('/:id', auth, isAdmin, getSubscription, async (req, res) => {
   try {
-    await res.subscription.remove();
-    res.json({ message: 'Deleted subscription' });
+    const deletedSubscription = await Subscription.findByIdAndDelete(req.params.id);
+    if (!deletedSubscription) {
+      return res.status(404).json({ message: 'Subscription not found' });
+    }
+    res.json({ message: 'Subscription deleted successfully', deletedSubscription });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

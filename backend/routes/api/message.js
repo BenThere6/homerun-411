@@ -113,8 +113,11 @@ router.patch('/:messageId/mark-read', auth, async (req, res) => {
 // Delete a specific message by ID
 router.delete('/:id', auth, getMessage, async (req, res) => {
   try {
-    await res.message.remove();
-    res.json({ message: 'Deleted message' });
+    const deletedMessage = await Message.findByIdAndDelete(req.params.id);
+    if (!deletedMessage) {
+      return res.status(404).json({ message: 'Message not found' });
+    }
+    res.json({ message: 'Message deleted successfully', deletedMessage });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
