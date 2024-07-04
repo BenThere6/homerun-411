@@ -41,11 +41,12 @@ async function canDeleteDugoutSwapItem(req, res, next) {
 // Create a new dugout swap item
 router.post('/', auth, async (req, res) => {
   try {
-    const { name, description, price, condition, imageURL, seller, category, zipCode } = req.body;
+    const { name, description, price, shipping, condition, imageURL, seller, category, zipCode } = req.body;
     const newItem = new DugoutSwapItem({
       name,
       description,
       price,
+      shipping,
       condition,
       imageURL,
       seller,
@@ -84,6 +85,9 @@ router.patch('/:id', auth, getDugoutSwapItem, async (req, res) => {
   }
   if (req.body.price != null) {
     res.item.price = req.body.price;
+  }
+  if (req.body.shipping != null) {
+    res.item.shipping = req.body.shipping;
   }
   if (req.body.condition != null) {
     res.item.condition = req.body.condition;

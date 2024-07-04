@@ -13,6 +13,10 @@ const dugoutSwapItemSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  shipping: {
+    type: Number,
+    required: true,
+  },
   condition: {
     type: String,
     enum: ['New', 'Used'],
