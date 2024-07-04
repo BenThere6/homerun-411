@@ -88,6 +88,34 @@ router.get('/:id', auth, getUser, (req, res) => {
   res.json(res.user);
 });
 
+// Get user profile
+router.get('/profile', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json(user.profile);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Get user settings
+router.get('/settings', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json(user.settings);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Update a specific user by ID
 router.patch('/:id', auth, getUser, async (req, res) => {
   const updateFields = ['email', 'passwordHash', 'role', 'location', 'zipCode'];
@@ -100,6 +128,59 @@ router.patch('/:id', auth, getUser, async (req, res) => {
 
   try {
     const updatedUser = await res.user.save();
+    res.json(updatedUser);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// Update user profile
+router.patch('/profile', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (req.body.firstName != null) {
+      user.profile.firstName = req.body.firstName;
+    }
+    if (req.body.lastName != null) {
+      user.profile.lastName = req.body.lastName;
+    }
+    if (req.body.avatarUrl != null) {
+      user.profile.avatarUrl = req.body.avatarUrl;
+    }
+    if (req.body.bio != null) {
+      user.profile.bio = req.body.bio;
+    }
+
+    const updatedUser = await user.save();
+    res.json(updatedUser);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// Update user settings
+router.patch('/settings', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (req.body.notifications != null) {
+      user.settings.notifications = req.body.notifications;
+    }
+    if (req.body.theme != null) {
+      user.settings.theme = req.body.theme;
+    }
+    if (req.body.shareLocation != null) {
+      user.settings.shareLocation = req.body.shareLocation;
+    }
+
+    const updatedUser = await user.save();
     res.json(updatedUser);
   } catch (err) {
     res.status(400).json({ message: err.message });

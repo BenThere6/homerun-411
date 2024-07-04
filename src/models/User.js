@@ -78,7 +78,7 @@ const userSchema = new mongoose.Schema({
     settings: {
       shareLocation: {
         type: Boolean,
-        default: false, // Default to not sharing location
+        default: false,
       },
     },
   },
