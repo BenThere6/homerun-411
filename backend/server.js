@@ -14,7 +14,7 @@ app.use(express.json());
 connectDB();
 
 // Routes
-const routes = require('./backend/routes/index');
+const routes = require('./routes/index');
 app.use('/', routes);
 
 // Error handling middleware
