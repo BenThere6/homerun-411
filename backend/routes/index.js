@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 
 // Import all route files
-const adminRoutes = require('./api/admin');
 const amazonAffiliateItemRoutes = require('./api/amazonAffiliateItem');
 const commentRoutes = require('./api/comment');
 const dugoutSwapRoutes = require('./api/dugoutSwapItem');
@@ -19,7 +18,6 @@ const userActivityRoutes = require('./api/userActivity');
 const appFeedbackRoutes = require('./api/appFeedback');
 
 // Use the imported routes
-router.use('/api/admin', adminRoutes);
 router.use('/api/amazon-affiliate-item', amazonAffiliateItemRoutes);
 router.use('/api/comment', commentRoutes);
 router.use('/api/dugout-swap', dugoutSwapRoutes);
