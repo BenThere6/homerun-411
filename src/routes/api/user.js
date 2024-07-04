@@ -9,7 +9,7 @@ async function getUser(req, res, next) {
   let user;
   try {
     user = await User.findById(req.params.id);
-    if (user == null) {
+    if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
   } catch (err) {
@@ -61,7 +61,7 @@ router.post('/favorite-parks/:parkId', auth, async (req, res) => {
   }
 });
 
-// Get all users
+// Get all users (admin only)
 router.get('/', auth, isAdmin, async (req, res) => {
   try {
     const users = await User.find();
@@ -71,7 +71,7 @@ router.get('/', auth, isAdmin, async (req, res) => {
   }
 });
 
-// Search users by email
+// Search users by email (admin only)
 router.get('/search', auth, isAdmin, async (req, res) => {
   try {
     const userEmail = req.query.email;
@@ -121,7 +121,7 @@ router.patch('/:id', auth, getUser, async (req, res) => {
   const updateFields = ['email', 'passwordHash', 'role', 'location', 'zipCode'];
 
   updateFields.forEach(field => {
-    if (req.body[field] != null) {
+    if (req.body[field] !== undefined) {
       res.user[field] = req.body[field];
     }
   });
@@ -142,16 +142,16 @@ router.patch('/profile', auth, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    if (req.body.firstName != null) {
+    if (req.body.firstName !== undefined) {
       user.profile.firstName = req.body.firstName;
     }
-    if (req.body.lastName != null) {
+    if (req.body.lastName !== undefined) {
       user.profile.lastName = req.body.lastName;
     }
-    if (req.body.avatarUrl != null) {
+    if (req.body.avatarUrl !== undefined) {
       user.profile.avatarUrl = req.body.avatarUrl;
     }
-    if (req.body.bio != null) {
+    if (req.body.bio !== undefined) {
       user.profile.bio = req.body.bio;
     }
 
@@ -170,14 +170,17 @@ router.patch('/settings', auth, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    if (req.body.notifications != null) {
+    if (req.body.notifications !== undefined) {
       user.settings.notifications = req.body.notifications;
     }
-    if (req.body.theme != null) {
+    if (req.body.theme !== undefined) {
       user.settings.theme = req.body.theme;
     }
-    if (req.body.shareLocation != null) {
+    if (req.body.shareLocation !== undefined) {
       user.settings.shareLocation = req.body.shareLocation;
+    }
+    if (req.body.contentFilter !== undefined) {
+      user.settings.contentFilter = req.body.contentFilter;
     }
 
     const updatedUser = await user.save();

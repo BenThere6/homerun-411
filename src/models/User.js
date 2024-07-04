@@ -75,12 +75,14 @@ const userSchema = new mongoose.Schema({
       enum: ['light', 'dark'],
       default: 'light',
     },
-    settings: {
-      shareLocation: {
-        type: Boolean,
-        default: false,
-      },
+    shareLocation: {
+      type: Boolean,
+      default: false,
     },
+    contentFilter: { 
+      type: String, 
+      enum: ['all', 'favorites', 'none'], 
+      default: 'all' },
   },
 });
 
