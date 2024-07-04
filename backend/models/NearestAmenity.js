@@ -16,9 +16,15 @@ const nearestAmenitySchema = new mongoose.Schema({
     required: true,
   },
   coordinates: {
-    type: { type: String },
-    coordinates: [Number],
-    required: true,
+    type: {
+      type: String,
+      enum: ['Point'],
+      required: true,
+    },
+    coordinates: {
+      type: [Number],
+      required: true,
+    },
   },
   distanceFromPark: {
     type: Number,

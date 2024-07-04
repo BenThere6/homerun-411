@@ -11,9 +11,14 @@ const mapLabelSchema = new mongoose.Schema({
     required: true,
   },
   coordinates: {
-    type: { type: String },
-    coordinates: [Number],
-    required: true,
+    type: {
+      type: String,
+      required: true, // Specify the type of geometry (e.g., 'Point')
+    },
+    coordinates: {
+      type: [Number],
+      required: true, // Specify the coordinates (longitude and latitude)
+    },
   },
 });
 
