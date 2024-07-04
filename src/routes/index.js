@@ -16,6 +16,7 @@ const userRoutes = require('./api/user');
 const weatherRoutes = require('./api/weather');
 const checkinRoutes = require('./api/checkin');
 const userActivityRoutes = require('./api/userActivity');
+const appFeedbackRoutes = require('./api/appFeedback');
 
 // Use the imported routes
 router.use('/api/admin', adminRoutes);
@@ -32,5 +33,6 @@ router.use('/api/user', userRoutes);
 router.use('/api/weather', weatherRoutes);
 router.use('/api/check-in', checkinRoutes);
 router.use('/api/user-activity', userActivityRoutes);
+router.use('/api/app-feedback', appFeedbackRoutes);
 
 module.exports = router;
