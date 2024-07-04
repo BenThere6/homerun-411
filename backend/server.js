@@ -1,7 +1,7 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
+const connectDB = require('./mongoose');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -10,27 +10,12 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// MongoDB connection
-const uri = process.env.MONGODB_URI;
-mongoose.connect(uri, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
-const connection = mongoose.connection;
-connection.once('open', () => {
-  console.log('MongoDB database connection established successfully');
-});
+// Connect to MongoDB
+connectDB();
 
 // Routes
-const userRoutes = require('./backend/routes/userRoutes');
-const parkRoutes = require('./backend/routes/parkRoutes');
-const feedbackRoutes = require('./backend/routes/feedbackRoutes');
-// Add more routes as needed
-
-app.use('/api/users', userRoutes);
-app.use('/api/parks', parkRoutes);
-app.use('/api/feedback', feedbackRoutes);
-// Add more route paths as needed
+const routes = require('./backend/routes/index');
+app.use('/', routes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
