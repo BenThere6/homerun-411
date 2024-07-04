@@ -15,20 +15,22 @@ const subscriptionRoutes = require('./api/subscription');
 const userRoutes = require('./api/user');
 const weatherRoutes = require('./api/weather');
 const checkinRoutes = require('./api/checkin');
+const userActivityRoutes = require('./api/userActivity');
 
 // Use the imported routes
-router.use('/admin', adminRoutes);
-router.use('/amazonaffiliateitem', amazonAffiliateItemRoutes);
-router.use('/comment', commentRoutes);
-router.use('/dugoutswap', dugoutSwapRoutes);
-router.use('/maplabel', mapLabelRoutes);
-router.use('/message', messageRoutes);
-router.use('/nearestamenities', nearestAmenitiesRoutes);
-router.use('/park', parkRoutes);
-router.use('/post', postRoutes);
-router.use('/subscription', subscriptionRoutes);
-router.use('/user', userRoutes);
-router.use('/weather', weatherRoutes);
-router.use('/checkin', checkinRoutes);
+router.use('/api/admin', adminRoutes);
+router.use('/api/amazon-affiliate-item', amazonAffiliateItemRoutes);
+router.use('/api/comment', commentRoutes);
+router.use('/api/dugout-swap', dugoutSwapRoutes);
+router.use('/api/map-label', mapLabelRoutes);
+router.use('/api/message', messageRoutes);
+router.use('/api/nearest-amenities', nearestAmenitiesRoutes);
+router.use('/api/park', parkRoutes);
+router.use('/api/post', postRoutes);
+router.use('/api/subscription', subscriptionRoutes);
+router.use('/api/user', userRoutes);
+router.use('/api/weather', weatherRoutes);
+router.use('/api/check-in', checkinRoutes);
+router.use('/api/user-activity', userActivityRoutes);
 
 module.exports = router;
