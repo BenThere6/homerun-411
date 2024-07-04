@@ -59,6 +59,29 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  profile: {
+    firstName: String,
+    lastName: String,
+    avatarUrl: String,
+    bio: String,
+  },
+  settings: {
+    notifications: {
+      type: Boolean,
+      default: true,
+    },
+    theme: {
+      type: String,
+      enum: ['light', 'dark'],
+      default: 'light',
+    },
+    settings: {
+      shareLocation: {
+        type: Boolean,
+        default: false, // Default to not sharing location
+      },
+    },
+  },
 });
 
 const User = mongoose.model('User', userSchema);
