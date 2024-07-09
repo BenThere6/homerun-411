@@ -15,7 +15,7 @@ const amazonAffiliateItemSchema = new mongoose.Schema({
   },
   condition: {
     type: String,
-    enum: ['New', 'Used'],
+    enum: ['New', 'Used', 'Like New'],
     default: 'New',
   },
   imageURL: {
