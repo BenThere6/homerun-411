@@ -2,10 +2,9 @@ const jwt = require('jsonwebtoken');
 
 const authenticate = (req, res, next) => {
   // Check if environment is development
-  if (process.env.NODE_ENV === 'development') {
-    // Allow all requests in development mode
-    return next();
-  }
+  // if (process.env.NODE_ENV === 'development') {
+  //   return next();
+  // }
 
   // Retrieve token from Authorization header
   const token = req.header('Authorization');
