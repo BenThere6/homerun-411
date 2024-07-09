@@ -1,13 +1,8 @@
 const jwt = require('jsonwebtoken');
 
 const authenticate = (req, res, next) => {
-  // Check if environment is development
-  // if (process.env.NODE_ENV === 'development') {
-  //   return next();
-  // }
-
-  // Retrieve token from Authorization header
-  const token = req.header('Authorization');
+    // Retrieve token from Authorization header
+  const token = req.header('Authorization')?.replace('Bearer ', '');
 
   // Check if token is present
   if (!token) {
@@ -19,7 +14,8 @@ const authenticate = (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // Attach decoded user information to request object
-    req.user = decoded.user;
+    // Assuming the payload contains user information directly
+    req.user = decoded;
 
     // Proceed to the next middleware or route handler
     next();
