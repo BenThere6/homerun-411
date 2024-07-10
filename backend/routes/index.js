@@ -29,7 +29,7 @@ router.use('/api/post', postRoutes);
 router.use('/api/subscription', subscriptionRoutes);
 router.use('/api/user', userRoutes);
 router.use('/api/weather', weatherRoutes);
-router.use('/api/check-in', checkinRoutes);
+router.use('/api/checkin', checkinRoutes);
 router.use('/api/user-activity', userActivityRoutes);
 router.use('/api/app-feedback', appFeedbackRoutes);
 
