@@ -105,13 +105,25 @@ router.get('/nearby', async (req, res) => {
   try {
     const { latitude, longitude } = req.query;
 
+    // Validate latitude and longitude
+    if (!latitude || !longitude) {
+      return res.status(400).json({ message: 'Latitude and longitude are required' });
+    }
+
+    const lat = parseFloat(latitude);
+    const lon = parseFloat(longitude);
+
+    if (isNaN(lat) || isNaN(lon)) {
+      return res.status(400).json({ message: 'Latitude and longitude must be valid numbers' });
+    }
+
     // Find parks near the provided coordinates within a certain radius (using MongoDB geospatial queries)
     const parks = await Park.find({
       coordinates: {
         $near: {
           $geometry: {
             type: 'Point',
-            coordinates: [parseFloat(longitude), parseFloat(latitude)],
+            coordinates: [lon, lat],
           },
           $maxDistance: 10000, // Maximum distance in meters (adjust as needed)
         },
