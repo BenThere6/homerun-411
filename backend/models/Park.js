@@ -4,8 +4,8 @@ const Schema = mongoose.Schema;
 const parkSchema = new Schema({
   name: { type: String, required: true },
   coordinates: {
-    latitude: { type: Number, required: true },
-    longitude: { type: Number, required: true },
+    type: { type: String, default: 'Point' }, // This is required for the 2dsphere index
+    coordinates: { type: [Number], required: true }, // Array of numbers: [longitude, latitude]
   },
   interactiveMapPositionDetails: { type: String }, // e.g., Google Maps embed URL or details
   satelliteImageUrl: { type: String }, // May not need if using interactive map
@@ -48,5 +48,8 @@ const parkSchema = new Schema({
     enum: ['dirt', 'turf', 'movable'],
   },
 });
+
+// Create a 2dsphere index on the coordinates field
+parkSchema.index({ coordinates: '2dsphere' });
 
 module.exports = mongoose.model('Park', parkSchema);
