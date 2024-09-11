@@ -11,8 +11,8 @@ export default function Homepage() {
 
       {/* Scrollable content */}
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {/* Quick Links */}
-        <View style={styles.quickLinksContainer}>
+        {/* Quick Links with Horizontal Scroll */}
+        <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} style={styles.quickLinksContainer}>
           <TouchableOpacity style={styles.linkCard}>
             <Ionicons name="chatbubbles-outline" size={30} color="tomato" />
             <View style={styles.labelContainer}>
@@ -37,7 +37,13 @@ export default function Homepage() {
               <Text style={styles.linkLabel}>Etiquette</Text>
             </View>
           </TouchableOpacity>
-        </View>
+          <TouchableOpacity style={styles.linkCard}>
+            <Ionicons name="settings-outline" size={30} color="tomato" />
+            <View style={styles.labelContainer}>
+              <Text style={styles.linkLabel}>Admin</Text>
+            </View>
+          </TouchableOpacity>
+        </ScrollView>
 
         {/* Featured Parks */}
         <View style={styles.featuredParksContainer}>
@@ -72,9 +78,8 @@ const styles = StyleSheet.create({
   
   /* Quick Links */
   quickLinksContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-around',
+    paddingTop: 15, // Added padding at the top
+    paddingBottom: 15, // Added padding at the bottom
     marginVertical: 20,
   },
   linkCard: {
@@ -84,7 +89,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginRight: 20, // Space between cards in horizontal scroll
     elevation: 2, // Shadow for Android
     shadowColor: '#000', // Shadow for iOS
     shadowOffset: { width: 0, height: 2 }, // Shadow offset
