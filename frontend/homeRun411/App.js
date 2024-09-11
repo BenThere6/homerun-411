@@ -2,7 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import Homepage from './pages/Homepage'; // Your homepage
+import Home from './pages/Home'; // Your Home
 import SearchPage from './pages/Search'; // Placeholder for other pages
 import ForumPage from './pages/Forum'; // Placeholder for other pages
 import FavoritesPage from './pages/Favorites'; // Placeholder for other pages
@@ -32,7 +32,7 @@ export default function App() {
           headerShown: false, // This will hide the top bar
         })}
       >
-        <Tab.Screen name="Home" component={Homepage} />
+        <Tab.Screen name="Home" component={Home} />
         <Tab.Screen name="Search" component={SearchPage} />
         <Tab.Screen name="Forum" component={ForumPage} />
         <Tab.Screen name="Favorites" component={FavoritesPage} />
