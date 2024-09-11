@@ -1,69 +1,33 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons';  // Icon library for Expo
-import Homepage from './pages/Homepage';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, TextInput, StyleSheet, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { Ionicons } from '@expo/vector-icons'; // Using Ionicons for the search and notification icons
 
-// Placeholder components for the other pages
-function SearchPage() {
+export default function Homepage() {
   return (
-    <View style={styles.container}>
-      <Text>Search Page</Text>
-    </View>
-  );
-}
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <View style={styles.container}>
+        {/* Header with Search Bar and Notification Icon */}
+        <View style={styles.headerContainer}>
+          {/* Search Bar */}
+          <View style={styles.searchBar}>
+            <Ionicons name="search" size={20} color="black" style={styles.searchIcon} />
+            <TextInput
+              placeholder="Search"
+              placeholderTextColor="gray"
+              style={styles.input}
+              blurOnSubmit={true} // Closes the keyboard when submitted
+            />
+            {/* Filter Icon in a Circle */}
+            <View style={styles.filterIconContainer}>
+              <Ionicons name="options-outline" size={20} color="black" />
+            </View>
+          </View>
 
-function ForumPage() {
-  return (
-    <View style={styles.container}>
-      <Text>Forum Page</Text>
-    </View>
-  );
-}
-
-function FavoritesPage() {
-  return (
-    <View style={styles.container}>
-      <Text>Favorites Page</Text>
-    </View>
-  );
-}
-
-const Tab = createBottomTabNavigator();
-
-export default function App() {
-  return (
-    <NavigationContainer>
-      <Tab.Navigator
-        screenOptions={({ route }) => ({
-          tabBarIcon: ({ focused, color, size }) => {
-            let iconName;
-
-            if (route.name === 'Home') {
-              iconName = focused ? 'home' : 'home-outline';
-            } else if (route.name === 'Search') {
-              iconName = focused ? 'search' : 'search-outline';
-            } else if (route.name === 'Forum') {
-              iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
-            } else if (route.name === 'Favorites') {
-              iconName = focused ? 'heart' : 'heart-outline';
-            }
-
-            return <Ionicons name={iconName} size={size} color={color} />;
-          },
-          tabBarActiveTintColor: 'tomato',
-          tabBarInactiveTintColor: 'gray',
-          tabBarStyle: [{ display: 'flex' }],
-          headerShown: false,
-        })}
-      >
-        <Tab.Screen name="Home" component={Homepage} />
-        <Tab.Screen name="Search" component={SearchPage} />
-        <Tab.Screen name="Forum" component={ForumPage} />
-        <Tab.Screen name="Favorites" component={FavoritesPage} />
-      </Tab.Navigator>
-    </NavigationContainer>
+          {/* Notification Icon */}
+          <Ionicons name="notifications-outline" size={24} color="black" style={styles.notificationIcon} />
+        </View>
+      </View>
+    </TouchableWithoutFeedback>
   );
 }
 
@@ -71,7 +35,50 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: 'white',
+    paddingTop: 50, // Adjusts space for the search bar
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '90%',
+    paddingBottom: 10,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff', // Set the search bar to white
+    borderRadius: 30, // Rounded edges
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    flex: 1,
+    elevation: 5, // Adds shadow for Android
+    shadowColor: '#000', // Adds shadow for iOS
+    shadowOffset: { width: 0, height: 2 }, // Shadow position for iOS
+    shadowOpacity: 0.2, // Shadow opacity for iOS
+    shadowRadius: 3.84, // Shadow blur for iOS
+  },
+  searchIcon: {
+    marginRight: 10,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: 'black',
+  },
+  filterIconContainer: {
+    width: 30, // Circle around the filter icon
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#dcdcdc',
+    marginLeft: 10,
+  },
+  notificationIcon: {
+    marginLeft: 20, // Adds some space between the search bar and the notification icon
   },
 });
