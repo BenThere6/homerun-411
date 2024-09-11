@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
     width: '100%', // Full width of the screen
     paddingHorizontal: 20, // Equal padding on left and right
     paddingTop: 25, // Small padding at the top
-    paddingBottom: 10, // Consistent padding at the bottom
+    paddingBottom: 6, // Consistent padding at the bottom
     backgroundColor: 'white', // Optional: Background color for the header
   },
   searchBar: {
