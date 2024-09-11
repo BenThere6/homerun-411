@@ -1,16 +1,16 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import Header from '../components/Header'; // Importing the Header component
+import Header from '../components/Header'; // Importing the header component
 
-export default function Homepage() {
+export default function SearchPage() {
   return (
     <View style={styles.container}>
-      {/* Include the Header component */}
+      {/* Reusable Header */}
       <Header />
       
-      {/* Additional content for the homepage */}
+      {/* Content */}
       <View style={styles.contentContainer}>
-        <Text style={styles.text}>Welcome to the Homepage</Text>
+        <Text style={styles.text}>This is the Search Page</Text>
       </View>
     </View>
   );
