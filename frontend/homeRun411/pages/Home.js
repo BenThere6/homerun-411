@@ -16,7 +16,7 @@ export default function Homepage() {
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         {/* Quick Links with Horizontal Scroll */}
         <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} style={styles.quickLinksContainer}>
-          <TouchableOpacity style={styles.linkCard}>
+          <TouchableOpacity style={[styles.linkCard, styles.firstLinkCard]}>
             <Ionicons name="chatbubbles-outline" size={30} color="tomato" />
             <View style={styles.labelContainer}>
               <Text style={styles.linkLabel}>Forum</Text>
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   /* Gray Line (Divider) */
   divider: {
     height: 1,
-    backgroundColor: '#d3d3d3', // Light gray color for the divider
+    backgroundColor: '#e0e0e0', // Light gray color for the divider
     marginTop: 10, // Add some space around the divider
   },
 
@@ -104,6 +104,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 }, // Shadow offset
     shadowOpacity: 0.2,
     shadowRadius: 3.84,
+  },
+  firstLinkCard: {
+    marginLeft: 20, // Add margin to the left of the first quick link card
   },
   labelContainer: {
     height: 30, // Fixed height for label container
