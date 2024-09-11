@@ -90,6 +90,7 @@ const styles = StyleSheet.create({
   quickLinksContainer: {
     paddingBottom: 15, // Added padding at the bottom
     marginVertical: 20,
+    paddingTop: 4
   },
   linkCard: {
     width: 80, // Square card
