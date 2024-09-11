@@ -9,6 +9,9 @@ export default function Homepage() {
       {/* Include the Header component */}
       <Header />
 
+      {/* Gray line (divider) */}
+      <View style={styles.divider} />
+
       {/* Scrollable content */}
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         {/* Quick Links with Horizontal Scroll */}
@@ -76,9 +79,15 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   
+  /* Gray Line (Divider) */
+  divider: {
+    height: 1,
+    backgroundColor: '#d3d3d3', // Light gray color for the divider
+    marginTop: 10, // Add some space around the divider
+  },
+
   /* Quick Links */
   quickLinksContainer: {
-    paddingTop: 15, // Added padding at the top
     paddingBottom: 15, // Added padding at the bottom
     marginVertical: 20,
   },
