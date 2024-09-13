@@ -7,7 +7,8 @@ import Home from './pages/Home';
 import SearchPage from './pages/Search';
 import ForumPage from './pages/Forum';
 import FavoritesPage from './pages/Favorites';
-import ParkDetails from './pages/ParkDetails'; // Import Park Details page
+import ProfilePage from './pages/Profile';
+import ParkDetails from './pages/ParkDetails';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator(); // Create stack navigator
@@ -27,6 +28,8 @@ function Tabs() {
             iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
           } else if (route.name === 'Favorites') {
             iconName = focused ? 'heart' : 'heart-outline';
+          } else if (route.name === 'Profile') {
+            iconName = focused ? 'person' : 'person-outline'; // Profile icon
           }
           return <Ionicons name={iconName} size={size} color={color} />;
         },
@@ -39,6 +42,7 @@ function Tabs() {
       <Tab.Screen name="Search" component={SearchPage} />
       <Tab.Screen name="Forum" component={ForumPage} />
       <Tab.Screen name="Favorites" component={FavoritesPage} />
+      <Tab.Screen name="Profile" component={ProfilePage} />
     </Tab.Navigator>
   );
 }
@@ -50,7 +54,14 @@ export default function App() {
       <Stack.Navigator>
         <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
         {/* ParkDetails will not appear in the bottom tab navigator */}
-        <Stack.Screen name="ParkDetails" component={ParkDetails} options={{ title: 'Park Details' }} />
+        <Stack.Screen 
+          name="ParkDetails" 
+          component={ParkDetails} 
+          options={{ 
+            title: 'Park Details',
+            headerBackTitle: 'Home',  // This sets the back button title to 'Home'
+          }} 
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
