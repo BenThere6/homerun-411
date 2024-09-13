@@ -1,9 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; // For icons
+import { useNavigation } from '@react-navigation/native'; // For navigation
 import Header from '../components/Header'; // Importing the Header component
 
 export default function Homepage() {
+  const navigation = useNavigation(); // Hook for navigation
+
   return (
     <View style={styles.container}>
       {/* Include the Header component */}
@@ -50,19 +53,26 @@ export default function Homepage() {
 
         {/* Featured Parks */}
         <View style={styles.featuredParksContainer}>
-          <View style={styles.parkCard}>
+          {/* Navigate to Park Details on click */}
+          <TouchableOpacity
+            style={styles.parkCard}
+            onPress={() => navigation.navigate('ParkDetails', { parkName: 'Park 1', location: 'City, State' })}>
             <Text style={styles.parkName}>Park 1</Text>
-          </View>
+          </TouchableOpacity>
           <Text style={styles.parkDetail}>Location: City, State</Text>
           
-          <View style={styles.parkCard}>
+          <TouchableOpacity
+            style={styles.parkCard}
+            onPress={() => navigation.navigate('ParkDetails', { parkName: 'Park 2', location: 'City, State' })}>
             <Text style={styles.parkName}>Park 2</Text>
-          </View>
+          </TouchableOpacity>
           <Text style={styles.parkDetail}>Location: City, State</Text>
 
-          <View style={styles.parkCard}>
+          <TouchableOpacity
+            style={styles.parkCard}
+            onPress={() => navigation.navigate('ParkDetails', { parkName: 'Park 3', location: 'City, State' })}>
             <Text style={styles.parkName}>Park 3</Text>
-          </View>
+          </TouchableOpacity>
           <Text style={styles.parkDetail}>Location: City, State</Text>
         </View>
       </ScrollView>
@@ -90,7 +100,7 @@ const styles = StyleSheet.create({
   quickLinksContainer: {
     paddingBottom: 15, // Added padding at the bottom
     marginVertical: 20,
-    paddingTop: 4
+    paddingTop: 4,
   },
   linkCard: {
     width: 80, // Square card
