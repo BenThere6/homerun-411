@@ -9,6 +9,10 @@ import ForumPage from './pages/Forum';
 import FavoritesPage from './pages/Favorites';
 import ProfilePage from './pages/Profile';
 import ParkDetails from './pages/ParkDetails';
+import NotificationsPage from './pages/Notifications';
+import EtiquettePage from './pages/Etiquette';
+import AdminPage from './pages/Admin';
+import SettingsPage from './pages/Settings';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator(); // Create stack navigator
@@ -53,14 +57,45 @@ export default function App() {
     <NavigationContainer>
       <Stack.Navigator>
         <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
-        {/* ParkDetails will not appear in the bottom tab navigator */}
-        <Stack.Screen 
-          name="ParkDetails" 
-          component={ParkDetails} 
-          options={{ 
+        <Stack.Screen
+          name="ParkDetails"
+          component={ParkDetails}
+          options={{
             title: 'Park Details',
-            headerBackTitle: 'Home',  // This sets the back button title to 'Home'
-          }} 
+            headerBackTitle: 'Back',
+          }}
+        />
+        <Stack.Screen
+          name="Notifications"
+          component={NotificationsPage}
+          options={{
+            title: 'Notifications',
+            headerBackTitle: 'Back',
+          }}
+        />
+        <Stack.Screen
+          name="Etiquette"
+          component={EtiquettePage}
+          options={{
+            title: 'Baseball Etiquette',
+            headerBackTitle: 'Back',
+          }}
+        />
+        <Stack.Screen
+          name="Admin"
+          component={AdminPage}
+          options={{
+            title: 'Admin',
+            headerBackTitle: 'Back',
+          }}
+        />
+        <Stack.Screen
+          name="Settings"
+          component={SettingsPage}
+          options={{
+            title: 'Settings',
+            headerBackTitle: 'Back',
+          }}
         />
       </Stack.Navigator>
     </NavigationContainer>

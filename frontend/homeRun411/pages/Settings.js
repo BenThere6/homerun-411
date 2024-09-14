@@ -1,15 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import Header from '../components/Header'; // Importing the header component
 
-export default function ForumPage() {
+export default function FavoritesPage() {
   return (
     <View style={styles.container}>
-      {/* <Header /> */}
-      
-      {/* Content */}
       <View style={styles.contentContainer}>
-        <Text style={styles.text}>This is the Forum Page</Text>
+        <Text style={styles.text}>This is the Settings Page</Text>
       </View>
     </View>
   );

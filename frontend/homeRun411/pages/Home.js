@@ -17,38 +17,63 @@ export default function Homepage() {
 
       {/* Scrollable content */}
       <ScrollView contentContainerStyle={styles.scrollContainer}>
+
+        <Text style={styles.sectionTitle}>This here be text.</Text>
+
         {/* Quick Links with Horizontal Scroll */}
         <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} style={styles.quickLinksContainer}>
-          <TouchableOpacity style={[styles.linkCard, styles.firstLinkCard]}>
+
+          {/* <TouchableOpacity style={[styles.linkCard, styles.firstLinkCard]}>
             <Ionicons name="chatbubbles-outline" size={30} color="tomato" />
             <View style={styles.labelContainer}>
               <Text style={styles.linkLabel}>Forum</Text>
             </View>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.linkCard}>
+          </TouchableOpacity> */}
+
+          {/* <TouchableOpacity style={[styles.linkCard, styles.firstLinkCard]}>
             <Ionicons name="partly-sunny-outline" size={30} color="tomato" />
             <View style={styles.labelContainer}>
               <Text style={styles.linkLabel}>Weather</Text>
             </View>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.linkCard}>
+          </TouchableOpacity> */}
+
+          <TouchableOpacity style={[styles.linkCard, styles.firstLinkCard]}>
             <Ionicons name="location-outline" size={30} color="tomato" />
             <View style={styles.labelContainer}>
               <Text style={styles.linkLabel}>Nearby Facilities</Text>
             </View>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.linkCard}>
+
+          <TouchableOpacity 
+            style={styles.linkCard}
+            onPress={() => navigation.navigate('Etiquette')}
+          >
             <Ionicons name="book-outline" size={30} color="tomato" />
             <View style={styles.labelContainer}>
-              <Text style={styles.linkLabel}>Etiquette</Text>
+              <Text style={styles.linkLabel}>Baseball Etiquette</Text>
             </View>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.linkCard}>
-            <Ionicons name="settings-outline" size={30} color="tomato" />
+
+          <TouchableOpacity 
+            style={styles.linkCard}
+            onPress={() => navigation.navigate('Settings')}
+          >
+            <Ionicons name="cog-outline" size={30} color="tomato" />
+            <View style={styles.labelContainer}>
+              <Text style={styles.linkLabel}>Settings</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.linkCard}
+            onPress={() => navigation.navigate('Admin')}
+          >
+            <Ionicons name="construct-outline" size={30} color="tomato" />
             <View style={styles.labelContainer}>
               <Text style={styles.linkLabel}>Admin</Text>
             </View>
           </TouchableOpacity>
+          
         </ScrollView>
 
         {/* Featured Parks */}
@@ -99,8 +124,8 @@ const styles = StyleSheet.create({
   /* Quick Links */
   quickLinksContainer: {
     paddingBottom: 15, // Added padding at the bottom
-    marginVertical: 20,
-    paddingTop: 4,
+    marginBottom: 20,
+    paddingTop: 0,
   },
   linkCard: {
     width: 80, // Square card
@@ -163,4 +188,9 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     marginBottom: 20,
   },
+  sectionTitle: {
+    paddingTop: 30,
+    paddingBottom: 15,
+    paddingLeft: 20
+  }
 });

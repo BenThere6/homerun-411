@@ -1,8 +1,11 @@
 import React from 'react';
-import { View, TextInput, StyleSheet } from 'react-native';
+import { View, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; // Icon library for icons
+import { useNavigation } from '@react-navigation/native'; // For navigation
 
 export default function Header() {
+  const navigation = useNavigation(); // Hook for navigation
+
   return (
     <View style={styles.headerContainer}>
       {/* Search Bar */}
@@ -18,8 +21,11 @@ export default function Header() {
           <Ionicons name="options-outline" size={20} color="black" />
         </View>
       </View>
-      {/* Notification Icon */}
-      <Ionicons name="notifications-outline" size={24} color="black" style={styles.notificationIcon} />
+
+      {/* Notification Icon (Touchable) */}
+      <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
+        <Ionicons name="notifications-outline" size={24} color="black" style={styles.notificationIcon} />
+      </TouchableOpacity>
     </View>
   );
 }
