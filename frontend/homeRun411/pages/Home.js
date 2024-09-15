@@ -7,7 +7,7 @@ import colors from '../assets/colors'; // Importing the color variables
 
 // Mock quickLinks data (you can replace this with your actual data)
 const quickLinks = [
-  { id: '1', icon: 'location', label: 'Nearby Facilities', screen: 'Nearby' },
+  { id: '1', icon: 'location', label: 'Nearby Facilities', screen: 'Facilities' },
   { id: '2', icon: 'book', label: 'Baseball Etiquette', screen: 'Etiquette' },
   { id: '3', icon: 'cog', label: 'Settings', screen: 'Settings' },
   { id: '4', icon: 'construct', label: 'Admin', screen: 'Admin' },
