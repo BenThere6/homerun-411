@@ -2,6 +2,7 @@ import React from 'react';
 import { View, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; // Icon library for icons
 import { useNavigation } from '@react-navigation/native'; // For navigation
+import colors from '../assets/colors'; // Importing the color variables
 
 export default function Header() {
   const navigation = useNavigation(); // Hook for navigation
@@ -10,21 +11,21 @@ export default function Header() {
     <View style={styles.headerContainer}>
       {/* Search Bar */}
       <View style={styles.searchBar}>
-        <Ionicons name="search" size={20} color="black" style={styles.searchIcon} />
+        <Ionicons name="search" size={20} color={colors.primaryText} style={styles.searchIcon} />
         <TextInput
           placeholder="Search"
-          placeholderTextColor="gray"
+          placeholderTextColor={colors.secondaryText} // Use secondaryText color for placeholder
           style={styles.input}
           blurOnSubmit={true} // Closes the keyboard when submitted
         />
         <View style={styles.filterIconContainer}>
-          <Ionicons name="options-outline" size={20} color="black" />
+          <Ionicons name="options-outline" size={20} color={colors.primaryText} />
         </View>
       </View>
 
       {/* Notification Icon (Touchable) */}
       <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
-        <Ionicons name="notifications-outline" size={24} color="black" style={styles.notificationIcon} />
+        <Ionicons name="notifications-outline" size={24} color={colors.primaryText} style={styles.notificationIcon} />
       </TouchableOpacity>
     </View>
   );
@@ -39,12 +40,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20, // Equal padding on left and right
     paddingTop: 5, // Small padding at the top
     paddingBottom: 6, // Consistent padding at the bottom
-    backgroundColor: 'white', // Optional: Background color for the header
+    backgroundColor: colors.sixty, // Background color (white) from color variables
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.sixty, // White background for search bar
     borderRadius: 30,
     paddingVertical: 10,
     paddingHorizontal: 15,
@@ -62,13 +63,13 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: 'black',
+    color: colors.primaryText, // Black color for input text
   },
   filterIconContainer: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#fff',
+    backgroundColor: colors.sixty, // White background for filter icon
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,

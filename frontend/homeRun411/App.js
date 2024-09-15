@@ -36,7 +36,7 @@ function Tabs() {
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: colors.thirty, // Blue for active state (30%)
-        tabBarInactiveTintColor: 'gray', // Gray for inactive state
+        tabBarInactiveTintColor: colors.secondaryText, // Use secondaryText for gray inactive state
         tabBarStyle: { backgroundColor: colors.sixty }, // White background (60%)
         headerShown: false,
       })}
@@ -58,10 +58,10 @@ export default function App() {
           headerStyle: {
             backgroundColor: colors.sixty, // White header background (60%)
           },
-          headerTintColor: colors.thirty, // Blue text for header (30%)
+          headerTintColor: colors.primaryText, // Black text for the back button
           headerTitleStyle: {
             fontWeight: 'bold',
-            color: colors.thirty, // Blue for title (30%)
+            color: colors.primaryText, // Black text for title
           },
         }}
       >

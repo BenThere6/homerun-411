@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, Keyboard, TouchableWithoutFeedback, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; // For icons
 import { useNavigation } from '@react-navigation/native'; // For navigation
+import colors from '../assets/colors'; // Importing the color variables
 
 export default function SearchPage() {
   const navigation = useNavigation(); // Hook for navigation
@@ -13,15 +14,15 @@ export default function SearchPage() {
       <SafeAreaView style={styles.container}>
         {/* Search Bar */}
         <View style={styles.searchBar}>
-          <Ionicons name="search" size={20} color="black" style={styles.searchIcon} />
+          <Ionicons name="search" size={20} color={colors.primaryText} style={styles.searchIcon} />
           <TextInput
             placeholder="Search"
-            placeholderTextColor="gray"
+            placeholderTextColor={colors.secondaryText} // Use secondaryText for placeholder
             style={styles.input}
             blurOnSubmit={true} // Closes the keyboard when submitted
           />
           <View style={styles.filterIconContainer}>
-            <Ionicons name="options-outline" size={20} color="black" />
+            <Ionicons name="options-outline" size={20} color={colors.primaryText} />
           </View>
         </View>
 
@@ -32,15 +33,15 @@ export default function SearchPage() {
           <Text style={styles.sectionTitle}>Recent Searches</Text>
           <View style={styles.recentSearchesContainer}>
             <TouchableOpacity style={styles.searchItem}>
-              <Ionicons name="search" size={20} color="gray" style={styles.recentSearchIcon} />
+              <Ionicons name="search" size={20} color={colors.secondaryText} style={styles.recentSearchIcon} />
               <Text style={styles.searchText}>Park 1</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.searchItem}>
-              <Ionicons name="search" size={20} color="gray" style={styles.recentSearchIcon} />
+              <Ionicons name="search" size={20} color={colors.secondaryText} style={styles.recentSearchIcon} />
               <Text style={styles.searchText}>Park 2</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.searchItem}>
-              <Ionicons name="search" size={20} color="gray" style={styles.recentSearchIcon} />
+              <Ionicons name="search" size={20} color={colors.secondaryText} style={styles.recentSearchIcon} />
               <Text style={styles.searchText}>Park 3</Text>
             </TouchableOpacity>
           </View>
@@ -78,12 +79,12 @@ export default function SearchPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: colors.sixty, // Primary background color (white)
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.sixty, // White background
     borderRadius: 30,
     paddingVertical: 10,
     paddingHorizontal: 15,
@@ -102,13 +103,13 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: 'black',
+    color: colors.primaryText, // Primary text color (black)
   },
   filterIconContainer: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#fff',
+    backgroundColor: colors.sixty, // White background
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
@@ -138,7 +139,7 @@ const styles = StyleSheet.create({
   },
   searchText: {
     fontSize: 16,
-    color: 'black',
+    color: colors.primaryText, // Primary text color (black)
   },
 
   /* Featured Parks */
@@ -163,14 +164,14 @@ const styles = StyleSheet.create({
   parkName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: 'black',
+    color: colors.primaryText, // Black text for park name
     position: 'absolute',
     bottom: 10,
     left: 10,
   },
   parkDetail: {
     fontSize: 14,
-    color: 'gray',
+    color: colors.secondaryText, // Gray text for park details
     marginLeft: 10,
     marginBottom: 20,
   },
@@ -180,5 +181,6 @@ const styles = StyleSheet.create({
     paddingLeft: 20,
     fontSize: 16,
     fontWeight: 'bold',
+    color: colors.primaryText, // Black color for section titles
   },
 });

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; // For icons
+import colors from '../assets/colors'; // Importing the color variables
 
 export default function ForumPage() {
     // Mock data for user's favorite parks and location
@@ -93,9 +94,9 @@ export default function ForumPage() {
             <View style={styles.postMeta}>
                 {/* Likes and Comments Icons */}
                 <View style={styles.metaLeft}>
-                    <Ionicons name="heart-outline" size={16} color="gray" />
+                    <Ionicons name="heart-outline" size={16} color={colors.secondaryText} />
                     <Text style={styles.metaText}>{item.likes}</Text>
-                    <Ionicons name="chatbubble-outline" size={16} color="gray" style={styles.commentIcon} />
+                    <Ionicons name="chatbubble-outline" size={16} color={colors.secondaryText} style={styles.commentIcon} />
                     <Text style={styles.metaText}>{item.comments}</Text>
                 </View>
             </View>
@@ -108,7 +109,7 @@ export default function ForumPage() {
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Forum</Text>
                 <TouchableOpacity style={styles.newPostButton}>
-                    <Ionicons name="add-circle-outline" size={24} color="tomato" />
+                    <Ionicons name="add-circle-outline" size={24} color={colors.ten} />
                 </TouchableOpacity>
             </View>
 
@@ -157,11 +158,11 @@ export default function ForumPage() {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: 'white',
+        backgroundColor: colors.sixty, // White background (60%)
     },
     container: {
         flex: 1,
-        backgroundColor: 'white',
+        backgroundColor: colors.sixty, // White background (60%)
     },
     header: {
         flexDirection: 'row',
@@ -170,13 +171,14 @@ const styles = StyleSheet.create({
         paddingVertical: 15, // Vertical padding to center the title and button
         paddingHorizontal: 20,
         borderBottomWidth: 1,
-        borderBottomColor: '#e0e0e0',
+        borderBottomColor: '#e0e0e0', // Gray border
     },
     headerTitle: {
         fontSize: 24,
         fontWeight: 'bold',
         textAlign: 'center',
         flex: 1, // Takes up the space in the header, ensuring center alignment
+        color: colors.primaryText, // Black color for the title text
     },
     newPostButton: {
         position: 'absolute', 
@@ -195,13 +197,13 @@ const styles = StyleSheet.create({
     sectionHeaderText: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: '#333',
+        color: colors.primaryText, // Black for section headers
     },
     sectionSpacer: {
         height: 40, // Add more spacing between sections
     },
     postContainer: {
-        backgroundColor: '#f9f9f9',
+        backgroundColor: colors.sixty, // White background for posts
         padding: 15,
         borderRadius: 10,
         marginBottom: 15,
@@ -221,10 +223,11 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
         flex: 1, // Make sure the title takes the available space
+        color: colors.primaryText, // Black color for the post title
     },
     metaDate: {
         fontSize: 12,
-        color: 'gray',
+        color: colors.secondaryText, // Gray color for date
     },
     taggedParksContainer: {
         flexDirection: 'row',
@@ -232,12 +235,12 @@ const styles = StyleSheet.create({
     },
     taggedPark: {
         fontSize: 14,
-        color: 'tomato',
+        color: colors.ten, // Gold for the tagged parks
         marginRight: 10, // Spacing between each tag
     },
     postSnippet: {
         fontSize: 14,
-        color: 'gray',
+        color: colors.secondaryText, // Gray for post snippet
         marginBottom: 10,
     },
     postMeta: {
@@ -251,7 +254,7 @@ const styles = StyleSheet.create({
     },
     metaText: {
         fontSize: 12,
-        color: 'gray',
+        color: colors.secondaryText, // Gray for likes and comments
         marginLeft: 5,
     },
     commentIcon: {

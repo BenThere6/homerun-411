@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } fr
 import { Ionicons } from '@expo/vector-icons'; // For icons
 import { useNavigation } from '@react-navigation/native'; // For navigation
 import Header from '../components/Header'; // Importing the Header component
+import colors from '../assets/colors'; // Importing the color variables
 
 export default function Homepage() {
   const navigation = useNavigation(); // Hook for navigation
@@ -24,7 +25,7 @@ export default function Homepage() {
         <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} style={styles.quickLinksContainer}>
 
           <TouchableOpacity style={[styles.linkCard, styles.firstLinkCard]}>
-            <Ionicons name="location-outline" size={30} color="tomato" />
+            <Ionicons name="location-outline" size={30} color={colors.ten} />
             <View style={styles.labelContainer}>
               <Text style={styles.linkLabel}>Nearby Facilities</Text>
             </View>
@@ -34,7 +35,7 @@ export default function Homepage() {
             style={styles.linkCard}
             onPress={() => navigation.navigate('Etiquette')}
           >
-            <Ionicons name="book-outline" size={30} color="tomato" />
+            <Ionicons name="book-outline" size={30} color={colors.ten} />
             <View style={styles.labelContainer}>
               <Text style={styles.linkLabel}>Baseball Etiquette</Text>
             </View>
@@ -44,7 +45,7 @@ export default function Homepage() {
             style={styles.linkCard}
             onPress={() => navigation.navigate('Settings')}
           >
-            <Ionicons name="cog-outline" size={30} color="tomato" />
+            <Ionicons name="cog-outline" size={30} color={colors.ten} />
             <View style={styles.labelContainer}>
               <Text style={styles.linkLabel}>Settings</Text>
             </View>
@@ -54,7 +55,7 @@ export default function Homepage() {
             style={styles.linkCard}
             onPress={() => navigation.navigate('Admin')}
           >
-            <Ionicons name="construct-outline" size={30} color="tomato" />
+            <Ionicons name="construct-outline" size={30} color={colors.ten} />
             <View style={styles.labelContainer}>
               <Text style={styles.linkLabel}>Admin</Text>
             </View>
@@ -96,7 +97,7 @@ export default function Homepage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: colors.sixty, // Primary background color (60%)
   },
   scrollContainer: {
     paddingBottom: 0,
@@ -118,7 +119,7 @@ const styles = StyleSheet.create({
   linkCard: {
     width: 80, // Square card
     height: 80,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: colors.sixty, // White color for the background (60%)
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
@@ -138,7 +139,7 @@ const styles = StyleSheet.create({
   },
   linkLabel: {
     fontSize: 12,
-    color: 'black',
+    color: colors.primaryText, // Set text color to black (primaryText)
     textAlign: 'center',
     lineHeight: 15, // Line height for better spacing in multi-line text
   },
@@ -151,7 +152,7 @@ const styles = StyleSheet.create({
   parkCard: {
     width: '100%', // Full width of parent
     height: 200, // Adjust height as needed
-    backgroundColor: '#f0f0f0',
+    backgroundColor: colors.sixty, // White color for the background (60%)
     borderRadius: 10,
     justifyContent: 'flex-end', // Name at the bottom left
     padding: 10,
@@ -165,14 +166,14 @@ const styles = StyleSheet.create({
   parkName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: 'black',
+    color: colors.primaryText, // Set park name color to black (primaryText)
     position: 'absolute',
     bottom: 10,
     left: 10,
   },
   parkDetail: {
     fontSize: 14,
-    color: 'gray',
+    color: colors.secondaryText, // Set park details color to gray (secondaryText)
     marginLeft: 10,
     marginBottom: 20,
   },
@@ -180,5 +181,8 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 15,
     paddingLeft: 20,
+    color: colors.primaryText, // Set section title color to black (primaryText)
+    fontSize: 16,
+    fontWeight: 'bold',
   }
 });

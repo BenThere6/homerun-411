@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Switch, TouchableOpacity, Image, ScrollView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker'; // To allow users to select a profile picture
+import colors from '../assets/colors'; // Importing the color variables
 
 export default function SettingsPage() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -134,7 +135,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: 'white',
+    backgroundColor: colors.sixty, // Primary background color
   },
   scrollContainer: {
     paddingBottom: 30, // Added padding at the bottom to allow full scroll
@@ -148,6 +149,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 10,
+    color: colors.primaryText, // Primary text color
   },
   profileImageContainer: {
     alignItems: 'center',
@@ -167,26 +169,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   defaultProfilePicText: {
-    color: 'gray',
+    color: colors.secondaryText, // Secondary text color
     fontSize: 12,
   },
   input: {
     width: '100%',
     padding: 10,
     borderWidth: 1,
-    borderColor: 'gray',
+    borderColor: colors.secondaryText, // Secondary text color for border
     borderRadius: 5,
     marginBottom: 10,
+    color: colors.primaryText, // Primary text color
   },
   saveProfileButton: {
-    backgroundColor: 'tomato',
+    backgroundColor: colors.thirty, // Tertiary color for save button
     padding: 15,
     borderRadius: 5,
     alignItems: 'center',
     marginTop: 10,
   },
   saveProfileButtonText: {
-    color: 'white',
+    color: colors.sixty, // White color for button text
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -202,7 +205,7 @@ const styles = StyleSheet.create({
   },
   settingsText: {
     fontSize: 16,
-    color: 'black',
+    color: colors.primaryText, // Primary text color
   },
 
   /* Logout Button */
@@ -214,7 +217,7 @@ const styles = StyleSheet.create({
     marginTop: 20, // Reduced margin to lessen the emphasis
   },
   logoutButtonText: {
-    color: 'black', // Use black text instead of white for a subtler look
+    color: colors.primaryText, // Primary text color
     fontSize: 14, // Smaller font size for less prominence
   },
 });

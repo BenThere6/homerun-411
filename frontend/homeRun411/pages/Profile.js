@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; // For the combined button icon
 import { useNavigation } from '@react-navigation/native'; // For navigation
+import colors from '../assets/colors'; // Importing the color variables
 
 export default function ProfilePage() {
   const navigation = useNavigation(); // Hook for navigation
@@ -29,7 +30,7 @@ export default function ProfilePage() {
                 style={styles.manageAccountButton} 
                 onPress={() => navigation.navigate('Settings')} // Navigate to a combined screen
               >
-                <Ionicons name="settings-outline" size={24} color="black" />
+                <Ionicons name="settings-outline" size={24} color={colors.primaryText} />
                 <Text style={styles.manageAccountText}>Manage Account</Text>
               </TouchableOpacity>
 
@@ -79,7 +80,7 @@ export default function ProfilePage() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: 'white', // Matches the page background color
+    backgroundColor: colors.sixty, // White background (60%)
   },
   pageContainer: {
     flex: 1,
@@ -95,7 +96,7 @@ const styles = StyleSheet.create({
   
   /* Profile Card */
   profileCard: {
-    backgroundColor: '#fff', // White background for the card
+    backgroundColor: colors.sixty, // White background for the card (60%)
     padding: 20, // Padding inside the card
     borderRadius: 15, // Rounded corners
     elevation: 5, // Shadow for Android
@@ -121,17 +122,17 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: 'black',
+    color: colors.primaryText, // Black color for the username
   },
   email: {
     fontSize: 16,
-    color: 'gray',
+    color: colors.secondaryText, // Gray color for the email
     marginBottom: 10,
   },
   
   /* Combined Manage Account Button */
   manageAccountButton: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#f0f0f0', // Light background for the button
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 5,
@@ -141,7 +142,7 @@ const styles = StyleSheet.create({
   },
   manageAccountText: {
     fontSize: 16,
-    color: 'black',
+    color: colors.primaryText, // Black text for the button
     marginLeft: 10, // Add space between icon and text
   },
 
@@ -151,7 +152,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 16,
-    color: 'gray',
+    color: colors.secondaryText, // Gray text for account creation info
   },
 
   /* Statistics Section */
@@ -163,6 +164,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: colors.primaryText, // Black text for section title
     marginBottom: 10,
   },
   statsRow: {
@@ -174,7 +176,7 @@ const styles = StyleSheet.create({
   statBox: {
     alignItems: 'center',
     padding: 15,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#f9f9f9', // Light background for the stat boxes
     borderRadius: 10,
     width: '45%',
     elevation: 2, // Shadow for Android
@@ -186,11 +188,11 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: 'black',
+    color: colors.primaryText, // Black text for the statistic number
   },
   statLabel: {
     fontSize: 14,
-    color: 'gray',
+    color: colors.secondaryText, // Gray text for the statistic label
     marginTop: 5,
   },
 
@@ -212,12 +214,12 @@ const styles = StyleSheet.create({
   },
   activityEvent: {
     fontSize: 16,
-    color: 'black',
+    color: colors.primaryText, // Black text for the activity event
     flex: 2, // Takes more space
   },
   activityDate: {
     fontSize: 10,
-    color: 'gray',
+    color: colors.secondaryText, // Gray text for the activity date
     flex: 1, // Takes less space
     textAlign: 'right', // Aligns the date to the right
   },
