@@ -16,6 +16,9 @@ export default function Homepage() {
       {/* Gray line (divider) */}
       <View style={styles.divider} />
 
+      {/* Welcome Message */}
+      <Text style={styles.welcomeMessage}>Welcome back, User!</Text>
+
       {/* Scrollable content */}
       <ScrollView contentContainerStyle={styles.scrollContainer}>
 
@@ -103,6 +106,14 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
   },
   
+  /* Welcome Message */
+  welcomeMessage: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.primaryText, // Set welcome message text color to black (primaryText)
+    padding: 20, // Add some padding for spacing
+  },
+
   /* Gray Line (Divider) */
   divider: {
     height: 1,
