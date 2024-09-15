@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, Keyboard, TouchableWithoutFeedback, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; // For icons
 import { useNavigation } from '@react-navigation/native'; // For navigation
@@ -6,6 +6,22 @@ import colors from '../assets/colors'; // Importing the color variables
 
 export default function SearchPage() {
   const navigation = useNavigation(); // Hook for navigation
+  const [parks, setParks] = useState([]); // State to store the fetched parks
+
+  // Fetch parks from the backend API
+  useEffect(() => {
+    const fetchParks = async () => {
+      try {
+        const response = await fetch('http://localhost:5001/api/park');
+        const data = await response.json();
+        setParks(data); // Store the fetched parks in the state
+      } catch (error) {
+        console.error('Error fetching parks:', error);
+      }
+    };
+
+    fetchParks(); // Call the function to fetch parks
+  }, []);
 
   return (
     // Wrap everything inside TouchableWithoutFeedback to detect taps outside the TextInput
@@ -28,7 +44,6 @@ export default function SearchPage() {
 
         {/* Scrollable content */}
         <ScrollView contentContainerStyle={styles.scrollContainer}>
-
           {/* Recent Searches */}
           <Text style={styles.sectionTitle}>Recent Searches</Text>
           <View style={styles.recentSearchesContainer}>
@@ -74,26 +89,21 @@ export default function SearchPage() {
           {/* All Parks */}
           <Text style={styles.sectionTitle}>All Parks</Text>
           <View style={styles.allParksContainer}>
-            <TouchableOpacity
-              style={styles.parkCard}
-              onPress={() => navigation.navigate('ParkDetails', { parkName: 'Park 4', location: 'City, State' })}>
-              <Text style={styles.parkName}>Park 4</Text>
-            </TouchableOpacity>
-            <Text style={styles.parkDetail}>Location: City, State</Text>
-
-            <TouchableOpacity
-              style={styles.parkCard}
-              onPress={() => navigation.navigate('ParkDetails', { parkName: 'Park 5', location: 'City, State' })}>
-              <Text style={styles.parkName}>Park 5</Text>
-            </TouchableOpacity>
-            <Text style={styles.parkDetail}>Location: City, State</Text>
-
-            <TouchableOpacity
-              style={styles.parkCard}
-              onPress={() => navigation.navigate('ParkDetails', { parkName: 'Park 6', location: 'City, State' })}>
-              <Text style={styles.parkName}>Park 6</Text>
-            </TouchableOpacity>
-            <Text style={styles.parkDetail}>Location: City, State</Text>
+            {/* Display fetched parks dynamically */}
+            {parks.length > 0 ? (
+              parks.map((park) => (
+                <View key={park._id}>
+                  <TouchableOpacity
+                    style={styles.parkCard}
+                    onPress={() => navigation.navigate('ParkDetails', { parkName: park.name, location: park.coordinates })}>
+                    <Text style={styles.parkName}>{park.name}</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.parkDetail}>Location: {park.interactiveMapPositionDetails || 'Not specified'}</Text>
+                </View>
+              ))
+            ) : (
+              <Text>No parks available</Text> // Fallback if there are no parks to display
+            )}
           </View>
         </ScrollView>
       </SafeAreaView>
