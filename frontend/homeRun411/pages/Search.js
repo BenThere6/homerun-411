@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, Keyboard, TouchableWithoutFeedback, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; // For icons
 import { useNavigation } from '@react-navigation/native'; // For navigation
 
@@ -9,7 +9,8 @@ export default function SearchPage() {
   return (
     // Wrap everything inside TouchableWithoutFeedback to detect taps outside the TextInput
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={styles.container}>
+      {/* SafeAreaView for safe top padding on devices with notches */}
+      <SafeAreaView style={styles.container}>
         {/* Search Bar */}
         <View style={styles.searchBar}>
           <Ionicons name="search" size={20} color="black" style={styles.searchIcon} />
@@ -69,7 +70,7 @@ export default function SearchPage() {
             <Text style={styles.parkDetail}>Location: City, State</Text>
           </View>
         </ScrollView>
-      </View>
+      </SafeAreaView>
     </TouchableWithoutFeedback>
   );
 }
@@ -77,7 +78,6 @@ export default function SearchPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 5,
     backgroundColor: 'white',
   },
   searchBar: {
@@ -87,7 +87,9 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     paddingVertical: 10,
     paddingHorizontal: 15,
-    margin: 20, // Add margin for spacing from the top and sides
+    marginLeft: 20,
+    marginRight: 20,
+    marginTop: 5,
     elevation: 5, // Adds shadow for Android
     shadowColor: '#000', // Adds shadow for iOS
     shadowOffset: { width: 0, height: 2 }, // Shadow position for iOS

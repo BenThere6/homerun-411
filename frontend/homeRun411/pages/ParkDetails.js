@@ -5,9 +5,6 @@ import Header from '../components/Header'; // Importing the header component
 export default function SearchPage() {
   return (
     <View style={styles.container}>
-      {/* Reusable Header */}
-      {/* <Header /> */}
-      
       {/* Content */}
       <View style={styles.contentContainer}>
         <Text style={styles.text}>This is the Park Details Page</Text>

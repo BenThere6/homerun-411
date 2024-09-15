@@ -37,7 +37,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%', // Full width of the screen
     paddingHorizontal: 20, // Equal padding on left and right
-    paddingTop: 25, // Small padding at the top
+    paddingTop: 5, // Small padding at the top
     paddingBottom: 6, // Consistent padding at the bottom
     backgroundColor: 'white', // Optional: Background color for the header
   },

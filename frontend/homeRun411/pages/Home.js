@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; // For icons
 import { useNavigation } from '@react-navigation/native'; // For navigation
 import Header from '../components/Header'; // Importing the Header component
@@ -8,7 +8,7 @@ export default function Homepage() {
   const navigation = useNavigation(); // Hook for navigation
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Include the Header component */}
       <Header />
 
@@ -22,20 +22,6 @@ export default function Homepage() {
 
         {/* Quick Links with Horizontal Scroll */}
         <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} style={styles.quickLinksContainer}>
-
-          {/* <TouchableOpacity style={[styles.linkCard, styles.firstLinkCard]}>
-            <Ionicons name="chatbubbles-outline" size={30} color="tomato" />
-            <View style={styles.labelContainer}>
-              <Text style={styles.linkLabel}>Forum</Text>
-            </View>
-          </TouchableOpacity> */}
-
-          {/* <TouchableOpacity style={[styles.linkCard, styles.firstLinkCard]}>
-            <Ionicons name="partly-sunny-outline" size={30} color="tomato" />
-            <View style={styles.labelContainer}>
-              <Text style={styles.linkLabel}>Weather</Text>
-            </View>
-          </TouchableOpacity> */}
 
           <TouchableOpacity style={[styles.linkCard, styles.firstLinkCard]}>
             <Ionicons name="location-outline" size={30} color="tomato" />
@@ -103,7 +89,7 @@ export default function Homepage() {
           <Text style={styles.parkDetail}>Location: City, State</Text>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -193,6 +179,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     paddingTop: 20,
     paddingBottom: 15,
-    paddingLeft: 20
+    paddingLeft: 20,
   }
 });

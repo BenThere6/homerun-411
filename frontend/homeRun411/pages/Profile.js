@@ -1,85 +1,88 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons'; // For the settings gear icon
+import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons'; // For the combined button icon
 import { useNavigation } from '@react-navigation/native'; // For navigation
 
 export default function ProfilePage() {
   const navigation = useNavigation(); // Hook for navigation
 
   return (
-    <View style={styles.pageContainer}>
-      {/* Settings Gear Icon */}
-      <TouchableOpacity 
-        style={styles.settingsIcon} 
-        onPress={() => navigation.navigate('Settings')}
-      >
-        <Ionicons name="settings-outline" size={24} color="black" />
-      </TouchableOpacity>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.pageContainer}>
+        
+        {/* Scrollable Content */}
+        <ScrollView contentContainerStyle={styles.scrollContainer} style={styles.scrollView}>
+          
+          {/* Profile Card */}
+          <View style={styles.profileCard}>
+            <View style={styles.headerContainer}>
+              {/* Placeholder Image */}
+              <Image 
+                source={{ uri: 'https://via.placeholder.com/120' }} // Placeholder image for now
+                style={styles.profileImage} 
+              />
+              <Text style={styles.username}>Username</Text>
+              <Text style={styles.email}>user@example.com</Text>
 
-      {/* Scrollable Content */}
-      <ScrollView contentContainerStyle={styles.scrollContainer} style={styles.scrollView}>
-        {/* Profile Header */}
-        <View style={styles.headerContainer}>
-          {/* Placeholder Image */}
-          <Image 
-            source={{ uri: 'https://via.placeholder.com/120' }} // Placeholder image for now
-            style={styles.profileImage} 
-          />
-          <Text style={styles.username}>Username</Text>
-          <Text style={styles.email}>user@example.com</Text>
+              {/* Combined Button for Edit Profile and Settings */}
+              <TouchableOpacity 
+                style={styles.manageAccountButton} 
+                onPress={() => navigation.navigate('Settings')} // Navigate to a combined screen
+              >
+                <Ionicons name="settings-outline" size={24} color="black" />
+                <Text style={styles.manageAccountText}>Manage Account</Text>
+              </TouchableOpacity>
 
-          {/* Edit Profile Button */}
-          <TouchableOpacity style={styles.editProfileButton}>
-            <Text style={styles.editProfileText}>Edit Profile</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Account Info */}
-        <View style={styles.infoContainer}>
-          <Text style={styles.infoText}>Account Created: January 1, 2021</Text>
-        </View>
-
-        {/* Statistics */}
-        <View style={styles.statisticsContainer}>
-          <Text style={styles.sectionTitle}>Statistics</Text>
-          <View style={styles.statsRow}>
-
-            <View style={styles.statBox}>
-              <Text style={styles.statNumber}>10</Text>
-              <Text style={styles.statLabel}>Parks Visited</Text>
-            </View>
-
-            <View style={styles.statBox}>
-              <Text style={styles.statNumber}>7</Text>
-              <Text style={styles.statLabel}>Check-ins</Text>
-            </View>
-
-          </View>
-        </View>
-
-        {/* Activity Feed */}
-        <View style={styles.activityContainer}>
-          <Text style={styles.sectionTitle}>Recent Activity</Text>
-          <View style={styles.activityTable}>
-            <View style={styles.activityRow}>
-              <Text style={styles.activityEvent}>Commented on Park 1</Text>
-              <Text style={styles.activityDate}>Sept 10, 2024</Text>
-            </View>
-            <View style={styles.activityRow}>
-              <Text style={styles.activityEvent}>Liked a post in Park 2</Text>
-              <Text style={styles.activityDate}>Sept 9, 2024</Text>
+              {/* Account Created Date */}
+              <View style={styles.infoContainer}>
+                <Text style={styles.infoText}>Account Created: January 1, 2021</Text>
+              </View>
             </View>
           </View>
-        </View>
-      </ScrollView>
-    </View>
+
+          {/* Statistics */}
+          <View style={styles.statisticsContainer}>
+            <Text style={styles.sectionTitle}>Statistics</Text>
+            <View style={styles.statsRow}>
+              <View style={styles.statBox}>
+                <Text style={styles.statNumber}>10</Text>
+                <Text style={styles.statLabel}>Parks Visited</Text>
+              </View>
+
+              <View style={styles.statBox}>
+                <Text style={styles.statNumber}>7</Text>
+                <Text style={styles.statLabel}>Check-ins</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Activity Feed */}
+          <View style={styles.activityContainer}>
+            <Text style={styles.sectionTitle}>Recent Activity</Text>
+            <View style={styles.activityTable}>
+              <View style={styles.activityRow}>
+                <Text style={styles.activityEvent}>Commented on Park 1</Text>
+                <Text style={styles.activityDate}>Sept 10, 2024</Text>
+              </View>
+              <View style={styles.activityRow}>
+                <Text style={styles.activityEvent}>Liked a post in Park 2</Text>
+                <Text style={styles.activityDate}>Sept 9, 2024</Text>
+              </View>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: 'white', // Matches the page background color
+  },
   pageContainer: {
     flex: 1,
-    backgroundColor: 'white',
     position: 'relative', // Important for absolute positioning of the icon
   },
   scrollView: {
@@ -89,15 +92,25 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     width: '100%',
   },
-  settingsIcon: {
-    position: 'absolute',
-    top: 40, // Adjust the position as per your app's layout
-    right: 20, // Aligns to the top-right
-    zIndex: 10, // Make sure the icon stays above the ScrollView
+  
+  /* Profile Card */
+  profileCard: {
+    backgroundColor: '#fff', // White background for the card
+    padding: 20, // Padding inside the card
+    borderRadius: 15, // Rounded corners
+    elevation: 5, // Shadow for Android
+    shadowColor: '#000', // Shadow for iOS
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3.84,
+    marginBottom: 20,
+    marginTop: 20,
+    position: 'relative',
   },
+  
   headerContainer: {
     alignItems: 'center',
-    marginTop: 50, // Move the profile section down a bit
+    marginBottom: 10, // Space between profile info and the rest
   },
   profileImage: {
     width: 120,
@@ -115,19 +128,25 @@ const styles = StyleSheet.create({
     color: 'gray',
     marginBottom: 10,
   },
-  editProfileButton: {
+  
+  /* Combined Manage Account Button */
+  manageAccountButton: {
     backgroundColor: '#f0f0f0',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 5,
+    flexDirection: 'row', // Icon and text side by side
+    alignItems: 'center',
+    marginTop: 10,
   },
-  editProfileText: {
+  manageAccountText: {
     fontSize: 16,
-    color: 'tomato',
+    color: 'black',
+    marginLeft: 10, // Add space between icon and text
   },
+
   infoContainer: {
-    marginTop: 20,
-    paddingHorizontal: 20,
+    marginTop: 10,
     alignItems: 'center',
   },
   infoText: {

@@ -12,6 +12,7 @@ import NotificationsPage from './pages/Notifications';
 import EtiquettePage from './pages/Etiquette';
 import AdminPage from './pages/Admin';
 import SettingsPage from './pages/Settings';
+import colors from './assets/colors'; // Import colors
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator(); // Create stack navigator
@@ -34,8 +35,9 @@ function Tabs() {
           }
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: 'tomato',
-        tabBarInactiveTintColor: 'gray',
+        tabBarActiveTintColor: colors.thirty, // Blue for active state (30%)
+        tabBarInactiveTintColor: 'gray', // Gray for inactive state
+        tabBarStyle: { backgroundColor: colors.sixty }, // White background (60%)
         headerShown: false,
       })}
     >
@@ -51,7 +53,18 @@ function Tabs() {
 export default function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator>
+      <Stack.Navigator
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: colors.sixty, // White header background (60%)
+          },
+          headerTintColor: colors.thirty, // Blue text for header (30%)
+          headerTitleStyle: {
+            fontWeight: 'bold',
+            color: colors.thirty, // Blue for title (30%)
+          },
+        }}
+      >
         <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
         <Stack.Screen
           name="ParkDetails"
