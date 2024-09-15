@@ -70,6 +70,31 @@ export default function SearchPage() {
             </TouchableOpacity>
             <Text style={styles.parkDetail}>Location: City, State</Text>
           </View>
+
+          {/* All Parks */}
+          <Text style={styles.sectionTitle}>All Parks</Text>
+          <View style={styles.allParksContainer}>
+            <TouchableOpacity
+              style={styles.parkCard}
+              onPress={() => navigation.navigate('ParkDetails', { parkName: 'Park 4', location: 'City, State' })}>
+              <Text style={styles.parkName}>Park 4</Text>
+            </TouchableOpacity>
+            <Text style={styles.parkDetail}>Location: City, State</Text>
+
+            <TouchableOpacity
+              style={styles.parkCard}
+              onPress={() => navigation.navigate('ParkDetails', { parkName: 'Park 5', location: 'City, State' })}>
+              <Text style={styles.parkName}>Park 5</Text>
+            </TouchableOpacity>
+            <Text style={styles.parkDetail}>Location: City, State</Text>
+
+            <TouchableOpacity
+              style={styles.parkCard}
+              onPress={() => navigation.navigate('ParkDetails', { parkName: 'Park 6', location: 'City, State' })}>
+              <Text style={styles.parkName}>Park 6</Text>
+            </TouchableOpacity>
+            <Text style={styles.parkDetail}>Location: City, State</Text>
+          </View>
         </ScrollView>
       </SafeAreaView>
     </TouchableWithoutFeedback>
@@ -175,6 +200,14 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     marginBottom: 20,
   },
+
+  /* All Parks */
+  allParksContainer: {
+    marginBottom: 20,
+    paddingHorizontal: 20, // Add padding to both sides of the all parks section
+  },
+
+  /* Section Title */
   sectionTitle: {
     paddingTop: 20,
     paddingBottom: 15,

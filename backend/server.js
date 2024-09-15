@@ -3,7 +3,7 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const connectDB = require('./mongoose');
-const User = require('./models/User'); // Ensure you have the User model
+const User = require('./models/User');
 const bcrypt = require('bcrypt');
 
 const app = express();
