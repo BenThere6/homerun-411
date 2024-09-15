@@ -3,6 +3,8 @@ const Schema = mongoose.Schema;
 
 const parkSchema = new Schema({
   name: { type: String, required: true },
+  city: { type: String, required: true },  // Add city field
+  state: { type: String, required: true }, // Add state field
   coordinates: {
     type: { type: String, default: 'Point' }, // This is required for the 2dsphere index
     coordinates: { type: [Number], required: true }, // Array of numbers: [longitude, latitude]
