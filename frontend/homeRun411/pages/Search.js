@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, Keyboard, TouchableWithoutFeedback, SafeAreaView } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, Keyboard, TouchableWithoutFeedback, SafeAreaView, ImageBackground } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; // For icons
 import { useNavigation } from '@react-navigation/native'; // For navigation
 import colors from '../assets/colors'; // Importing the color variables
@@ -24,27 +24,22 @@ export default function SearchPage() {
   }, []);
 
   return (
-    // Wrap everything inside TouchableWithoutFeedback to detect taps outside the TextInput
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      {/* SafeAreaView for safe top padding on devices with notches */}
       <SafeAreaView style={styles.container}>
-        {/* Search Bar */}
         <View style={styles.searchBar}>
           <Ionicons name="search" size={20} color={colors.primaryText} style={styles.searchIcon} />
           <TextInput
             placeholder="Search"
-            placeholderTextColor={colors.secondaryText} // Use secondaryText for placeholder
+            placeholderTextColor={colors.secondaryText}
             style={styles.input}
-            blurOnSubmit={true} // Closes the keyboard when submitted
+            blurOnSubmit={true}
           />
           <View style={styles.filterIconContainer}>
             <Ionicons name="options-outline" size={20} color={colors.primaryText} />
           </View>
         </View>
 
-        {/* Scrollable content */}
         <ScrollView contentContainerStyle={styles.scrollContainer}>
-          {/* Recent Searches */}
           <Text style={styles.sectionTitle}>Recent Searches</Text>
           <View style={styles.recentSearchesContainer}>
             <TouchableOpacity style={styles.searchItem}>
@@ -61,7 +56,6 @@ export default function SearchPage() {
             </TouchableOpacity>
           </View>
 
-          {/* Featured Parks */}
           <Text style={styles.sectionTitle}>Featured Parks</Text>
           <View style={styles.featuredParksContainer}>
             <TouchableOpacity
@@ -86,23 +80,30 @@ export default function SearchPage() {
             <Text style={styles.parkDetail}>Location: City, State</Text>
           </View>
 
-          {/* All Parks */}
           <Text style={styles.sectionTitle}>All Parks</Text>
           <View style={styles.allParksContainer}>
-            {/* Display fetched parks dynamically */}
             {parks.length > 0 ? (
               parks.map((park) => (
-                <View key={park._id}>
+                <View key={park._id} style={styles.parkContainer}>
                   <TouchableOpacity
                     style={styles.parkCard}
                     onPress={() => navigation.navigate('ParkDetails', { parkName: park.name, location: park.coordinates })}>
-                    <Text style={styles.parkName}>{park.name}</Text>
+                    <ImageBackground
+                      source={{ uri: park.mainImageUrl ? park.mainImageUrl : 'https://via.placeholder.com/300' }} // Use a placeholder if no image URL
+                      style={styles.parkImageBackground}
+                      resizeMode="cover"
+                      onError={() => console.log(`Failed to load image for ${park.name}`)} // Log error if the image fails to load
+                    >
+                      <View style={styles.parkContent}>
+                        <Text style={styles.parkName}>{park.name}</Text>
+                      </View>
+                    </ImageBackground>
                   </TouchableOpacity>
                   <Text style={styles.parkDetail}>Location: {`${park.city}, ${park.state}`}</Text>
                 </View>
               ))
             ) : (
-              <Text>No parks available</Text> // Fallback if there are no parks to display
+              <Text>No parks available</Text>
             )}
           </View>
         </ScrollView>
@@ -196,13 +197,22 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 3.84,
   },
+  parkImageBackground: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  parkContent: {
+    backgroundColor: 'rgba(0, 0, 0, 0.4)', // Transparent black overlay for better text readability
+    height: '100%',
+    justifyContent: 'flex-end',
+    padding: 10,
+  },
   parkName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: colors.primaryText, // Black text for park name
-    position: 'absolute',
-    bottom: 10,
-    left: 10,
+    color: '#fff', // White text for park name
   },
   parkDetail: {
     fontSize: 14,
@@ -214,7 +224,7 @@ const styles = StyleSheet.create({
   /* All Parks */
   allParksContainer: {
     marginBottom: 20,
-    paddingHorizontal: 20, // Add padding to both sides of the all parks section
+    paddingHorizontal: 20,
   },
 
   /* Section Title */
