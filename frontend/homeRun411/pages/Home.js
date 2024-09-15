@@ -5,6 +5,14 @@ import { useNavigation } from '@react-navigation/native'; // For navigation
 import Header from '../components/Header'; // Importing the Header component
 import colors from '../assets/colors'; // Importing the color variables
 
+// Mock quickLinks data (you can replace this with your actual data)
+const quickLinks = [
+  { id: '1', icon: 'location', label: 'Nearby Facilities', screen: 'Nearby' },
+  { id: '2', icon: 'book', label: 'Baseball Etiquette', screen: 'Etiquette' },
+  { id: '3', icon: 'cog', label: 'Settings', screen: 'Settings' },
+  { id: '4', icon: 'construct', label: 'Admin', screen: 'Admin' },
+];
+
 export default function Homepage() {
   const navigation = useNavigation(); // Hook for navigation
 
@@ -16,54 +24,32 @@ export default function Homepage() {
       {/* Gray line (divider) */}
       <View style={styles.divider} />
 
-      {/* Welcome Message */}
-      <Text style={styles.welcomeMessage}>Welcome back, User!</Text>
-
       {/* Scrollable content */}
       <ScrollView contentContainerStyle={styles.scrollContainer}>
+
+        {/* Welcome Message */}
+        <Text style={styles.welcomeMessage}>Welcome back, User!</Text>
 
         <Text style={styles.sectionTitle}>Quick Links</Text>
 
         {/* Quick Links with Horizontal Scroll */}
         <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} style={styles.quickLinksContainer}>
-
-          <TouchableOpacity style={[styles.linkCard, styles.firstLinkCard]}>
-            <Ionicons name="location-outline" size={30} color={colors.ten} />
-            <View style={styles.labelContainer}>
-              <Text style={styles.linkLabel}>Nearby Facilities</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.linkCard}
-            onPress={() => navigation.navigate('Etiquette')}
-          >
-            <Ionicons name="book-outline" size={30} color={colors.ten} />
-            <View style={styles.labelContainer}>
-              <Text style={styles.linkLabel}>Baseball Etiquette</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.linkCard}
-            onPress={() => navigation.navigate('Settings')}
-          >
-            <Ionicons name="cog-outline" size={30} color={colors.ten} />
-            <View style={styles.labelContainer}>
-              <Text style={styles.linkLabel}>Settings</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.linkCard}
-            onPress={() => navigation.navigate('Admin')}
-          >
-            <Ionicons name="construct-outline" size={30} color={colors.ten} />
-            <View style={styles.labelContainer}>
-              <Text style={styles.linkLabel}>Admin</Text>
-            </View>
-          </TouchableOpacity>
-          
+          {quickLinks.map((link, index) => (
+            <TouchableOpacity
+              key={link.id}
+              style={[
+                styles.linkCard,
+                index === 0 && styles.firstLinkCard, // Apply margin to the first card
+                index === quickLinks.length - 1 && styles.lastLinkCard, // Apply margin to the last card
+              ]}
+              onPress={() => navigation.navigate(link.screen)}
+            >
+              <Ionicons name={link.icon} size={30} color={colors.ten} />
+              <View style={styles.labelContainer}>
+                <Text style={styles.linkLabel}>{link.label}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
 
         {/* Favorite Parks */}
@@ -77,7 +63,7 @@ export default function Homepage() {
             <Text style={styles.parkName}>Park 1</Text>
           </TouchableOpacity>
           <Text style={styles.parkDetail}>Location: City, State</Text>
-          
+
           <TouchableOpacity
             style={styles.parkCard}
             onPress={() => navigation.navigate('ParkDetails', { parkName: 'Park 2', location: 'City, State' })}>
@@ -98,102 +84,120 @@ export default function Homepage() {
 }
 
 const styles = StyleSheet.create({
+  /* Container */
   container: {
     flex: 1,
     backgroundColor: colors.sixty, // Primary background color (60%)
   },
   scrollContainer: {
-    paddingBottom: 0,
-  },
-  
-  /* Welcome Message */
-  welcomeMessage: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.primaryText, // Set welcome message text color to black (primaryText)
-    padding: 20, // Add some padding for spacing
+    paddingBottom: 20, // Add some padding at the bottom for better spacing
   },
 
-  /* Gray Line (Divider) */
+  /* Welcome Message */
+  welcomeMessage: {
+    fontSize: 22, // Increase font size for emphasis
+    fontWeight: 'bold',
+    color: colors.primaryText,
+    padding: 20, 
+  },
+
+  /* Divider */
   divider: {
     height: 1,
-    backgroundColor: '#e0e0e0', // Light gray color for the divider
-    marginTop: 10, // Add some space around the divider
+    backgroundColor: '#e0e0e0',
+    marginTop: 10,
   },
 
   /* Quick Links */
   quickLinksContainer: {
-    paddingBottom: 15, // Added padding at the bottom
+    paddingBottom: 15,
     marginBottom: 0,
-    paddingTop: 0,
+    paddingTop: 10,
+    paddingLeft: 20, // Added padding on the left for symmetry
   },
   linkCard: {
-    width: 80, // Square card
-    height: 80,
-    backgroundColor: colors.thirty,
-    borderRadius: 10,
-    justifyContent: 'center',
+    width: 90, // Square cards
+    height: 90, // Square cards
+    backgroundColor: '#f5f5f5', // Light background for cards
+    borderRadius: 15, // More rounded corners
+    justifyContent: 'space-between', // Space between icon and text
     alignItems: 'center',
-    marginRight: 20, // Space between cards in horizontal scroll
-    elevation: 2, // Shadow for Android
-    shadowColor: '#000', // Shadow for iOS
-    shadowOffset: { width: 0, height: 2 }, // Shadow offset
-    shadowOpacity: 0.2,
-    shadowRadius: 3.84,
+    paddingVertical: 10, // Add padding to make the card less cramped
+    marginRight: 15,
+    elevation: 3, // Subtle shadow for depth
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   firstLinkCard: {
-    marginLeft: 20, // Add margin to the left of the first quick link card
+    marginLeft: 0, // Align the first card with the container
+  },
+  lastLinkCard: {
+    marginRight: 40, // Add padding to the last card on the right
+  },
+  iconContainer: {
+    flex: 1, // Top half for the icon
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   labelContainer: {
-    height: 30, // Fixed height for label container
-    justifyContent: 'center', // Center the label vertically
+    flex: 1, // Bottom half for the text
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 5, // Padding to give the text room to wrap
+    width: '100%', // Ensure label takes full width of the card
   },
   linkLabel: {
     fontSize: 12,
-    color: colors.oppText, // Set text color to black (primaryText)
+    fontWeight: '500', // Make the label a bit bolder
+    color: colors.primaryText,
     textAlign: 'center',
-    lineHeight: 15, // Line height for better spacing in multi-line text
+    flexWrap: 'wrap', // Allow text to wrap
+    lineHeight: 14, // Add line height for better readability
   },
 
   /* Featured Parks */
   featuredParksContainer: {
     marginBottom: 20,
-    paddingHorizontal: 20, // Add padding to both sides of the featured parks section
+    paddingHorizontal: 20,
   },
   parkCard: {
-    width: '100%', // Full width of parent
-    height: 200, // Adjust height as needed
-    backgroundColor: colors.sixty, // White color for the background (60%)
-    borderRadius: 10,
-    justifyContent: 'flex-end', // Name at the bottom left
+    width: '100%',
+    height: 180, // Adjust height for better proportions
+    backgroundColor: colors.sixty,
+    borderRadius: 15, // Rounded corners for a modern look
+    justifyContent: 'flex-end',
     padding: 10,
-    marginBottom: 10,
-    elevation: 2, // Shadow for Android
-    shadowColor: '#000', // Shadow for iOS
-    shadowOffset: { width: 0, height: 2 }, // Shadow offset
-    shadowOpacity: 0.2,
-    shadowRadius: 3.84,
+    marginBottom: 20, // Add more spacing between park cards
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   parkName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: colors.primaryText, // Set park name color to black (primaryText)
+    color: colors.primaryText,
     position: 'absolute',
     bottom: 10,
     left: 10,
   },
   parkDetail: {
     fontSize: 14,
-    color: colors.secondaryText, // Set park details color to gray (secondaryText)
+    color: colors.secondaryText,
     marginLeft: 10,
     marginBottom: 20,
   },
+
+  /* Section Title */
   sectionTitle: {
     paddingTop: 20,
     paddingBottom: 15,
     paddingLeft: 20,
-    color: colors.primaryText, // Set section title color to black (primaryText)
-    fontSize: 16,
+    color: colors.primaryText,
+    fontSize: 18, // Slightly bigger for section titles
     fontWeight: 'bold',
-  }
+  },
 });

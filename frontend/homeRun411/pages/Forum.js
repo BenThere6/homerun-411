@@ -4,10 +4,6 @@ import { Ionicons } from '@expo/vector-icons'; // For icons
 import colors from '../assets/colors'; // Importing the color variables
 
 export default function ForumPage() {
-    // Mock data for user's favorite parks and location
-    const userFavoriteParks = ['Park 1']; // Mock favorite parks of the user
-    const nearbyParks = ['Park 1', 'Park 3']; // Mock nearby parks based on user's location
-
     // Example data for forum posts
     const forumPosts = [
         {
@@ -57,16 +53,6 @@ export default function ForumPage() {
         },
     ];
 
-    // Filter posts with tagged parks that match user's favorite or nearby parks
-    const relevantPosts = forumPosts.filter(post =>
-        post.taggedParks.some(park => userFavoriteParks.includes(park) || nearbyParks.includes(park))
-    );
-
-    // Filter out posts that have no tagged parks or are not relevant
-    const otherPosts = forumPosts.filter(post =>
-        !post.taggedParks.some(park => userFavoriteParks.includes(park) || nearbyParks.includes(park))
-    );
-
     // Render each forum post
     const renderPost = ({ item }) => (
         <TouchableOpacity style={styles.postContainer}>
@@ -107,7 +93,14 @@ export default function ForumPage() {
         <SafeAreaView style={styles.safeArea}>
             {/* Forum Header */}
             <View style={styles.header}>
+                {/* Filter Icon on the left */}
+                <TouchableOpacity style={styles.filterButton}>
+                    <Ionicons name="filter-outline" size={24} color={colors.ten} />
+                </TouchableOpacity>
+
                 <Text style={styles.headerTitle}>Forum</Text>
+
+                {/* New Post Button on the right */}
                 <TouchableOpacity style={styles.newPostButton}>
                     <Ionicons name="add-circle-outline" size={24} color={colors.ten} />
                 </TouchableOpacity>
@@ -115,39 +108,8 @@ export default function ForumPage() {
 
             {/* Forum Post List */}
             <FlatList
-                data={[...relevantPosts, ...otherPosts]} // Combine relevant and other posts
-                ListHeaderComponent={() => (
-                    <View>
-                        {/* Label for Nearby or Favorite Parks */}
-                        {relevantPosts.length > 0 && (
-                            <View style={styles.sectionHeader}>
-                                <Text style={styles.sectionHeaderText}>
-                                    Posts Tagged with Nearby Parks
-                                </Text>
-                            </View>
-                        )}
-
-                        {/* Render relevant posts */}
-                        {relevantPosts.map(post => (
-                            <View key={post.id}>
-                                {renderPost({ item: post })}
-                            </View>
-                        ))}
-
-                        {/* Add more spacing between the first and second section */}
-                        {relevantPosts.length > 0 && otherPosts.length > 0 && (
-                            <View style={styles.sectionSpacer} />
-                        )}
-
-                        {/* Label for Other Posts */}
-                        {otherPosts.length > 0 && (
-                            <View style={styles.sectionHeader}>
-                                <Text style={styles.sectionHeaderText}>Other Posts</Text>
-                            </View>
-                        )}
-                    </View>
-                )}
-                renderItem={({ item }) => renderPost({ item })}
+                data={forumPosts} // Render all posts in the FlatList
+                renderItem={renderPost}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.listContainer}
             />
@@ -180,27 +142,16 @@ const styles = StyleSheet.create({
         flex: 1, // Takes up the space in the header, ensuring center alignment
         color: colors.primaryText, // Black color for the title text
     },
+    filterButton: {
+        position: 'absolute',
+        left: 20, // Aligns the button to the left side
+    },
     newPostButton: {
         position: 'absolute', 
         right: 20, // Aligns the button to the right side
     },
     listContainer: {
         padding: 10,
-    },
-    sectionHeader: {
-        backgroundColor: '#f1f1f1',
-        paddingVertical: 10,
-        paddingHorizontal: 20,
-        borderRadius: 10,
-        marginBottom: 10,
-    },
-    sectionHeaderText: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: colors.primaryText, // Black for section headers
-    },
-    sectionSpacer: {
-        height: 40, // Add more spacing between sections
     },
     postContainer: {
         backgroundColor: colors.sixty, // White background for posts
