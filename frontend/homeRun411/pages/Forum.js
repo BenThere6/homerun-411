@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     },
     taggedPark: {
         fontSize: 14,
-        color: colors.ten, // Gold for the tagged parks
+        color: colors.thirty,
         marginRight: 10, // Spacing between each tag
     },
     postSnippet: {

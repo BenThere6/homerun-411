@@ -4,4 +4,5 @@ export default {
     ten: 'rgb(212, 166, 72)', // Gold color (tertiary - 10%)
     primaryText: 'black',
     secondaryText: 'gray',
+    oppText: 'white',
 };

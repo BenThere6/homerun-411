@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   linkCard: {
     width: 80, // Square card
     height: 80,
-    backgroundColor: colors.sixty, // White color for the background (60%)
+    backgroundColor: colors.thirty,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
   },
   linkLabel: {
     fontSize: 12,
-    color: colors.primaryText, // Set text color to black (primaryText)
+    color: colors.oppText, // Set text color to black (primaryText)
     textAlign: 'center',
     lineHeight: 15, // Line height for better spacing in multi-line text
   },
