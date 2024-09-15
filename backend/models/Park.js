@@ -15,8 +15,8 @@ const parkSchema = new Schema({
     dugoutUrl: { type: String },
     sidelinesUrl: { type: String },
     shadedAreasUrl: { type: String },
+    mainImageUrl: { type: String },
   },
-  mainImageUrl: { type: String }, // Field for the main park image
   closestParkingToField: { type: String },
   bleachers: { type: Boolean },
   handicapAccess: {
