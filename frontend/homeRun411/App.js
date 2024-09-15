@@ -6,7 +6,6 @@ import { Ionicons } from '@expo/vector-icons';
 import Home from './pages/Home';
 import SearchPage from './pages/Search';
 import ForumPage from './pages/Forum';
-import FavoritesPage from './pages/Favorites';
 import ProfilePage from './pages/Profile';
 import ParkDetails from './pages/ParkDetails';
 import NotificationsPage from './pages/Notifications';
@@ -30,8 +29,6 @@ function Tabs() {
             iconName = focused ? 'search' : 'search-outline';
           } else if (route.name === 'Forum') {
             iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
-          } else if (route.name === 'Favorites') {
-            iconName = focused ? 'heart' : 'heart-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline'; // Profile icon
           }
@@ -45,7 +42,6 @@ function Tabs() {
       <Tab.Screen name="Home" component={Home} />
       <Tab.Screen name="Search" component={SearchPage} />
       <Tab.Screen name="Forum" component={ForumPage} />
-      <Tab.Screen name="Favorites" component={FavoritesPage} />
       <Tab.Screen name="Profile" component={ProfilePage} />
     </Tab.Navigator>
   );

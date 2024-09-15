@@ -18,7 +18,7 @@ export default function Homepage() {
       {/* Scrollable content */}
       <ScrollView contentContainerStyle={styles.scrollContainer}>
 
-        <Text style={styles.sectionTitle}>This here be text.</Text>
+        <Text style={styles.sectionTitle}>Quick Links</Text>
 
         {/* Quick Links with Horizontal Scroll */}
         <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} style={styles.quickLinksContainer}>
@@ -76,7 +76,9 @@ export default function Homepage() {
           
         </ScrollView>
 
-        {/* Featured Parks */}
+        {/* Favorite Parks */}
+        <Text style={styles.sectionTitle}>Favorite Parks</Text>
+
         <View style={styles.featuredParksContainer}>
           {/* Navigate to Park Details on click */}
           <TouchableOpacity
@@ -124,7 +126,7 @@ const styles = StyleSheet.create({
   /* Quick Links */
   quickLinksContainer: {
     paddingBottom: 15, // Added padding at the bottom
-    marginBottom: 20,
+    marginBottom: 0,
     paddingTop: 0,
   },
   linkCard: {
@@ -189,7 +191,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionTitle: {
-    paddingTop: 30,
+    paddingTop: 20,
     paddingBottom: 15,
     paddingLeft: 20
   }
