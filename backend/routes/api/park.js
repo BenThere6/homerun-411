@@ -118,7 +118,6 @@ router.post('/', auth, isAdmin, async (req, res) => {
   }
 });
 
-
 // Get all parks
 router.get('/', async (req, res) => {
   try {
