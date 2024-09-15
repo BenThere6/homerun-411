@@ -98,7 +98,7 @@ export default function SearchPage() {
                     onPress={() => navigation.navigate('ParkDetails', { parkName: park.name, location: park.coordinates })}>
                     <Text style={styles.parkName}>{park.name}</Text>
                   </TouchableOpacity>
-                  <Text style={styles.parkDetail}>Location: {park.interactiveMapPositionDetails || 'Not specified'}</Text>
+                  <Text style={styles.parkDetail}>Location: {`${park.city}, ${park.state}`}</Text>
                 </View>
               ))
             ) : (

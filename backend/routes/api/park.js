@@ -30,31 +30,31 @@ async function fetchComprehensiveWeatherFromAPI(parkCoordinates) {
 
   let response;
   try {
-      response = await fetch(url);
-      const data = await response.json();  // Parse JSON irrespective of response status
+    response = await fetch(url);
+    const data = await response.json();  // Parse JSON irrespective of response status
 
-      if (!response.ok) {
-          // Include specific API error information in the thrown error
-          throw new Error(`Failed to fetch weather data: ${response.status} ${response.statusText} - ${data.message}`);
+    if (!response.ok) {
+      // Include specific API error information in the thrown error
+      throw new Error(`Failed to fetch weather data: ${response.status} ${response.statusText} - ${data.message}`);
+    }
+
+    return {
+      current: {
+        temperature: data.main.temp,
+        feels_like: data.main.feels_like,
+        description: data.weather[0].description, // Using 'description' for more detail
+        icon: data.weather[0].icon,
+        wind_speed: data.wind.speed,
+        wind_deg: data.wind.deg,
+        // Note: UV index is not available in the basic /weather endpoint; it's available in the /onecall endpoint
+        sunrise: new Date(data.sys.sunrise * 1000),
+        sunset: new Date(data.sys.sunset * 1000),
       }
-
-      return {
-          current: {
-              temperature: data.main.temp,
-              feels_like: data.main.feels_like,
-              description: data.weather[0].description, // Using 'description' for more detail
-              icon: data.weather[0].icon,
-              wind_speed: data.wind.speed,
-              wind_deg: data.wind.deg,
-              // Note: UV index is not available in the basic /weather endpoint; it's available in the /onecall endpoint
-              sunrise: new Date(data.sys.sunrise * 1000),
-              sunset: new Date(data.sys.sunset * 1000),
-          }
-          // Hourly and daily forecasts would be extracted here if using the OneCall API
-      };
+      // Hourly and daily forecasts would be extracted here if using the OneCall API
+    };
   } catch (error) {
-      // If the error is thrown by fetch itself or there is a network issue
-      throw new Error(`Network or parsing error while fetching weather data: ${error.message}`);
+    // If the error is thrown by fetch itself or there is a network issue
+    throw new Error(`Network or parsing error while fetching weather data: ${error.message}`);
   }
 }
 
@@ -64,6 +64,8 @@ router.post('/', auth, isAdmin, async (req, res) => {
     const {
       name,
       coordinates,
+      city,
+      state,
       interactiveMapPositionDetails,
       satelliteImageUrl,
       pictures,
@@ -87,6 +89,8 @@ router.post('/', auth, isAdmin, async (req, res) => {
     const newPark = new Park({
       name,
       coordinates,
+      city, // Add city
+      state, // Add state
       interactiveMapPositionDetails,
       satelliteImageUrl,
       pictures,
@@ -113,6 +117,7 @@ router.post('/', auth, isAdmin, async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 });
+
 
 // Get all parks
 router.get('/', async (req, res) => {
@@ -175,18 +180,18 @@ router.get('/nearby', async (req, res) => {
 // Get or update comprehensive weather for a specific park by ID
 router.get('/:parkId/weather', async (req, res) => {
   try {
-      const parkId = req.params.parkId;
-      const park = await Park.findById(parkId);
-      if (!park) {
-          return res.status(404).json({ message: 'Park not found' });
-      }
+    const parkId = req.params.parkId;
+    const park = await Park.findById(parkId);
+    if (!park) {
+      return res.status(404).json({ message: 'Park not found' });
+    }
 
-      // Always fetch fresh weather data for comprehensive info
-      const weather = await fetchComprehensiveWeatherFromAPI(park.coordinates);
+    // Always fetch fresh weather data for comprehensive info
+    const weather = await fetchComprehensiveWeatherFromAPI(park.coordinates);
 
-      res.json(weather);
+    res.json(weather);
   } catch (err) {
-      res.status(500).json({ message: err.message });
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -212,6 +217,8 @@ router.patch('/:id', auth, isAdmin, getPark, async (req, res) => {
   const updateFields = [
     'name',
     'coordinates',
+    'city',
+    'state',
     'interactiveMapPositionDetails',
     'satelliteImageUrl',
     'pictures',
