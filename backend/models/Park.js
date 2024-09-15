@@ -3,29 +3,30 @@ const Schema = mongoose.Schema;
 
 const parkSchema = new Schema({
   name: { type: String, required: true },
-  city: { type: String, required: true },  // Add city field
-  state: { type: String, required: true }, // Add state field
+  city: { type: String, required: true },  // City of the park
+  state: { type: String, required: true }, // State of the park
   coordinates: {
-    type: { type: String, default: 'Point' }, // This is required for the 2dsphere index
-    coordinates: { type: [Number], required: true }, // Array of numbers: [longitude, latitude]
+    type: { type: String, default: 'Point' }, // Required for 2dsphere index
+    coordinates: { type: [Number], required: true }, // Array of [longitude, latitude]
   },
-  interactiveMapPositionDetails: { type: String }, // e.g., Google Maps embed URL or details
-  satelliteImageUrl: { type: String }, // May not need if using interactive map
+  interactiveMapPositionDetails: { type: String }, // Google Maps or similar
+  satelliteImageUrl: { type: String }, // Satellite or aerial view image URL
   pictures: {
     dugoutUrl: { type: String },
     sidelinesUrl: { type: String },
     shadedAreasUrl: { type: String },
   },
+  mainImageUrl: { type: String }, // Field for the main park image
   closestParkingToField: { type: String },
   bleachers: { type: Boolean },
   handicapAccess: {
     hasAccess: { type: Boolean },
-    details: { type: String }, // e.g., stairs, paved sidewalks, or gravel
+    details: { type: String }, // Access details like stairs, paved sidewalks
   },
   concessions: {
     available: { type: Boolean },
     details: { type: String },
-    paymentMethods: { type: String }, // e.g., card, cash
+    paymentMethods: { type: String }, // Payment methods: card, cash
   },
   coolersAllowed: { type: Boolean },
   canopiesAllowed: { type: Boolean },
@@ -35,7 +36,7 @@ const parkSchema = new Schema({
     type: String,
     enum: ['portable', 'permanent', 'none'],
   },
-  fenceDistance: { type: Number }, // For home runs
+  fenceDistance: { type: Number }, // Fence distance for home runs
   powerWaterAccess: { type: Boolean },
   cellReception: { type: Boolean },
   shadedAreas: {
@@ -51,7 +52,7 @@ const parkSchema = new Schema({
   },
 });
 
-// Create a 2dsphere index on the coordinates field
+// Create a 2dsphere index on the coordinates field for geospatial queries
 parkSchema.index({ coordinates: '2dsphere' });
 
 module.exports = mongoose.model('Park', parkSchema);
