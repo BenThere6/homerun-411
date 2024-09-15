@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
   },
   scrollContainer: {
-    paddingBottom: 20,
+    paddingBottom: 0,
   },
   
   /* Gray Line (Divider) */

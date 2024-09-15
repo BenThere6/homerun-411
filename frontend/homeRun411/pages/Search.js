@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
 
   /* Featured Parks */
   featuredParksContainer: {
-    marginBottom: 20,
+    marginBottom: 0,
     paddingHorizontal: 20, // Add padding to both sides of the featured parks section
   },
   parkCard: {
