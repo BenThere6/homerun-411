@@ -60,21 +60,24 @@ export default function SearchPage() {
           <View style={styles.featuredParksContainer}>
             <TouchableOpacity
               style={styles.parkCard}
-              onPress={() => navigation.navigate('ParkDetails', { parkName: 'Park 1', location: 'City, State' })}>
+              onPress={() => navigation.navigate('ParkDetails', { parkName: 'Park 1', location: 'City, State' })}
+            >
               <Text style={styles.parkName}>Park 1</Text>
             </TouchableOpacity>
             <Text style={styles.parkDetail}>Location: City, State</Text>
 
             <TouchableOpacity
               style={styles.parkCard}
-              onPress={() => navigation.navigate('ParkDetails', { parkName: 'Park 2', location: 'City, State' })}>
+              onPress={() => navigation.navigate('ParkDetails', { parkName: 'Park 2', location: 'City, State' })}
+            >
               <Text style={styles.parkName}>Park 2</Text>
             </TouchableOpacity>
             <Text style={styles.parkDetail}>Location: City, State</Text>
 
             <TouchableOpacity
               style={styles.parkCard}
-              onPress={() => navigation.navigate('ParkDetails', { parkName: 'Park 3', location: 'City, State' })}>
+              onPress={() => navigation.navigate('ParkDetails', { parkName: 'Park 3', location: 'City, State' })}
+            >
               <Text style={styles.parkName}>Park 3</Text>
             </TouchableOpacity>
             <Text style={styles.parkDetail}>Location: City, State</Text>
@@ -87,12 +90,13 @@ export default function SearchPage() {
                 <View key={park._id} style={styles.parkContainer}>
                   <TouchableOpacity
                     style={styles.parkCard}
-                    onPress={() => navigation.navigate('ParkDetails', { parkName: park.name, location: park.coordinates })}>
+                    onPress={() => navigation.navigate('ParkDetails', { parkName: park.name, location: park.coordinates })}
+                  >
                     <ImageBackground
-                      source={{ uri: park.mainImageUrl ? park.mainImageUrl : 'https://via.placeholder.com/300' }} // Use a placeholder if no image URL
+                      source={{ uri: park.pictures?.mainImageUrl ? park.pictures.mainImageUrl : 'https://via.placeholder.com/300' }}
                       style={styles.parkImageBackground}
                       resizeMode="cover"
-                      onError={() => console.log(`Failed to load image for ${park.name}`)} // Log error if the image fails to load
+                      onError={() => console.log(`Failed to load image for ${park.name}`)}
                     >
                       <View style={styles.parkContent}>
                         <Text style={styles.parkName}>{park.name}</Text>
@@ -188,26 +192,24 @@ const styles = StyleSheet.create({
     height: 200,
     backgroundColor: '#f0f0f0',
     borderRadius: 10,
-    justifyContent: 'flex-end',
-    padding: 10,
     marginBottom: 10,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 3.84,
+    overflow: 'hidden', // Ensure the image and content stay inside the card
   },
   parkImageBackground: {
+    flex: 1,
     width: '100%',
     height: '100%',
-    borderRadius: 10,
-    overflow: 'hidden',
   },
   parkContent: {
     backgroundColor: 'rgba(0, 0, 0, 0.4)', // Transparent black overlay for better text readability
-    height: '100%',
     justifyContent: 'flex-end',
     padding: 10,
+    height: '100%',
   },
   parkName: {
     fontSize: 18,
