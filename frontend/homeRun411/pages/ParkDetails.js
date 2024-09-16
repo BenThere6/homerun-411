@@ -1,13 +1,17 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import Header from '../components/Header'; // Importing the header component
 
-export default function SearchPage() {
+export default function ParkDetails({ route }) {
+  // Get the park details passed from the SearchPage
+  const { park } = route.params;
+
   return (
     <View style={styles.container}>
-      {/* Content */}
       <View style={styles.contentContainer}>
-        <Text style={styles.text}>This is the Park Details Page</Text>
+        <Text style={styles.text}>Park Name: {park.name}</Text>
+        <Text style={styles.text}>Location: {park.city}, {park.state}</Text>
+        <Text style={styles.text}>Coordinates: {park.coordinates.coordinates.join(', ')}</Text>
+        {/* Add more park details here as needed */}
       </View>
     </View>
   );
@@ -22,10 +26,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
   },
   text: {
     fontSize: 18,
     fontWeight: 'bold',
     color: 'black',
+    marginBottom: 10,
   },
 });

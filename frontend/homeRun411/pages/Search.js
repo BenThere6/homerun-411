@@ -62,7 +62,7 @@ export default function SearchPage() {
               <View key={park._id} style={styles.parkContainer}>
                 <TouchableOpacity
                   style={styles.parkCard}
-                  onPress={() => navigation.navigate('ParkDetails', { parkName: park.name, location: park.coordinates })}
+                  onPress={() => navigation.navigate('ParkDetails', { park })}
                 >
                   <ImageBackground
                     source={{ uri: park.pictures?.mainImageUrl ? park.pictures.mainImageUrl : 'https://via.placeholder.com/300' }}
@@ -87,7 +87,7 @@ export default function SearchPage() {
                 <View key={park._id} style={styles.parkContainer}>
                   <TouchableOpacity
                     style={styles.parkCard}
-                    onPress={() => navigation.navigate('ParkDetails', { parkName: park.name, location: park.coordinates })}
+                    onPress={() => navigation.navigate('ParkDetails', { park })}
                   >
                     <ImageBackground
                       source={{ uri: park.pictures?.mainImageUrl ? park.pictures.mainImageUrl : 'https://images.unsplash.com/photo-1717886091076-56e54c2a360f?q=80&w=2967&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }}
