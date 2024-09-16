@@ -10,6 +10,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  refreshToken: { type: String },
   role: {
     type: String,
     enum: ['User', 'Admin'],
@@ -79,10 +80,11 @@ const userSchema = new mongoose.Schema({
       type: Boolean,
       default: false,
     },
-    contentFilter: { 
-      type: String, 
-      enum: ['all', 'favorites', 'none'], 
-      default: 'all' },
+    contentFilter: {
+      type: String,
+      enum: ['all', 'favorites', 'none'],
+      default: 'all'
+    },
   },
 });
 
