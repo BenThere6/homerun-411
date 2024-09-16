@@ -36,19 +36,56 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    const token = jwt.sign(
+    // Generate refresh token (long-lived)
+    const refreshToken = jwt.sign(
       { id: user._id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: '1h' }
+      process.env.JWT_SECRET,  // Use a single secret for all tokens
+      { expiresIn: '14d' }  // Refresh token lasts for 14 days
     );
 
-    res.json({ token });
+    // Optionally, save the refresh token in the database (for example in User model)
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    res.json({ refreshToken });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
+// Middleware to authenticate using the refresh token
+const authenticate = (req, res, next) => {
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+
+  if (!token) {
+    return res.status(401).json({ message: 'Access denied. No token provided.' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    res.status(401).json({ message: 'Invalid token' });
+  }
+};
+
+// Logout Route
+app.post('/api/auth/logout', authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    user.refreshToken = null;
+    await user.save();
+
+    res.json({ message: 'Logged out successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// User registration route
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { email, password, zipCode } = req.body;
@@ -57,22 +94,26 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(400).json({ message: 'Email, password, and zip code are required' });
     }
 
-    // Hash the password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const newUser = new User({
       email,
       passwordHash: hashedPassword,
-      zipCode
+      zipCode,
     });
 
     const savedUser = await newUser.save();
     res.status(201).json(savedUser);
   } catch (err) {
-    console.error(err); // Log the error for debugging
+    console.error(err);
     res.status(500).json({ message: err.message });
   }
+});
+
+// Example protected route using the refresh token
+app.get('/api/protected', authenticate, (req, res) => {
+  res.json({ message: 'Access granted to protected route', user: req.user });
 });
 
 // Error handling middleware
