@@ -58,29 +58,26 @@ export default function SearchPage() {
 
           <Text style={styles.sectionTitle}>Featured Parks</Text>
           <View style={styles.featuredParksContainer}>
-            <TouchableOpacity
-              style={styles.parkCard}
-              onPress={() => navigation.navigate('ParkDetails', { parkName: 'Park 1', location: 'City, State' })}
-            >
-              <Text style={styles.parkName}>Park 1</Text>
-            </TouchableOpacity>
-            <Text style={styles.parkDetail}>Location: City, State</Text>
-
-            <TouchableOpacity
-              style={styles.parkCard}
-              onPress={() => navigation.navigate('ParkDetails', { parkName: 'Park 2', location: 'City, State' })}
-            >
-              <Text style={styles.parkName}>Park 2</Text>
-            </TouchableOpacity>
-            <Text style={styles.parkDetail}>Location: City, State</Text>
-
-            <TouchableOpacity
-              style={styles.parkCard}
-              onPress={() => navigation.navigate('ParkDetails', { parkName: 'Park 3', location: 'City, State' })}
-            >
-              <Text style={styles.parkName}>Park 3</Text>
-            </TouchableOpacity>
-            <Text style={styles.parkDetail}>Location: City, State</Text>
+            {parks.slice(0, 3).map((park) => (
+              <View key={park._id} style={styles.parkContainer}>
+                <TouchableOpacity
+                  style={styles.parkCard}
+                  onPress={() => navigation.navigate('ParkDetails', { parkName: park.name, location: park.coordinates })}
+                >
+                  <ImageBackground
+                    source={{ uri: park.pictures?.mainImageUrl ? park.pictures.mainImageUrl : 'https://via.placeholder.com/300' }}
+                    style={styles.parkImageBackground}
+                    resizeMode="cover"
+                    onError={() => console.log(`Failed to load image for ${park.name}`)}
+                  >
+                    <View style={styles.parkContent}>
+                      <Text style={styles.parkName}>{park.name}</Text>
+                    </View>
+                  </ImageBackground>
+                </TouchableOpacity>
+                <Text style={styles.parkDetail}>{`${park.city}, ${park.state}`}</Text>
+              </View>
+            ))}
           </View>
 
           <Text style={styles.sectionTitle}>All Parks</Text>
@@ -93,7 +90,7 @@ export default function SearchPage() {
                     onPress={() => navigation.navigate('ParkDetails', { parkName: park.name, location: park.coordinates })}
                   >
                     <ImageBackground
-                      source={{ uri: park.pictures?.mainImageUrl ? park.pictures.mainImageUrl : 'https://via.placeholder.com/300' }}
+                      source={{ uri: park.pictures?.mainImageUrl ? park.pictures.mainImageUrl : 'https://images.unsplash.com/photo-1717886091076-56e54c2a360f?q=80&w=2967&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }}
                       style={styles.parkImageBackground}
                       resizeMode="cover"
                       onError={() => console.log(`Failed to load image for ${park.name}`)}
@@ -103,7 +100,7 @@ export default function SearchPage() {
                       </View>
                     </ImageBackground>
                   </TouchableOpacity>
-                  <Text style={styles.parkDetail}>Location: {`${park.city}, ${park.state}`}</Text>
+                  <Text style={styles.parkDetail}>{`${park.city}, ${park.state}`}</Text>
                 </View>
               ))
             ) : (
