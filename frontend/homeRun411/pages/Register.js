@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Keyboard, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Keyboard, TouchableWithoutFeedback, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage to store the token
 import colors from '../assets/colors'; // Import color scheme
+import { useAuth } from '../AuthContext'; // Import the useAuth hook for authentication context
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -9,30 +11,57 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [zipCode, setZipCode] = useState('');
   const navigation = useNavigation();
+  const { setIsLoggedIn } = useAuth(); // Access the setIsLoggedIn function from AuthContext
 
   const handleRegister = async () => {
     if (password !== confirmPassword) {
-      console.log('Passwords do not match!');
+      Alert.alert('Error', 'Passwords do not match!');
       return;
     }
 
     try {
-      const response = await fetch('http://localhost:5001/api/auth/register', {
+      // Register the user
+      const registerResponse = await fetch('http://10.0.0.29:5001/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password, zipCode }),
       });
-      const data = await response.json();
 
-      if (response.ok) {
-        navigation.navigate('LoginPage');
+      const registerData = await registerResponse.json();
+
+      if (registerResponse.ok) {
+        // Automatically log in after successful registration
+        const loginResponse = await fetch('http://10.0.0.29:5001/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email, password }),
+        });
+
+        const loginData = await loginResponse.json();
+
+        if (loginResponse.ok && loginData.refreshToken) {
+          // Store token in AsyncStorage
+          await AsyncStorage.setItem('token', loginData.refreshToken);
+          setIsLoggedIn(true);
+
+          // Navigate to Home
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Tabs' }], // Direct to the Tabs (Home) screen
+          });
+        } else {
+          Alert.alert('Login failed', loginData.message || 'Unable to log in after registration.');
+        }
       } else {
-        console.log('Registration failed:', data.message);
+        Alert.alert('Registration failed', registerData.message || 'Unable to register. Please try again.');
       }
     } catch (error) {
-      console.error('Error registering:', error);
+      console.error('Error during registration and login:', error);
+      Alert.alert('Error', 'An error occurred while registering. Please try again.');
     }
   };
 
