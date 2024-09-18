@@ -16,6 +16,7 @@ import SettingsPage from './pages/Settings';
 import LoginPage from './pages/Login';
 import RegisterPage from './pages/Register';
 import colors from './assets/colors';
+import { AuthProvider, useAuth } from './AuthContext'; // Import the AuthProvider and useAuth hook
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -54,7 +55,18 @@ function TabsNavigator() {
 
 // Main App Navigation with Stack
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  return (
+    <AuthProvider>
+      <NavigationContainer>
+        <MainStack />
+      </NavigationContainer>
+    </AuthProvider>
+  );
+}
+
+// Main stack of the application
+function MainStack() {
+  const { isLoggedIn, setIsLoggedIn } = useAuth(); // Access the auth state from the context
   const [loading, setLoading] = useState(true);
 
   // Function to check if token exists
@@ -78,72 +90,69 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator>
-        {!isLoggedIn ? (
-          <>
-            <Stack.Screen
-              name="LoginPage"
-              component={LoginPage}
-              initialParams={{ setIsLoggedIn }} // Pass setIsLoggedIn as an initial param
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="RegisterPage"
-              component={RegisterPage}
-              options={{ headerShown: false }}
-            />
-          </>
-        ) : (
-          <>
-            <Stack.Screen
-              name="Tabs"
-              component={TabsNavigator}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="ParkDetails"
-              component={ParkDetails}
-              options={{
-                title: 'Park Details',
-                headerBackTitle: 'Back',
-              }}
-            />
-            <Stack.Screen
-              name="Notifications"
-              component={NotificationsPage}
-              options={{
-                title: 'Notifications',
-                headerBackTitle: 'Back',
-              }}
-            />
-            <Stack.Screen
-              name="Etiquette"
-              component={EtiquettePage}
-              options={{
-                title: 'Baseball Etiquette',
-                headerBackTitle: 'Back',
-              }}
-            />
-            <Stack.Screen
-              name="Admin"
-              component={AdminPage}
-              options={{
-                title: 'Admin',
-                headerBackTitle: 'Back',
-              }}
-            />
-            <Stack.Screen
-              name="Settings"
-              component={SettingsPage}
-              options={{
-                title: 'Settings',
-                headerBackTitle: 'Back',
-              }}
-            />
-          </>
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <Stack.Navigator>
+      {!isLoggedIn ? (
+        <>
+          <Stack.Screen
+            name="LoginPage"
+            component={LoginPage}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="RegisterPage"
+            component={RegisterPage}
+            options={{ headerShown: false }}
+          />
+        </>
+      ) : (
+        <>
+          <Stack.Screen
+            name="Tabs"
+            component={TabsNavigator}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="ParkDetails"
+            component={ParkDetails}
+            options={{
+              title: 'Park Details',
+              headerBackTitle: 'Back',
+            }}
+          />
+          <Stack.Screen
+            name="Notifications"
+            component={NotificationsPage}
+            options={{
+              title: 'Notifications',
+              headerBackTitle: 'Back',
+            }}
+          />
+          <Stack.Screen
+            name="Etiquette"
+            component={EtiquettePage}
+            options={{
+              title: 'Baseball Etiquette',
+              headerBackTitle: 'Back',
+            }}
+          />
+          <Stack.Screen
+            name="Admin"
+            component={AdminPage}
+            options={{
+              title: 'Admin',
+              headerBackTitle: 'Back',
+            }}
+          />
+          <Stack.Screen
+            name="Settings"
+            component={SettingsPage}
+            options={{
+              title: 'Settings',
+              headerBackTitle: 'Back',
+            }}
+          />
+        </>
+      )}
+    </Stack.Navigator>
   );
 }

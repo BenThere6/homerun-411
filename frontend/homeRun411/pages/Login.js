@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Keyboard, TouchableWithoutFeedback, Alert } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native'; // Import useRoute to get route params
+import { useNavigation } from '@react-navigation/native'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../assets/colors';
+import { useAuth } from '../AuthContext'; // Import the useAuth hook
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigation = useNavigation();
-  const route = useRoute(); // Get route params
-  const { setIsLoggedIn } = route.params; // Destructure setIsLoggedIn from route.params
+  const { setIsLoggedIn } = useAuth(); // Use the setIsLoggedIn from AuthContext
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -18,7 +18,7 @@ export default function LoginPage() {
     }
 
     try {
-      const response = await fetch('http://localhost:5001/api/auth/login', {
+      const response = await fetch('http://10.0.0.29:5001/api/auth/login', { // Use your local IP address
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -30,8 +30,6 @@ export default function LoginPage() {
 
       if (response.ok && data.refreshToken) {
         await AsyncStorage.setItem('token', data.refreshToken);
-
-        // Use setIsLoggedIn from route.params
         setIsLoggedIn(true);
 
         // Reset navigation to the Tabs screen
@@ -39,7 +37,6 @@ export default function LoginPage() {
           index: 0,
           routes: [{ name: 'Tabs' }],
         });
-
       } else {
         Alert.alert('Login failed', data.message || 'Invalid email or password.');
       }

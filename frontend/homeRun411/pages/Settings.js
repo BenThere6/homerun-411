@@ -1,22 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, Switch, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
-import * as ImagePicker from 'expo-image-picker'; // To allow users to select a profile picture
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage to manage token
-import { useNavigation } from '@react-navigation/native'; // Navigation hook for logout redirect
-import colors from '../assets/colors'; // Importing the color variables
+import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native'; 
+import colors from '../assets/colors';
+import { useAuth } from '../AuthContext'; // Import the useAuth hook
 
 export default function SettingsPage() {
+  const { setIsLoggedIn } = useAuth(); // Access setIsLoggedIn from context
+  const navigation = useNavigation();
+
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [privacyEnabled, setPrivacyEnabled] = useState(false);
   const [darkTheme, setDarkTheme] = useState(false);
-  const navigation = useNavigation(); // Access navigation
-
-  // Profile Information State
   const [username, setUsername] = useState('Username');
   const [email, setEmail] = useState('user@example.com');
-  const [profileImage, setProfileImage] = useState(null); // For profile picture
+  const [profileImage, setProfileImage] = useState(null);
 
-  // Load settings and profile data on component mount
   useEffect(() => {
     const loadSettings = async () => {
       const storedNotifications = await AsyncStorage.getItem('notificationsEnabled');
@@ -37,7 +37,6 @@ export default function SettingsPage() {
     loadSettings();
   }, []);
 
-  // Function to open image picker
   const pickImage = async () => {
     const result = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (result.granted) {
@@ -57,21 +56,12 @@ export default function SettingsPage() {
     }
   };
 
-  // Save profile info to AsyncStorage
   const handleSaveProfile = async () => {
     await AsyncStorage.setItem('username', username);
     await AsyncStorage.setItem('email', email);
     Alert.alert('Profile Saved', 'Your profile information has been updated.');
   };
 
-  // Save settings to AsyncStorage
-  const handleSaveSettings = async () => {
-    await AsyncStorage.setItem('notificationsEnabled', JSON.stringify(notificationsEnabled));
-    await AsyncStorage.setItem('privacyEnabled', JSON.stringify(privacyEnabled));
-    await AsyncStorage.setItem('darkTheme', JSON.stringify(darkTheme));
-  };
-
-  // Logout functionality with confirmation
   const handleLogout = async () => {
     Alert.alert(
       'Confirm Logout',
@@ -81,13 +71,16 @@ export default function SettingsPage() {
         {
           text: 'Logout',
           onPress: async () => {
-            await AsyncStorage.removeItem('token'); // Clear token from AsyncStorage
-
-            // Reset the navigation stack and navigate to the LoginPage
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'LoginPage' }],
-            });
+            try {
+              await AsyncStorage.removeItem('token');
+              setIsLoggedIn(false); // Log the user out
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'LoginPage' }],
+              });
+            } catch (error) {
+              console.error('Error during logout:', error);
+            }
           },
         },
       ],
@@ -95,17 +88,10 @@ export default function SettingsPage() {
     );
   };
 
-  // Persist settings on toggle
-  useEffect(() => {
-    handleSaveSettings();
-  }, [notificationsEnabled, privacyEnabled, darkTheme]);
-
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
-        {/* Profile Section */}
         <View style={styles.profileContainer}>
-          {/* Profile Picture */}
           <View style={styles.profileImageContainer}>
             <TouchableOpacity onPress={pickImage}>
               {profileImage ? (
@@ -117,73 +103,28 @@ export default function SettingsPage() {
               )}
             </TouchableOpacity>
           </View>
-
-          {/* Username */}
-          <TextInput
-            style={styles.input}
-            value={username}
-            onChangeText={setUsername}
-            placeholder="Username"
-          />
-
-          {/* Email */}
-          <TextInput
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
-            placeholder="Email"
-            keyboardType="email-address"
-          />
-
-          {/* Save Button */}
+          <TextInput style={styles.input} value={username} onChangeText={setUsername} placeholder="Username" />
+          <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="Email" keyboardType="email-address" />
           <TouchableOpacity style={styles.saveProfileButton} onPress={handleSaveProfile}>
             <Text style={styles.saveProfileButtonText}>Save Profile</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Notification Settings */}
         <View style={styles.settingsItem}>
           <Text style={styles.settingsText}>Notifications</Text>
-          <Switch
-            value={notificationsEnabled}
-            onValueChange={setNotificationsEnabled}
-          />
+          <Switch value={notificationsEnabled} onValueChange={setNotificationsEnabled} />
         </View>
 
-        {/* Privacy Settings */}
         <View style={styles.settingsItem}>
           <Text style={styles.settingsText}>Privacy Settings</Text>
-          <Switch
-            value={privacyEnabled}
-            onValueChange={setPrivacyEnabled}
-          />
+          <Switch value={privacyEnabled} onValueChange={setPrivacyEnabled} />
         </View>
 
-        {/* App Theme */}
         <View style={styles.settingsItem}>
           <Text style={styles.settingsText}>Dark Theme</Text>
-          <Switch
-            value={darkTheme}
-            onValueChange={setDarkTheme}
-          />
+          <Switch value={darkTheme} onValueChange={setDarkTheme} />
         </View>
 
-        {/* Location Preferences */}
-        <View style={styles.settingsItem}>
-          <Text style={styles.settingsText}>Location Preferences</Text>
-        </View>
-
-        {/* Clear Search History */}
-        <TouchableOpacity style={styles.settingsItem}>
-          <Text style={styles.settingsText}>Clear Search History</Text>
-        </TouchableOpacity>
-
-        {/* Data & Privacy */}
-        <TouchableOpacity style={styles.settingsItem}>
-          <Text style={styles.settingsText}>Data & Privacy</Text>
-        </TouchableOpacity>
-
-        {/* Logout Button */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutButtonText}>Logout</Text>
         </TouchableOpacity>
@@ -201,16 +142,8 @@ const styles = StyleSheet.create({
   scrollContainer: {
     paddingBottom: 30,
   },
-
-  /* Profile Section */
   profileContainer: {
     marginBottom: 30,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: colors.primaryText,
   },
   profileImageContainer: {
     alignItems: 'center',
@@ -254,8 +187,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-
-  /* Settings Items */
   settingsItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -268,8 +199,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.primaryText,
   },
-
-  /* Logout Button */
   logoutButton: {
     backgroundColor: '#e0e0e0',
     padding: 10,
