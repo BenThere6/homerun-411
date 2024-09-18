@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Keyboard, TouchableWithoutFeedback, Alert } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native'; // useRoute to get passed props
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../assets/colors';
 
-export default function LoginPage({ onLogin }) {
+export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigation = useNavigation();
+  const route = useRoute(); // Get route params to access `onLogin`
+  const onLogin = route.params?.onLogin; // Destructure the `onLogin` prop
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -16,8 +18,6 @@ export default function LoginPage({ onLogin }) {
     }
 
     try {
-      console.log('Attempting to login with email:', email);
-
       const response = await fetch('http://localhost:5001/api/auth/login', {
         method: 'POST',
         headers: {
@@ -29,16 +29,17 @@ export default function LoginPage({ onLogin }) {
       const data = await response.json();
 
       if (response.ok && data.refreshToken) {
-        await AsyncStorage.setItem('token', data.refreshToken); // Store token
-        onLogin(); // Trigger recheck of login state
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'Tabs' }],
-        });
+        await AsyncStorage.setItem('token', data.refreshToken);
+
+        // Call the passed `onLogin` function after successfully logging in
+        if (onLogin) {
+          onLogin();
+        }
       } else {
         Alert.alert('Login failed', data.message || 'Invalid email or password.');
       }
     } catch (error) {
+      console.error('Error logging in:', error);
       Alert.alert('Login Error', 'An error occurred while logging in. Please try again.');
     }
   };
