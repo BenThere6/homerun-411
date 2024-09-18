@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Keyboard, TouchableWithoutFeedback, Alert } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native'; // useRoute to get passed props
+import { useNavigation, useRoute } from '@react-navigation/native'; // Import useRoute to get route params
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../assets/colors';
 
@@ -8,8 +8,8 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigation = useNavigation();
-  const route = useRoute(); // Get route params to access `onLogin`
-  const onLogin = route.params?.onLogin; // Destructure the `onLogin` prop
+  const route = useRoute(); // Get route params
+  const { setIsLoggedIn } = route.params; // Destructure setIsLoggedIn from route.params
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -31,10 +31,15 @@ export default function LoginPage() {
       if (response.ok && data.refreshToken) {
         await AsyncStorage.setItem('token', data.refreshToken);
 
-        // Call the passed `onLogin` function after successfully logging in
-        if (onLogin) {
-          onLogin();
-        }
+        // Use setIsLoggedIn from route.params
+        setIsLoggedIn(true);
+
+        // Reset navigation to the Tabs screen
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Tabs' }],
+        });
+
       } else {
         Alert.alert('Login failed', data.message || 'Invalid email or password.');
       }

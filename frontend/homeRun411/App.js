@@ -84,9 +84,8 @@ export default function App() {
           <>
             <Stack.Screen
               name="LoginPage"
-              // Remove inline function, pass `checkToken` as a prop using `initialParams`
-              component={LoginPage} 
-              initialParams={{ onLogin: checkToken }} // Pass function through params
+              component={LoginPage}
+              initialParams={{ setIsLoggedIn }} // Pass setIsLoggedIn as an initial param
               options={{ headerShown: false }}
             />
             <Stack.Screen
@@ -97,7 +96,11 @@ export default function App() {
           </>
         ) : (
           <>
-            <Stack.Screen name="Tabs" component={TabsNavigator} options={{ headerShown: false }} />
+            <Stack.Screen
+              name="Tabs"
+              component={TabsNavigator}
+              options={{ headerShown: false }}
+            />
             <Stack.Screen
               name="ParkDetails"
               component={ParkDetails}
