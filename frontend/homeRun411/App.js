@@ -57,24 +57,21 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Function to check if token exists
-  const checkToken = async () => {
-    const token = await AsyncStorage.getItem('token');
-    if (token) {
-      setIsLoggedIn(true);
-    } else {
-      setIsLoggedIn(false);
-    }
-    setLoading(false);
-  };
-
-  // Check for token when app mounts
+  // Check for token in AsyncStorage
   useEffect(() => {
+    const checkToken = async () => {
+      const token = await AsyncStorage.getItem('token');
+      if (token) {
+        setIsLoggedIn(true); // User is logged in if token exists
+      }
+      setLoading(false); // Stop loading once token is checked
+    };
+
     checkToken();
   }, []);
 
   if (loading) {
-    return null; // You can add a spinner or loading screen here
+    return null; // Loading spinner or placeholder can go here
   }
 
   return (
@@ -84,12 +81,12 @@ export default function App() {
           <>
             <Stack.Screen
               name="LoginPage"
-              component={(props) => <LoginPage {...props} onLogin={checkToken} />} // Pass the checkToken function as a prop
+              component={LoginPage} // Fix: passing component reference directly
               options={{ headerShown: false }}
             />
             <Stack.Screen
               name="RegisterPage"
-              component={RegisterPage}
+              component={RegisterPage} // Fix: passing component reference directly
               options={{ headerShown: false }}
             />
           </>
