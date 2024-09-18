@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createStackNavigator } from '@react-navigation/stack'; // Import stack navigator
+import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Home from './pages/Home';
 import SearchPage from './pages/Search';
 import ForumPage from './pages/Forum';
@@ -12,13 +13,15 @@ import NotificationsPage from './pages/Notifications';
 import EtiquettePage from './pages/Etiquette';
 import AdminPage from './pages/Admin';
 import SettingsPage from './pages/Settings';
-import colors from './assets/colors'; // Import colors
+import LoginPage from './pages/Login';
+import RegisterPage from './pages/Register';
+import colors from './assets/colors';
 
 const Tab = createBottomTabNavigator();
-const Stack = createStackNavigator(); // Create stack navigator
+const Stack = createStackNavigator();
 
-// Bottom Tabs Navigator
-function Tabs() {
+// Tabs Navigator
+function TabsNavigator() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -31,13 +34,13 @@ function Tabs() {
           } else if (route.name === 'Forum') {
             iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
           } else if (route.name === 'Profile') {
-            iconName = focused ? 'person' : 'person-outline'; // Profile icon
+            iconName = focused ? 'person' : 'person-outline';
           }
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: colors.thirty, // Blue for active state (30%)
-        tabBarInactiveTintColor: colors.secondaryText, // Use secondaryText for gray inactive state
-        tabBarStyle: { backgroundColor: colors.sixty }, // White background (60%)
+        tabBarActiveTintColor: colors.thirty,
+        tabBarInactiveTintColor: colors.secondaryText,
+        tabBarStyle: { backgroundColor: colors.sixty },
         headerShown: false,
       })}
     >
@@ -51,61 +54,90 @@ function Tabs() {
 
 // Main App Navigation with Stack
 export default function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Function to check if token exists
+  const checkToken = async () => {
+    const token = await AsyncStorage.getItem('token');
+    if (token) {
+      setIsLoggedIn(true);
+    } else {
+      setIsLoggedIn(false);
+    }
+    setLoading(false);
+  };
+
+  // Check for token when app mounts
+  useEffect(() => {
+    checkToken();
+  }, []);
+
+  if (loading) {
+    return null; // You can add a spinner or loading screen here
+  }
+
   return (
     <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={{
-          headerStyle: {
-            backgroundColor: colors.sixty, // White header background (60%)
-          },
-          headerTintColor: colors.primaryText, // Black text for the back button
-          headerTitleStyle: {
-            fontWeight: 'bold',
-            color: colors.primaryText, // Black text for title
-          },
-        }}
-      >
-        <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
-        <Stack.Screen
-          name="ParkDetails"
-          component={ParkDetails}
-          options={{
-            title: 'Park Details',
-            headerBackTitle: 'Back',
-          }}
-        />
-        <Stack.Screen
-          name="Notifications"
-          component={NotificationsPage}
-          options={{
-            title: 'Notifications',
-            headerBackTitle: 'Back',
-          }}
-        />
-        <Stack.Screen
-          name="Etiquette"
-          component={EtiquettePage}
-          options={{
-            title: 'Baseball Etiquette',
-            headerBackTitle: 'Back',
-          }}
-        />
-        <Stack.Screen
-          name="Admin"
-          component={AdminPage}
-          options={{
-            title: 'Admin',
-            headerBackTitle: 'Back',
-          }}
-        />
-        <Stack.Screen
-          name="Settings"
-          component={SettingsPage}
-          options={{
-            title: 'Settings',
-            headerBackTitle: 'Back',
-          }}
-        />
+      <Stack.Navigator>
+        {!isLoggedIn ? (
+          <>
+            <Stack.Screen
+              name="LoginPage"
+              component={(props) => <LoginPage {...props} onLogin={checkToken} />} // Pass the checkToken function as a prop
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="RegisterPage"
+              component={RegisterPage}
+              options={{ headerShown: false }}
+            />
+          </>
+        ) : (
+          <>
+            <Stack.Screen name="Tabs" component={TabsNavigator} options={{ headerShown: false }} />
+            <Stack.Screen
+              name="ParkDetails"
+              component={ParkDetails}
+              options={{
+                title: 'Park Details',
+                headerBackTitle: 'Back',
+              }}
+            />
+            <Stack.Screen
+              name="Notifications"
+              component={NotificationsPage}
+              options={{
+                title: 'Notifications',
+                headerBackTitle: 'Back',
+              }}
+            />
+            <Stack.Screen
+              name="Etiquette"
+              component={EtiquettePage}
+              options={{
+                title: 'Baseball Etiquette',
+                headerBackTitle: 'Back',
+              }}
+            />
+            <Stack.Screen
+              name="Admin"
+              component={AdminPage}
+              options={{
+                title: 'Admin',
+                headerBackTitle: 'Back',
+              }}
+            />
+            <Stack.Screen
+              name="Settings"
+              component={SettingsPage}
+              options={{
+                title: 'Settings',
+                headerBackTitle: 'Back',
+              }}
+            />
+          </>
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -1,17 +1,41 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Switch, TouchableOpacity, Image, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, StyleSheet, Switch, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker'; // To allow users to select a profile picture
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage to manage token
+import { useNavigation } from '@react-navigation/native'; // Navigation hook for logout redirect
 import colors from '../assets/colors'; // Importing the color variables
 
 export default function SettingsPage() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [privacyEnabled, setPrivacyEnabled] = useState(false);
   const [darkTheme, setDarkTheme] = useState(false);
+  const navigation = useNavigation(); // Access navigation
 
   // Profile Information State
   const [username, setUsername] = useState('Username');
   const [email, setEmail] = useState('user@example.com');
   const [profileImage, setProfileImage] = useState(null); // For profile picture
+
+  // Load settings and profile data on component mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      const storedNotifications = await AsyncStorage.getItem('notificationsEnabled');
+      const storedPrivacy = await AsyncStorage.getItem('privacyEnabled');
+      const storedDarkTheme = await AsyncStorage.getItem('darkTheme');
+      const storedUsername = await AsyncStorage.getItem('username');
+      const storedEmail = await AsyncStorage.getItem('email');
+      const storedProfileImage = await AsyncStorage.getItem('profileImage');
+
+      if (storedNotifications !== null) setNotificationsEnabled(JSON.parse(storedNotifications));
+      if (storedPrivacy !== null) setPrivacyEnabled(JSON.parse(storedPrivacy));
+      if (storedDarkTheme !== null) setDarkTheme(JSON.parse(storedDarkTheme));
+      if (storedUsername) setUsername(storedUsername);
+      if (storedEmail) setEmail(storedEmail);
+      if (storedProfileImage) setProfileImage(storedProfileImage);
+    };
+
+    loadSettings();
+  }, []);
 
   // Function to open image picker
   const pickImage = async () => {
@@ -26,24 +50,61 @@ export default function SettingsPage() {
 
       if (!pickerResult.cancelled) {
         setProfileImage(pickerResult.uri);
+        await AsyncStorage.setItem('profileImage', pickerResult.uri);
       }
     } else {
       alert('Permission to access the gallery is required!');
     }
   };
 
-  const handleSaveProfile = () => {
-    // Logic to save the profile updates (username, email, profile image)
-    console.log('Profile Updated:', { username, email, profileImage });
+  // Save profile info to AsyncStorage
+  const handleSaveProfile = async () => {
+    await AsyncStorage.setItem('username', username);
+    await AsyncStorage.setItem('email', email);
+    Alert.alert('Profile Saved', 'Your profile information has been updated.');
   };
+
+  // Save settings to AsyncStorage
+  const handleSaveSettings = async () => {
+    await AsyncStorage.setItem('notificationsEnabled', JSON.stringify(notificationsEnabled));
+    await AsyncStorage.setItem('privacyEnabled', JSON.stringify(privacyEnabled));
+    await AsyncStorage.setItem('darkTheme', JSON.stringify(darkTheme));
+  };
+
+  // Logout functionality with confirmation
+  const handleLogout = async () => {
+    Alert.alert(
+      'Confirm Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          onPress: async () => {
+            await AsyncStorage.removeItem('token'); // Clear token from AsyncStorage
+
+            // Reset the navigation stack and navigate to the LoginPage
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'LoginPage' }],
+            });
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  // Persist settings on toggle
+  useEffect(() => {
+    handleSaveSettings();
+  }, [notificationsEnabled, privacyEnabled, darkTheme]);
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
         {/* Profile Section */}
         <View style={styles.profileContainer}>
-          {/* <Text style={styles.sectionTitle}>Profile Information</Text> */}
-
           {/* Profile Picture */}
           <View style={styles.profileImageContainer}>
             <TouchableOpacity onPress={pickImage}>
@@ -83,27 +144,27 @@ export default function SettingsPage() {
         {/* Notification Settings */}
         <View style={styles.settingsItem}>
           <Text style={styles.settingsText}>Notifications</Text>
-          <Switch 
-            value={notificationsEnabled} 
-            onValueChange={setNotificationsEnabled} 
+          <Switch
+            value={notificationsEnabled}
+            onValueChange={setNotificationsEnabled}
           />
         </View>
 
         {/* Privacy Settings */}
         <View style={styles.settingsItem}>
           <Text style={styles.settingsText}>Privacy Settings</Text>
-          <Switch 
-            value={privacyEnabled} 
-            onValueChange={setPrivacyEnabled} 
+          <Switch
+            value={privacyEnabled}
+            onValueChange={setPrivacyEnabled}
           />
         </View>
 
         {/* App Theme */}
         <View style={styles.settingsItem}>
           <Text style={styles.settingsText}>Dark Theme</Text>
-          <Switch 
-            value={darkTheme} 
-            onValueChange={setDarkTheme} 
+          <Switch
+            value={darkTheme}
+            onValueChange={setDarkTheme}
           />
         </View>
 
@@ -123,7 +184,7 @@ export default function SettingsPage() {
         </TouchableOpacity>
 
         {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutButtonText}>Logout</Text>
         </TouchableOpacity>
       </View>
@@ -135,10 +196,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: colors.sixty, // Primary background color
+    backgroundColor: colors.sixty,
   },
   scrollContainer: {
-    paddingBottom: 30, // Added padding at the bottom to allow full scroll
+    paddingBottom: 30,
   },
 
   /* Profile Section */
@@ -149,7 +210,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 10,
-    color: colors.primaryText, // Primary text color
+    color: colors.primaryText,
   },
   profileImageContainer: {
     alignItems: 'center',
@@ -169,27 +230,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   defaultProfilePicText: {
-    color: colors.secondaryText, // Secondary text color
+    color: colors.secondaryText,
     fontSize: 12,
   },
   input: {
     width: '100%',
     padding: 10,
     borderWidth: 1,
-    borderColor: colors.secondaryText, // Secondary text color for border
+    borderColor: colors.secondaryText,
     borderRadius: 5,
     marginBottom: 10,
-    color: colors.primaryText, // Primary text color
+    color: colors.primaryText,
   },
   saveProfileButton: {
-    backgroundColor: colors.thirty, // Tertiary color for save button
+    backgroundColor: colors.thirty,
     padding: 15,
     borderRadius: 5,
     alignItems: 'center',
     marginTop: 10,
   },
   saveProfileButtonText: {
-    color: colors.sixty, // White color for button text
+    color: colors.sixty,
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -205,19 +266,19 @@ const styles = StyleSheet.create({
   },
   settingsText: {
     fontSize: 16,
-    color: colors.primaryText, // Primary text color
+    color: colors.primaryText,
   },
 
   /* Logout Button */
   logoutButton: {
-    backgroundColor: '#e0e0e0', // Lighter background color
-    padding: 10, // Less padding for a subtler button
+    backgroundColor: '#e0e0e0',
+    padding: 10,
     borderRadius: 5,
     alignItems: 'center',
-    marginTop: 20, // Reduced margin to lessen the emphasis
+    marginTop: 20,
   },
   logoutButtonText: {
-    color: colors.primaryText, // Primary text color
-    fontSize: 14, // Smaller font size for less prominence
+    color: colors.primaryText,
+    fontSize: 14,
   },
 });
