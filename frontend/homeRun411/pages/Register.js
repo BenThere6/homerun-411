@@ -1,19 +1,25 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Keyboard, TouchableWithoutFeedback, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage to store the token
-import colors from '../assets/colors'; // Import color scheme
-import { useAuth } from '../AuthContext'; // Import the useAuth hook for authentication context
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import colors from '../assets/colors';
+import { useAuth } from '../AuthContext';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [zipCode, setZipCode] = useState('');
+  const [firstName, setFirstName] = useState('');  // Added firstName state
+  const [lastName, setLastName] = useState('');  // Added lastName state
   const navigation = useNavigation();
-  const { setIsLoggedIn } = useAuth(); // Access the setIsLoggedIn function from AuthContext
+  const { setIsLoggedIn } = useAuth();
 
   const handleRegister = async () => {
+    if (!firstName || !lastName) {
+      Alert.alert('Error', 'First and last name are required.');
+      return;
+    }
     if (password !== confirmPassword) {
       Alert.alert('Error', 'Passwords do not match!');
       return;
@@ -26,7 +32,7 @@ export default function RegisterPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password, zipCode }),
+        body: JSON.stringify({ email, password, zipCode, firstName, lastName }),  // Pass firstName and lastName
       });
 
       const registerData = await registerResponse.json();
@@ -44,8 +50,11 @@ export default function RegisterPage() {
         const loginData = await loginResponse.json();
 
         if (loginResponse.ok && loginData.refreshToken) {
-          // Store token in AsyncStorage
+          // Store token and user details in AsyncStorage
           await AsyncStorage.setItem('token', loginData.refreshToken);
+          await AsyncStorage.setItem('firstName', firstName);  // Save firstName
+          await AsyncStorage.setItem('lastName', lastName);  // Save lastName
+          
           setIsLoggedIn(true);
 
           // Navigate to Home
@@ -69,6 +78,20 @@ export default function RegisterPage() {
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.container}>
         <Text style={styles.title}>Register</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="First Name"
+          placeholderTextColor={colors.secondaryText}
+          value={firstName}
+          onChangeText={setFirstName}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Last Name"
+          placeholderTextColor={colors.secondaryText}
+          value={lastName}
+          onChangeText={setLastName}
+        />
         <TextInput
           style={styles.input}
           placeholder="Email"

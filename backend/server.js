@@ -36,18 +36,20 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    // Generate refresh token (long-lived)
     const refreshToken = jwt.sign(
       { id: user._id, email: user.email },
-      process.env.JWT_SECRET,  // Use a single secret for all tokens
-      { expiresIn: '14d' }  // Refresh token lasts for 14 days
+      process.env.JWT_SECRET,
+      { expiresIn: '14d' }
     );
 
-    // Optionally, save the refresh token in the database (for example in User model)
     user.refreshToken = refreshToken;
     await user.save();
 
-    res.json({ refreshToken });
+    res.json({
+      refreshToken,
+      firstName: user.profile.firstName, // Send firstName to the frontend
+      lastName: user.profile.lastName,   // Send lastName to the frontend
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
@@ -88,10 +90,10 @@ app.post('/api/auth/logout', authenticate, async (req, res) => {
 // User registration route
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { email, password, zipCode } = req.body;
+    const { email, password, zipCode, firstName, lastName } = req.body;
 
-    if (!email || !password || !zipCode) {
-      return res.status(400).json({ message: 'Email, password, and zip code are required' });
+    if (!email || !password || !zipCode || !firstName || !lastName) {
+      return res.status(400).json({ message: 'First name, last name, email, password, and zip code are required.' });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -101,13 +103,14 @@ app.post('/api/auth/register', async (req, res) => {
       email,
       passwordHash: hashedPassword,
       zipCode,
+      profile: { firstName, lastName },
     });
 
     const savedUser = await newUser.save();
-    res.status(201).json(savedUser);
+    res.status(201).json({ message: 'Registration successful', user: savedUser });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

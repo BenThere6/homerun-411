@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; // For icons
 import { useNavigation } from '@react-navigation/native'; // For navigation
+import AsyncStorage from '@react-native-async-storage/async-storage'; // To store and retrieve first name
 import Header from '../components/Header'; // Importing the Header component
 import colors from '../assets/colors'; // Importing the color variables
 
@@ -14,7 +15,19 @@ const quickLinks = [
 ];
 
 export default function Homepage() {
+  const [firstName, setFirstName] = useState(''); // State to store first name
   const navigation = useNavigation(); // Hook for navigation
+
+  // Load first name from AsyncStorage when the component mounts
+  useEffect(() => {
+    const loadFirstName = async () => {
+      const storedFirstName = await AsyncStorage.getItem('firstName');
+      if (storedFirstName) {
+        setFirstName(storedFirstName); // Set the first name
+      }
+    };
+    loadFirstName();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -26,9 +39,10 @@ export default function Homepage() {
 
       {/* Scrollable content */}
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-
         {/* Welcome Message */}
-        <Text style={styles.welcomeMessage}>Welcome back, User!</Text>
+        <Text style={styles.welcomeMessage}>
+          {firstName ? `Welcome back, ${firstName}!` : 'Welcome back!'}
+        </Text>
 
         <Text style={styles.sectionTitle}>Quick Links</Text>
 
@@ -87,18 +101,18 @@ const styles = StyleSheet.create({
   /* Container */
   container: {
     flex: 1,
-    backgroundColor: colors.sixty, // Primary background color (60%)
+    backgroundColor: colors.sixty,
   },
   scrollContainer: {
-    paddingBottom: 20, // Add some padding at the bottom for better spacing
+    paddingBottom: 20,
   },
 
   /* Welcome Message */
   welcomeMessage: {
-    fontSize: 22, // Increase font size for emphasis
+    fontSize: 22,
     fontWeight: 'bold',
     color: colors.primaryText,
-    padding: 20, 
+    padding: 20,
   },
 
   /* Divider */
@@ -111,50 +125,41 @@ const styles = StyleSheet.create({
   /* Quick Links */
   quickLinksContainer: {
     paddingBottom: 15,
-    marginBottom: 0,
     paddingTop: 10,
-    paddingLeft: 20, // Added padding on the left for symmetry
+    paddingLeft: 20,
   },
   linkCard: {
-    width: 90, // Square cards
-    height: 90, // Square cards
-    backgroundColor: '#f5f5f5', // Light background for cards
-    borderRadius: 15, // More rounded corners
-    justifyContent: 'space-between', // Space between icon and text
+    width: 90,
+    height: 90,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 15,
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 10, // Add padding to make the card less cramped
+    paddingVertical: 10,
     marginRight: 15,
-    elevation: 3, // Subtle shadow for depth
-    shadowColor: '#000', 
+    elevation: 3,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
   firstLinkCard: {
-    marginLeft: 0, // Align the first card with the container
+    marginLeft: 0,
   },
   lastLinkCard: {
-    marginRight: 40, // Add padding to the last card on the right
-  },
-  iconContainer: {
-    flex: 1, // Top half for the icon
-    justifyContent: 'center',
-    alignItems: 'center',
+    marginRight: 40,
   },
   labelContainer: {
-    flex: 1, // Bottom half for the text
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 5, // Padding to give the text room to wrap
-    width: '100%', // Ensure label takes full width of the card
+    paddingHorizontal: 5,
+    width: '100%',
   },
   linkLabel: {
     fontSize: 12,
-    fontWeight: '500', // Make the label a bit bolder
+    fontWeight: '500',
     color: colors.primaryText,
     textAlign: 'center',
-    flexWrap: 'wrap', // Allow text to wrap
-    lineHeight: 14, // Add line height for better readability
+    flexWrap: 'wrap',
+    lineHeight: 14,
   },
 
   /* Featured Parks */
@@ -164,12 +169,12 @@ const styles = StyleSheet.create({
   },
   parkCard: {
     width: '100%',
-    height: 180, // Adjust height for better proportions
+    height: 180,
     backgroundColor: colors.sixty,
-    borderRadius: 15, // Rounded corners for a modern look
+    borderRadius: 15,
     justifyContent: 'flex-end',
     padding: 10,
-    marginBottom: 20, // Add more spacing between park cards
+    marginBottom: 20,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
@@ -197,7 +202,7 @@ const styles = StyleSheet.create({
     paddingBottom: 15,
     paddingLeft: 20,
     color: colors.primaryText,
-    fontSize: 18, // Slightly bigger for section titles
+    fontSize: 18,
     fontWeight: 'bold',
   },
 });

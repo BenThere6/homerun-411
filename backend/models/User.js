@@ -61,8 +61,14 @@ const userSchema = new mongoose.Schema({
     default: 0,
   },
   profile: {
-    firstName: String,
-    lastName: String,
+    firstName: {
+      type: String,
+      required: true, // Make first name required
+    },
+    lastName: {
+      type: String,
+      required: true, // Make last name required
+    },
     avatarUrl: String,
     bio: String,
   },
@@ -83,7 +89,7 @@ const userSchema = new mongoose.Schema({
     contentFilter: {
       type: String,
       enum: ['all', 'favorites', 'none'],
-      default: 'all'
+      default: 'all',
     },
   },
 });
