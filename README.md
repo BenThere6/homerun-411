@@ -1,5 +1,3 @@
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
 # HomeRun 411 
   
 ## Description
@@ -10,13 +8,10 @@ This React Native application features user authentication, allowing users to se
 
 * [Installation](#installation)<br>
 * [Contact Information](#contact-information)<br>
-* [License](#license)
 
 ## Installation
 
 Once the MVP of this app is complete, and the testing and fixes have been finished, you will be able to download this app from the App Store or Play Store.
-
-
 
 ## Contact Information
 
@@ -25,9 +20,3 @@ For any further inquiries, please feel free to reach out to me through the follo
 * Email: benjaminbirdsall@icloud.com
 
 I am here to assist you with any questions or feedback you may have. Thank you for your interest!
-
-## License 
-
-[MIT License](https://opensource.org/licenses/MIT)
-
-This code's MIT License allows you to freely use, modify, and share it for any purpose. Please include the original license and copyright notices when sharing.
