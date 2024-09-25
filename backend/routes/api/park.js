@@ -84,13 +84,14 @@ router.post('/', auth, isAdmin, async (req, res) => {
       shadedAreas,
       playground,
       moundType,
+      fieldTypes, // Ensure this is included
     } = req.body;
 
     const newPark = new Park({
       name,
       coordinates,
-      city, // Add city
-      state, // Add state
+      city,
+      state,
       interactiveMapPositionDetails,
       satelliteImageUrl,
       pictures,
@@ -109,6 +110,7 @@ router.post('/', auth, isAdmin, async (req, res) => {
       shadedAreas,
       playground,
       moundType,
+      fieldTypes, // Ensure this is saved
     });
 
     const savedPark = await newPark.save();
@@ -176,6 +178,18 @@ router.get('/nearby', async (req, res) => {
   }
 });
 
+// Search parks by field type
+router.get('/searchByFieldType', async (req, res) => {
+  try {
+    const fieldType = req.query.fieldType; // Get field type from query
+    const parks = await Park.find({ fieldTypes: fieldType });
+
+    res.json(parks);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Get or update comprehensive weather for a specific park by ID
 router.get('/:parkId/weather', async (req, res) => {
   try {
@@ -236,6 +250,7 @@ router.patch('/:id', auth, isAdmin, getPark, async (req, res) => {
     'shadedAreas',
     'playground',
     'moundType',
+    'fieldTypes', // Ensure this field is included in the update
   ];
 
   updateFields.forEach(field => {
