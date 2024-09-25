@@ -7,6 +7,7 @@ import colors from '../assets/colors'; // Importing the color variables
 export default function SearchPage() {
   const navigation = useNavigation(); // Hook for navigation
   const [parks, setParks] = useState([]); // State to store the fetched parks
+  const defaultImage = 'https://images.unsplash.com/photo-1717886091076-56e54c2a360f?q=80&w=2967&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'; // Default image URL
 
   // Fetch parks from the backend API
   useEffect(() => {
@@ -71,10 +72,10 @@ export default function SearchPage() {
                   onPress={() => navigation.navigate('ParkDetails', { park })}
                 >
                   <ImageBackground
-                    source={{ uri: park.pictures?.mainImageUrl ? park.pictures.mainImageUrl : 'https://images.unsplash.com/photo-1717886091076-56e54c2a360f?q=80&w=2967&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }}
+                    source={{ uri: park.pictures?.mainImageUrl ? park.pictures.mainImageUrl : defaultImage }}
                     style={styles.parkImageBackground}
                     resizeMode="cover"
-                    onError={() => console.log(`Failed to load image for ${park.name}`)}
+                    onError={(e) => e.target.src = defaultImage} // Set default image on error
                   >
                     <View style={styles.parkContent}>
                       <Text style={styles.parkName}>{park.name}</Text>
@@ -97,10 +98,10 @@ export default function SearchPage() {
                     onPress={() => navigation.navigate('ParkDetails', { park })}
                   >
                     <ImageBackground
-                      source={{ uri: park.pictures?.mainImageUrl ? park.pictures.mainImageUrl : 'https://images.unsplash.com/photo-1717886091076-56e54c2a360f?q=80&w=2967&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' }}
+                      source={{ uri: park.pictures?.mainImageUrl ? park.pictures.mainImageUrl : defaultImage }}
                       style={styles.parkImageBackground}
                       resizeMode="cover"
-                      onError={() => console.log(`Failed to load image for ${park.name}`)}
+                      onError={(e) => e.target.src = defaultImage} // Set default image on error
                     >
                       <View style={styles.parkContent}>
                         <Text style={styles.parkName}>{park.name}</Text>

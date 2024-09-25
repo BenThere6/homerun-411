@@ -11,18 +11,11 @@ mongoose.connect('mongodb://localhost:27017/yourDatabaseName', {
 
 async function importParks() {
   const parks = [];
-  let isFirstRow = true; // Add this variable to track the first row (headers)
 
   // Read parks from CSV file
   fs.createReadStream('parks.csv')
     .pipe(csvParser())
     .on('data', (row) => {
-      // Skip the first row (headers)
-      if (isFirstRow) {
-        isFirstRow = false;
-        return;
-      }
-
       const park = {};
 
       // Required fields
