@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Keyboard, TouchableWithoutFeedback, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -10,6 +10,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const navigation = useNavigation();
   const { setIsLoggedIn } = useAuth(); // Use the setIsLoggedIn from AuthContext
+
+  const passwordInputRef = useRef(null); // Ref for the password input
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -56,6 +58,10 @@ export default function LoginPage() {
           placeholderTextColor={colors.secondaryText}
           value={email}
           onChangeText={setEmail}
+          keyboardType="email-address"
+          returnKeyType="next" // This shows the "Next" button on the keyboard
+          onSubmitEditing={() => passwordInputRef.current.focus()} // Move focus to password input
+          blurOnSubmit={false} // Prevent the keyboard from dismissing on submit
         />
         <TextInput
           style={styles.input}
@@ -64,6 +70,9 @@ export default function LoginPage() {
           secureTextEntry
           value={password}
           onChangeText={setPassword}
+          ref={passwordInputRef} // Attach ref to password input
+          returnKeyType="go" // This shows the "Go" button on the keyboard
+          onSubmitEditing={handleLogin} // Trigger login on submit
         />
         <TouchableOpacity style={styles.button} onPress={handleLogin}>
           <Text style={styles.buttonText}>Login</Text>
