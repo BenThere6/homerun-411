@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Keyboard, TouchableWithoutFeedback, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -10,10 +10,17 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [zipCode, setZipCode] = useState('');
-  const [firstName, setFirstName] = useState('');  // Added firstName state
-  const [lastName, setLastName] = useState('');  // Added lastName state
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const navigation = useNavigation();
   const { setIsLoggedIn } = useAuth();
+
+  // Refs to control input focus
+  const lastNameInputRef = useRef(null);
+  const emailInputRef = useRef(null);
+  const passwordInputRef = useRef(null);
+  const confirmPasswordInputRef = useRef(null);
+  const zipCodeInputRef = useRef(null);
 
   const handleRegister = async () => {
     if (!firstName || !lastName) {
@@ -26,19 +33,17 @@ export default function RegisterPage() {
     }
 
     try {
-      // Register the user
       const registerResponse = await fetch('http://10.0.0.29:5001/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password, zipCode, firstName, lastName }),  // Pass firstName and lastName
+        body: JSON.stringify({ email, password, zipCode, firstName, lastName }),
       });
 
       const registerData = await registerResponse.json();
 
       if (registerResponse.ok) {
-        // Automatically log in after successful registration
         const loginResponse = await fetch('http://10.0.0.29:5001/api/auth/login', {
           method: 'POST',
           headers: {
@@ -50,17 +55,15 @@ export default function RegisterPage() {
         const loginData = await loginResponse.json();
 
         if (loginResponse.ok && loginData.refreshToken) {
-          // Store token and user details in AsyncStorage
           await AsyncStorage.setItem('token', loginData.refreshToken);
-          await AsyncStorage.setItem('firstName', firstName);  // Save firstName
-          await AsyncStorage.setItem('lastName', lastName);  // Save lastName
-          
+          await AsyncStorage.setItem('firstName', firstName);
+          await AsyncStorage.setItem('lastName', lastName);
+
           setIsLoggedIn(true);
 
-          // Navigate to Home
           navigation.reset({
             index: 0,
-            routes: [{ name: 'Tabs' }], // Direct to the Tabs (Home) screen
+            routes: [{ name: 'Tabs' }],
           });
         } else {
           Alert.alert('Login failed', loginData.message || 'Unable to log in after registration.');
@@ -84,6 +87,9 @@ export default function RegisterPage() {
           placeholderTextColor={colors.secondaryText}
           value={firstName}
           onChangeText={setFirstName}
+          returnKeyType="next"
+          onSubmitEditing={() => lastNameInputRef.current.focus()} // Move to next field
+          blurOnSubmit={false} // Prevents keyboard from dismissing
         />
         <TextInput
           style={styles.input}
@@ -91,6 +97,10 @@ export default function RegisterPage() {
           placeholderTextColor={colors.secondaryText}
           value={lastName}
           onChangeText={setLastName}
+          ref={lastNameInputRef}
+          returnKeyType="next"
+          onSubmitEditing={() => emailInputRef.current.focus()}
+          blurOnSubmit={false}
         />
         <TextInput
           style={styles.input}
@@ -98,6 +108,11 @@ export default function RegisterPage() {
           placeholderTextColor={colors.secondaryText}
           value={email}
           onChangeText={setEmail}
+          keyboardType="email-address"
+          ref={emailInputRef}
+          returnKeyType="next"
+          onSubmitEditing={() => passwordInputRef.current.focus()}
+          blurOnSubmit={false}
         />
         <TextInput
           style={styles.input}
@@ -106,6 +121,10 @@ export default function RegisterPage() {
           secureTextEntry
           value={password}
           onChangeText={setPassword}
+          ref={passwordInputRef}
+          returnKeyType="next"
+          onSubmitEditing={() => confirmPasswordInputRef.current.focus()}
+          blurOnSubmit={false}
         />
         <TextInput
           style={styles.input}
@@ -114,6 +133,10 @@ export default function RegisterPage() {
           secureTextEntry
           value={confirmPassword}
           onChangeText={setConfirmPassword}
+          ref={confirmPasswordInputRef}
+          returnKeyType="next"
+          onSubmitEditing={() => zipCodeInputRef.current.focus()}
+          blurOnSubmit={false}
         />
         <TextInput
           style={styles.input}
@@ -121,6 +144,8 @@ export default function RegisterPage() {
           placeholderTextColor={colors.secondaryText}
           value={zipCode}
           onChangeText={setZipCode}
+          ref={zipCodeInputRef}
+          returnKeyType="done" // Use 'done' here to avoid showing 'Go'
         />
         <TouchableOpacity style={styles.button} onPress={handleRegister}>
           <Text style={styles.buttonText}>Register</Text>
