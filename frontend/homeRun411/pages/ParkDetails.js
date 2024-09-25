@@ -1,15 +1,21 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, ImageBackground } from 'react-native';
 
 export default function ParkDetails({ route }) {
-  // Get the park details passed from the SearchPage
   const { park } = route.params;
+
+  const defaultImage = 'https://images.unsplash.com/photo-1717886091076-56e54c2a360f?q=80&w=2967&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'; // URL for the default image
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.contentContainer}>
-        {/* Park Name */}
-        {park.name && <Text style={styles.title}>{park.name}</Text>}
+        {/* Main Park Image */}
+        <ImageBackground
+          source={{ uri: park.pictures && park.pictures.mainImageUrl ? park.pictures.mainImageUrl : defaultImage }}
+          style={styles.mainImage}
+          resizeMode="cover"
+        >
+        </ImageBackground>
 
         {/* Location */}
         {(park.city || park.state) && (
@@ -32,17 +38,6 @@ export default function ParkDetails({ route }) {
           <>
             <Text style={styles.subtitle}>Field Types</Text>
             <Text style={styles.text}>{park.fieldTypes}</Text>
-          </>
-        )}
-
-        {/* Pictures */}
-        {park.pictures && (
-          <>
-            <Text style={styles.subtitle}>Pictures</Text>
-            {park.pictures.mainImageUrl && <Text style={styles.text}>Main Image: {park.pictures.mainImageUrl}</Text>}
-            {park.pictures.dugoutUrl && <Text style={styles.text}>Dugout: {park.pictures.dugoutUrl}</Text>}
-            {park.pictures.sidelinesUrl && <Text style={styles.text}>Sidelines: {park.pictures.sidelinesUrl}</Text>}
-            {park.pictures.shadedAreasUrl && <Text style={styles.text}>Shaded Areas: {park.pictures.shadedAreasUrl}</Text>}
           </>
         )}
 
@@ -118,12 +113,19 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 20,
   },
-  title: {
+  mainImage: {
+    width: '100%',
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  titleOverlay: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
+    color: 'white',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    padding: 10,
     textAlign: 'center',
-    color: 'black',
   },
   subtitle: {
     fontSize: 18,

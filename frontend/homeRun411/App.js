@@ -114,10 +114,10 @@ function MainStack() {
           <Stack.Screen
             name="ParkDetails"
             component={ParkDetails}
-            options={{
-              title: 'Park Details',
+            options={({ route }) => ({
+              title: route.params.park.name,
               headerBackTitle: 'Back',
-            }}
+            })}
           />
           <Stack.Screen
             name="Notifications"
