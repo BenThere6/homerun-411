@@ -3,14 +3,14 @@ const Schema = mongoose.Schema;
 
 const parkSchema = new Schema({
   name: { type: String, required: true },
-  city: { type: String, required: true },  // City of the park
-  state: { type: String, required: true }, // State of the park
+  city: { type: String, required: true }, 
+  state: { type: String, required: true }, 
   coordinates: {
-    type: { type: String, default: 'Point' }, // Required for 2dsphere index
-    coordinates: { type: [Number], required: true }, // Array of [longitude, latitude]
+    type: { type: String, default: 'Point' }, 
+    coordinates: { type: [Number], required: true },
   },
-  interactiveMapPositionDetails: { type: String }, // Google Maps or similar
-  satelliteImageUrl: { type: String }, // Satellite or aerial view image URL
+  interactiveMapPositionDetails: { type: String },
+  satelliteImageUrl: { type: String },
   pictures: {
     dugoutUrl: { type: String },
     sidelinesUrl: { type: String },
@@ -21,12 +21,12 @@ const parkSchema = new Schema({
   bleachers: { type: Boolean },
   handicapAccess: {
     hasAccess: { type: Boolean },
-    details: { type: String }, // Access details like stairs, paved sidewalks
+    details: { type: String },
   },
   concessions: {
     available: { type: Boolean },
     details: { type: String },
-    paymentMethods: { type: String }, // Payment methods: card, cash
+    paymentMethods: { type: String },
   },
   coolersAllowed: { type: Boolean },
   canopiesAllowed: { type: Boolean },
@@ -36,7 +36,7 @@ const parkSchema = new Schema({
     type: String,
     enum: ['portable', 'permanent', 'none'],
   },
-  fenceDistance: { type: Number }, // Fence distance for home runs
+  fenceDistance: { type: Number },
   powerWaterAccess: { type: Boolean },
   cellReception: { type: Boolean },
   shadedAreas: {
@@ -49,6 +49,12 @@ const parkSchema = new Schema({
   moundType: {
     type: String,
     enum: ['dirt', 'turf', 'movable'],
+  },
+  // New field for field types (baseball, softball, or both)
+  fieldTypes: {
+    type: String,
+    enum: ['baseball', 'softball', 'both'], // Allows 'baseball', 'softball', or 'both'
+    required: true, // Ensure it's specified when creating a new park
   },
 });
 
