@@ -26,6 +26,7 @@ export default function SearchPage() {
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <SafeAreaView style={styles.container}>
+        {/* Search Bar */}
         <View style={styles.searchBar}>
           <Ionicons name="search" size={20} color={colors.primaryText} style={styles.searchIcon} />
           <TextInput
@@ -39,7 +40,11 @@ export default function SearchPage() {
           </View>
         </View>
 
+        {/* Divider (gray bar) */}
+        <View style={styles.divider} /> 
+
         <ScrollView contentContainerStyle={styles.scrollContainer}>
+          {/* Recent Searches Section */}
           <Text style={styles.sectionTitle}>Recent Searches</Text>
           <View style={styles.recentSearchesContainer}>
             <TouchableOpacity style={styles.searchItem}>
@@ -56,6 +61,7 @@ export default function SearchPage() {
             </TouchableOpacity>
           </View>
 
+          {/* Featured Parks Section */}
           <Text style={styles.sectionTitle}>Featured Parks</Text>
           <View style={styles.featuredParksContainer}>
             {parks.slice(0, 3).map((park) => (
@@ -80,6 +86,7 @@ export default function SearchPage() {
             ))}
           </View>
 
+          {/* All Parks Section */}
           <Text style={styles.sectionTitle}>All Parks</Text>
           <View style={styles.allParksContainer}>
             {parks.length > 0 ? (
@@ -153,6 +160,14 @@ const styles = StyleSheet.create({
     borderColor: '#dcdcdc',
     marginLeft: 10,
   },
+
+  /* Divider (Gray Bar) */
+  divider: {
+    height: 1,
+    backgroundColor: '#e0e0e0',
+    marginTop: 16,
+  },
+
   scrollContainer: {
     paddingBottom: 20,
   },
