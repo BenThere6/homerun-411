@@ -7,7 +7,7 @@ const parkSchema = new Schema({
   state: { type: String, required: true }, 
   coordinates: {
     type: { type: String, default: 'Point' }, 
-    coordinates: { type: [Number], required: true },
+    coordinates: { type: [Number], required: true }, // Required for geolocation
   },
   interactiveMapPositionDetails: { type: String },
   satelliteImageUrl: { type: String },
@@ -20,21 +20,22 @@ const parkSchema = new Schema({
   closestParkingToField: { type: String },
   bleachers: { type: Boolean },
   handicapAccess: {
-    hasAccess: { type: Boolean },
+    hasAccess: { type: Boolean, required: true }, // Now required
     details: { type: String },
   },
   concessions: {
-    available: { type: Boolean },
+    available: { type: Boolean, required: true }, // Now required
     details: { type: String },
     paymentMethods: { type: String },
   },
   coolersAllowed: { type: Boolean },
   canopiesAllowed: { type: Boolean },
-  surfaceMaterial: { type: String },
-  lights: { type: Boolean },
+  surfaceMaterial: { type: String, required: true }, // Now required
+  lights: { type: Boolean, required: true }, // Now required
   restrooms: {
     type: String,
     enum: ['portable', 'permanent', 'none'],
+    required: true, // Now required
   },
   fenceDistance: { type: Number },
   powerWaterAccess: { type: Boolean },
@@ -43,18 +44,17 @@ const parkSchema = new Schema({
     available: { type: Boolean },
   },
   playground: {
-    available: { type: Boolean },
+    available: { type: Boolean, required: true }, // Now required
     closeToParking: { type: Boolean },
   },
   moundType: {
     type: String,
     enum: ['dirt', 'turf', 'movable'],
   },
-  // New field for field types (baseball, softball, or both)
   fieldTypes: {
     type: String,
-    enum: ['baseball', 'softball', 'both'], // Allows 'baseball', 'softball', or 'both'
-    required: true, // Ensure it's specified when creating a new park
+    enum: ['baseball', 'softball', 'both'],
+    required: true, // Already required
   },
 });
 
