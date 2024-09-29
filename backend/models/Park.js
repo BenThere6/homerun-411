@@ -3,20 +3,20 @@ const Schema = mongoose.Schema;
 
 const parkSchema = new Schema({
   name: { type: String, required: true },
-  address: { type: String }, // New field for address
+  address: { type: String },
   city: { type: String, required: true },
   state: { type: String, required: true },
   coordinates: {
     type: { type: String, default: 'Point' },
-    coordinates: { type: [Number], required: true }, // Required for geolocation
+    coordinates: { type: [Number], required: true },
   },
   fields: [
     {
-      name: { type: String, required: true }, // Name of the field
-      location: { type: String }, // Field location within the park
-      fenceDistance: { type: Number }, // Distance for home run tracking
-      grassOutfield: { type: Boolean }, // Is the outfield grass?
-      turf: { type: Boolean }, // Is the field turf?
+      name: { type: String, required: true },
+      location: { type: String },
+      fenceDistance: { type: Number },
+      grassOutfield: { type: Boolean },
+      turf: { type: Boolean },
       moundType: {
         type: String,
         enum: ['dirt', 'turf', 'movable'],
@@ -25,51 +25,46 @@ const parkSchema = new Schema({
         type: String,
         enum: ['grass', 'dirt'],
       },
+      pictures: [{ type: String }],
     },
   ],
   interactiveMapPositionDetails: { type: String },
   satelliteImageUrl: { type: String },
-  pictures: {
-    dugoutUrl: { type: String },
-    sidelinesUrl: { type: String },
-    shadedAreasUrl: { type: String },
-    mainImageUrl: { type: String },
-  },
+  pictures: [{ type: String }],
   closestParkingToField: { type: String },
   parking: {
-    locations: [{ type: String }], // Array of parking locations
-    distanceToField: { type: String }, // Distance from parking to field
-    handicapSpots: { type: Number }, // Number of handicap spots
+    locations: [{ type: String }],
+    distanceToField: { type: String },
+    handicapSpots: { type: Number },
   },
   bleachers: {
     available: { type: Boolean },
-    description: { type: String }, // Description of bleachers
+    description: { type: String },
   },
   dugouts: {
-    covered: { type: Boolean }, // Is the dugout covered?
-    brickedIn: { type: Boolean }, // Is the dugout bricked in?
-    fenced: { type: Boolean }, // Is the dugout fenced?
+    covered: { type: Boolean },
+    brickedIn: { type: Boolean },
+    fenced: { type: Boolean },
   },
   fence: {
-    available: { type: Boolean }, // Is there a fence around the field?
-    material: { type: String, enum: ['wood', 'cement', 'brick'] }, // Material of the fence
+    available: { type: Boolean },
+    material: { type: String, enum: ['wood', 'cement', 'brick'] },
   },
-  fieldShade: { type: Boolean }, // Shade over the field
-  parkShade: { type: Boolean }, // Shade over the park
-
+  fieldShade: { type: Boolean },
+  parkShade: { type: Boolean },
   restrooms: [
     {
-      location: { type: String }, // Location of restrooms
-      runningWater: { type: Boolean }, // Is there running water?
-      changingTable: { type: Boolean }, // Is there a changing table?
-      numStalls: { type: Number }, // Number of stalls
+      location: { type: String },
+      runningWater: { type: Boolean },
+      changingTable: { type: Boolean },
+      numStalls: { type: Number },
     },
   ],
   concessions: {
-    available: { type: Boolean, required: true }, // Now required
+    available: { type: Boolean, required: true },
     details: { type: String },
     paymentMethods: {
-      type: [String], // List of payment methods, e.g., cash, card, Venmo
+      type: [String],
       enum: ['cash', 'card', 'Venmo', 'Apple Pay'],
     },
     foodOptions: {
@@ -80,51 +75,45 @@ const parkSchema = new Schema({
   },
   coolersAllowed: { type: Boolean },
   canopiesAllowed: { type: Boolean },
-  surfaceMaterial: { type: String, required: true }, // Now required
-  lights: { type: Boolean, required: true }, // Now required
+  surfaceMaterial: { type: String, required: true },
+  lights: { type: Boolean, required: true },
   fenceDistance: { type: Number },
   powerWaterAccess: {
     available: { type: Boolean },
-    locations: [{ type: String }], // Array of locations for outlets, etc.
+    locations: [{ type: String }],
   },
   sidewalks: { type: Boolean },
   gravelPaths: { type: Boolean },
   stairs: { type: Boolean },
   hills: { type: Boolean },
-
   gateEntranceFee: { type: Boolean },
-
   playground: {
-    available: { type: Boolean, required: true }, // Now required
-    location: { type: String }, // Location of playground
-    nearParking: { type: Boolean }, // Is the playground near parking?
+    available: { type: Boolean, required: true },
+    location: { type: String },
+    nearParking: { type: Boolean },
   },
-
   spectatorConditions: {
     locationTypes: {
-      type: [String], // Can be grass, cement, gravel, etc.
+      type: [String],
       enum: ['grass', 'cement', 'gravel', 'dirt'],
     },
   },
-
   backstop: {
-    material: { type: String, enum: ['fence', 'net'] }, // Fence or net backstop
-    distance: { type: Number }, // Distance from backstop to field
+    material: { type: String, enum: ['fence', 'net'] },
+    distance: { type: Number },
   },
-
   nearbyAmenities: {
-    gasStations: { type: Boolean, default: false }, // These can be flags for whether they exist
+    gasStations: { type: Boolean, default: false },
     fastFood: { type: Boolean, default: false },
     sitDownRestaurants: { type: Boolean, default: false },
     groceryStores: { type: Boolean, default: false },
     hotels: { type: Boolean, default: false },
     otherActivities: { type: Boolean, default: false },
   },
-
   fieldTypes: {
     type: String,
     enum: ['baseball', 'softball', 'both'],
-    required: true, // Already required
+    required: true,
   },
 });
 
