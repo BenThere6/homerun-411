@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Keyboard, TouchableWithoutFeedback, Alert } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Keyboard, TouchableWithoutFeedback, Alert, CheckBox } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../assets/colors';
@@ -12,6 +12,8 @@ export default function RegisterPage() {
   const [zipCode, setZipCode] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false); // State for admin checkbox
+  const [adminExists, setAdminExists] = useState(true); // To track if any admin exists
   const navigation = useNavigation();
   const { setIsLoggedIn } = useAuth();
 
@@ -21,6 +23,21 @@ export default function RegisterPage() {
   const passwordInputRef = useRef(null);
   const confirmPasswordInputRef = useRef(null);
   const zipCodeInputRef = useRef(null);
+
+  // Check if any admin exists
+  useEffect(() => {
+    const checkAdminExists = async () => {
+      try {
+        const response = await fetch('http://10.0.0.29:5001/api/check-admin');
+        const data = await response.json();
+        setAdminExists(data.adminExists);
+      } catch (error) {
+        console.error('Error checking for admin:', error);
+      }
+    };
+
+    checkAdminExists();
+  }, []);
 
   const handleRegister = async () => {
     if (!firstName || !lastName) {
@@ -38,7 +55,7 @@ export default function RegisterPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password, zipCode, firstName, lastName }),
+        body: JSON.stringify({ email, password, zipCode, firstName, lastName, role: isAdmin ? 'Admin' : 'User' }),
       });
 
       const registerData = await registerResponse.json();
@@ -147,6 +164,18 @@ export default function RegisterPage() {
           ref={zipCodeInputRef}
           returnKeyType="done" // Use 'done' here to avoid showing 'Go'
         />
+
+        {/* Show admin checkbox if no admin exists */}
+        {!adminExists && (
+          <View style={styles.checkboxContainer}>
+            <CheckBox
+              value={isAdmin}
+              onValueChange={setIsAdmin}
+            />
+            <Text style={styles.checkboxLabel}>Register as Admin</Text>
+          </View>
+        )}
+
         <TouchableOpacity style={styles.button} onPress={handleRegister}>
           <Text style={styles.buttonText}>Register</Text>
         </TouchableOpacity>
@@ -207,5 +236,14 @@ const styles = StyleSheet.create({
   linkText: {
     color: colors.primaryText,
     textDecorationLine: 'underline',
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  checkboxLabel: {
+    marginLeft: 8,
+    color: colors.primaryText,
   },
 });

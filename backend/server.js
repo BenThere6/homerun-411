@@ -5,6 +5,7 @@ require('dotenv').config();
 const connectDB = require('./mongoose');
 const User = require('./models/User');
 const bcrypt = require('bcrypt');
+const isAdmin = require('./middleware/isAdmin');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -114,9 +115,32 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
-// Example protected route using the refresh token
-app.get('/api/protected', authenticate, (req, res) => {
-  res.json({ message: 'Access granted to protected route', user: req.user });
+// View all users (Admin only)
+app.get('/api/admin/users', authenticate, isAdmin, async (req, res) => {
+  try {
+    const users = await User.find();
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Promote a user to admin (Admin only)
+app.patch('/api/admin/promote/:userId', authenticate, isAdmin, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.role = 'Admin';
+    await user.save();
+    
+    res.json({ message: 'User promoted to admin', user });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 // Error handling middleware
