@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Keyboard, TouchableWithoutFeedback, Alert, CheckBox } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Keyboard, TouchableWithoutFeedback, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import colors from '../assets/colors';
 import { useAuth } from '../AuthContext';
+import { Ionicons } from '@expo/vector-icons'; // Icon for checkbox
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -28,7 +28,7 @@ export default function RegisterPage() {
   useEffect(() => {
     const checkAdminExists = async () => {
       try {
-        const response = await fetch('http://10.0.0.29:5001/api/check-admin');
+        const response = await fetch('http://10.0.0.29:5001/check-admin');
         const data = await response.json();
         setAdminExists(data.adminExists);
       } catch (error) {
@@ -101,7 +101,7 @@ export default function RegisterPage() {
         <TextInput
           style={styles.input}
           placeholder="First Name"
-          placeholderTextColor={colors.secondaryText}
+          placeholderTextColor="gray"
           value={firstName}
           onChangeText={setFirstName}
           returnKeyType="next"
@@ -111,7 +111,7 @@ export default function RegisterPage() {
         <TextInput
           style={styles.input}
           placeholder="Last Name"
-          placeholderTextColor={colors.secondaryText}
+          placeholderTextColor="gray"
           value={lastName}
           onChangeText={setLastName}
           ref={lastNameInputRef}
@@ -122,7 +122,7 @@ export default function RegisterPage() {
         <TextInput
           style={styles.input}
           placeholder="Email"
-          placeholderTextColor={colors.secondaryText}
+          placeholderTextColor="gray"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -134,7 +134,7 @@ export default function RegisterPage() {
         <TextInput
           style={styles.input}
           placeholder="Password"
-          placeholderTextColor={colors.secondaryText}
+          placeholderTextColor="gray"
           secureTextEntry
           value={password}
           onChangeText={setPassword}
@@ -146,7 +146,7 @@ export default function RegisterPage() {
         <TextInput
           style={styles.input}
           placeholder="Confirm Password"
-          placeholderTextColor={colors.secondaryText}
+          placeholderTextColor="gray"
           secureTextEntry
           value={confirmPassword}
           onChangeText={setConfirmPassword}
@@ -158,7 +158,7 @@ export default function RegisterPage() {
         <TextInput
           style={styles.input}
           placeholder="Zip Code"
-          placeholderTextColor={colors.secondaryText}
+          placeholderTextColor="gray"
           value={zipCode}
           onChangeText={setZipCode}
           ref={zipCodeInputRef}
@@ -168,10 +168,13 @@ export default function RegisterPage() {
         {/* Show admin checkbox if no admin exists */}
         {!adminExists && (
           <View style={styles.checkboxContainer}>
-            <CheckBox
-              value={isAdmin}
-              onValueChange={setIsAdmin}
-            />
+            <TouchableOpacity onPress={() => setIsAdmin(!isAdmin)}>
+              <Ionicons
+                name={isAdmin ? 'checkbox' : 'square-outline'}
+                size={24}
+                color="black"
+              />
+            </TouchableOpacity>
             <Text style={styles.checkboxLabel}>Register as Admin</Text>
           </View>
         )}
@@ -194,36 +197,36 @@ export default function RegisterPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.sixty,
+    backgroundColor: 'white',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   title: {
     fontSize: 24,
-    color: colors.primaryText,
+    color: 'black',
     marginBottom: 20,
   },
   input: {
     width: '100%',
     height: 50,
-    borderColor: colors.thirty,
+    borderColor: 'gray',
     borderWidth: 1,
     borderRadius: 5,
     padding: 10,
     marginBottom: 20,
-    color: colors.primaryText,
+    color: 'black',
   },
   button: {
     width: '100%',
     height: 50,
-    backgroundColor: colors.thirty,
+    backgroundColor: 'gray',
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 5,
   },
   buttonText: {
-    color: colors.oppText,
+    color: 'white',
     fontSize: 18,
   },
   registerTextContainer: {
@@ -231,10 +234,10 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   text: {
-    color: colors.primaryText,
+    color: 'black',
   },
   linkText: {
-    color: colors.primaryText,
+    color: 'blue',
     textDecorationLine: 'underline',
   },
   checkboxContainer: {
@@ -244,6 +247,6 @@ const styles = StyleSheet.create({
   },
   checkboxLabel: {
     marginLeft: 8,
-    color: colors.primaryText,
+    color: 'black',
   },
 });
