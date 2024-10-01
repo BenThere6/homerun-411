@@ -6,28 +6,37 @@ import AsyncStorage from '@react-native-async-storage/async-storage'; // To stor
 import Header from '../components/Header'; // Importing the Header component
 import colors from '../assets/colors'; // Importing the color variables
 
-// Mock quickLinks data (you can replace this with your actual data)
+// Mock quickLinks data (without Admin link)
 const quickLinks = [
   { id: '1', icon: 'location', label: 'Nearby Facilities', screen: 'Facilities' },
   { id: '2', icon: 'book', label: 'Baseball Etiquette', screen: 'Etiquette' },
   { id: '3', icon: 'cog', label: 'Settings', screen: 'Settings' },
-  { id: '4', icon: 'construct', label: 'Admin', screen: 'Admin' },
 ];
 
 export default function Homepage() {
   const [firstName, setFirstName] = useState(''); // State to store first name
+  const [role, setRole] = useState('User'); // State to store role (default is 'User')
   const navigation = useNavigation(); // Hook for navigation
 
-  // Load first name from AsyncStorage when the component mounts
+  // Load first name and role from AsyncStorage when the component mounts
   useEffect(() => {
-    const loadFirstName = async () => {
+    const loadUserData = async () => {
       const storedFirstName = await AsyncStorage.getItem('firstName');
+      const storedRole = await AsyncStorage.getItem('role'); // Fetch role
       if (storedFirstName) {
         setFirstName(storedFirstName); // Set the first name
       }
+      if (storedRole) {
+        setRole(storedRole); // Set the role
+      }
     };
-    loadFirstName();
+    loadUserData();
   }, []);
+
+  // Conditionally add the admin link if the user is an admin
+  const updatedQuickLinks = role === 'Admin' 
+    ? [...quickLinks, { id: '4', icon: 'construct', label: 'Admin', screen: 'Admin' }] 
+    : quickLinks;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -48,13 +57,13 @@ export default function Homepage() {
 
         {/* Quick Links with Horizontal Scroll */}
         <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} style={styles.quickLinksContainer}>
-          {quickLinks.map((link, index) => (
+          {updatedQuickLinks.map((link, index) => (
             <TouchableOpacity
               key={link.id}
               style={[
                 styles.linkCard,
                 index === 0 && styles.firstLinkCard, // Apply margin to the first card
-                index === quickLinks.length - 1 && styles.lastLinkCard, // Apply margin to the last card
+                index === updatedQuickLinks.length - 1 && styles.lastLinkCard, // Apply margin to the last card
               ]}
               onPress={() => navigation.navigate(link.screen)}
             >
