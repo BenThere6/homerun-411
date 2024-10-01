@@ -125,6 +125,16 @@ app.get('/api/admin/users', authenticate, isAdmin, async (req, res) => {
   }
 });
 
+// Check if an admin exists
+router.get('/check-admin', async (req, res) => {
+  try {
+    const adminExists = await User.exists({ role: 'Admin' });
+    res.json({ adminExists });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Promote a user to admin (Admin only)
 app.patch('/api/admin/promote/:userId', authenticate, isAdmin, async (req, res) => {
   try {
