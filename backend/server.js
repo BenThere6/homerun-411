@@ -91,7 +91,7 @@ app.post('/api/auth/logout', authenticate, async (req, res) => {
 // User registration route
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { email, password, zipCode, firstName, lastName } = req.body;
+    const { email, password, zipCode, firstName, lastName, role } = req.body; // Include role
 
     if (!email || !password || !zipCode || !firstName || !lastName) {
       return res.status(400).json({ message: 'First name, last name, email, password, and zip code are required.' });
@@ -105,6 +105,7 @@ app.post('/api/auth/register', async (req, res) => {
       passwordHash: hashedPassword,
       zipCode,
       profile: { firstName, lastName },
+      role: role || 'User', // Set role or default to 'User'
     });
 
     const savedUser = await newUser.save();

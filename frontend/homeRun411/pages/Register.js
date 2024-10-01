@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../AuthContext';
 import { Ionicons } from '@expo/vector-icons'; // Icon for checkbox
+import colors from '../assets/colors'; // Importing colors from your color file
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -101,7 +102,7 @@ export default function RegisterPage() {
         <TextInput
           style={styles.input}
           placeholder="First Name"
-          placeholderTextColor="gray"
+          placeholderTextColor={colors.secondaryText}
           value={firstName}
           onChangeText={setFirstName}
           returnKeyType="next"
@@ -111,7 +112,7 @@ export default function RegisterPage() {
         <TextInput
           style={styles.input}
           placeholder="Last Name"
-          placeholderTextColor="gray"
+          placeholderTextColor={colors.secondaryText}
           value={lastName}
           onChangeText={setLastName}
           ref={lastNameInputRef}
@@ -122,7 +123,7 @@ export default function RegisterPage() {
         <TextInput
           style={styles.input}
           placeholder="Email"
-          placeholderTextColor="gray"
+          placeholderTextColor={colors.secondaryText}
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -134,7 +135,7 @@ export default function RegisterPage() {
         <TextInput
           style={styles.input}
           placeholder="Password"
-          placeholderTextColor="gray"
+          placeholderTextColor={colors.secondaryText}
           secureTextEntry
           value={password}
           onChangeText={setPassword}
@@ -146,7 +147,7 @@ export default function RegisterPage() {
         <TextInput
           style={styles.input}
           placeholder="Confirm Password"
-          placeholderTextColor="gray"
+          placeholderTextColor={colors.secondaryText}
           secureTextEntry
           value={confirmPassword}
           onChangeText={setConfirmPassword}
@@ -158,7 +159,7 @@ export default function RegisterPage() {
         <TextInput
           style={styles.input}
           placeholder="Zip Code"
-          placeholderTextColor="gray"
+          placeholderTextColor={colors.secondaryText}
           value={zipCode}
           onChangeText={setZipCode}
           ref={zipCodeInputRef}
@@ -172,7 +173,7 @@ export default function RegisterPage() {
               <Ionicons
                 name={isAdmin ? 'checkbox' : 'square-outline'}
                 size={24}
-                color="black"
+                color={colors.primaryText}
               />
             </TouchableOpacity>
             <Text style={styles.checkboxLabel}>Register as Admin</Text>
@@ -197,36 +198,36 @@ export default function RegisterPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: colors.sixty, // Primary background color
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   title: {
     fontSize: 24,
-    color: 'black',
+    color: colors.primaryText,
     marginBottom: 20,
   },
   input: {
     width: '100%',
     height: 50,
-    borderColor: 'gray',
+    borderColor: colors.thirty, // Using the secondary color
     borderWidth: 1,
     borderRadius: 5,
     padding: 10,
     marginBottom: 20,
-    color: 'black',
+    color: colors.primaryText,
   },
   button: {
     width: '100%',
     height: 50,
-    backgroundColor: 'gray',
+    backgroundColor: colors.thirty, // Using the secondary color for button
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 5,
   },
   buttonText: {
-    color: 'white',
+    color: colors.oppText, // Using the opposite text color
     fontSize: 18,
   },
   registerTextContainer: {
@@ -234,10 +235,10 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   text: {
-    color: 'black',
+    color: colors.primaryText,
   },
   linkText: {
-    color: 'blue',
+    color: colors.primaryText,
     textDecorationLine: 'underline',
   },
   checkboxContainer: {
@@ -247,6 +248,6 @@ const styles = StyleSheet.create({
   },
   checkboxLabel: {
     marginLeft: 8,
-    color: 'black',
+    color: colors.primaryText,
   },
 });
