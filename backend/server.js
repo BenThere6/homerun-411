@@ -126,7 +126,7 @@ app.get('/api/admin/users', authenticate, isAdmin, async (req, res) => {
 });
 
 // Check if an admin exists
-router.get('/check-admin', async (req, res) => {
+app.get('/check-admin', async (req, res) => {
   try {
     const adminExists = await User.exists({ role: 'Admin' });
     res.json({ adminExists });
