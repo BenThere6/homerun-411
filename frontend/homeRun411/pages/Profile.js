@@ -1,11 +1,38 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; // For the combined button icon
 import { useNavigation } from '@react-navigation/native'; // For navigation
+import AsyncStorage from '@react-native-async-storage/async-storage'; // For storing/retrieving user data
 import colors from '../assets/colors'; // Importing the color variables
 
 export default function ProfilePage() {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [createdAt, setCreatedAt] = useState(''); // To store account creation date
+
   const navigation = useNavigation(); // Hook for navigation
+
+  useEffect(() => {
+    // Fetch the user's data from AsyncStorage or API
+    const fetchUserData = async () => {
+      try {
+        const storedFirstName = await AsyncStorage.getItem('firstName');
+        const storedLastName = await AsyncStorage.getItem('lastName');
+        const storedEmail = await AsyncStorage.getItem('email');
+        const storedCreatedAt = await AsyncStorage.getItem('createdAt'); // Ensure this is stored when user logs in
+
+        if (storedFirstName) setFirstName(storedFirstName);
+        if (storedLastName) setLastName(storedLastName);
+        if (storedEmail) setEmail(storedEmail);
+        if (storedCreatedAt) setCreatedAt(storedCreatedAt);
+      } catch (error) {
+        console.error('Error fetching user data: ', error);
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -22,8 +49,9 @@ export default function ProfilePage() {
                 source={{ uri: 'https://via.placeholder.com/120' }} // Placeholder image for now
                 style={styles.profileImage} 
               />
-              <Text style={styles.username}>Username</Text>
-              <Text style={styles.email}>user@example.com</Text>
+              {/* Displaying real user data */}
+              <Text style={styles.username}>{`${firstName} ${lastName}`}</Text>
+              <Text style={styles.email}>{email}</Text>
 
               {/* Combined Button for Edit Profile and Settings */}
               <TouchableOpacity 
@@ -36,7 +64,7 @@ export default function ProfilePage() {
 
               {/* Account Created Date */}
               <View style={styles.infoContainer}>
-                <Text style={styles.infoText}>Account Created: January 1, 2021</Text>
+                <Text style={styles.infoText}>Account Created: {new Date(createdAt).toLocaleDateString()}</Text>
               </View>
             </View>
           </View>
