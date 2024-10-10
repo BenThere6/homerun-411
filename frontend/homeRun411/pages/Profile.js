@@ -51,7 +51,7 @@ export default function ProfilePage() {
               />
               {/* Displaying real user data */}
               <Text style={styles.username}>{`${firstName} ${lastName}`}</Text>
-              <Text style={styles.email}>{email}</Text>
+              <Text style={styles.email}>{email} email???</Text>
 
               {/* Combined Button for Edit Profile and Settings */}
               <TouchableOpacity 

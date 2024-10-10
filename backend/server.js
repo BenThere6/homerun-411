@@ -154,6 +154,51 @@ app.patch('/api/admin/promote/:userId', authenticate, isAdmin, async (req, res) 
   }
 });
 
+// Get user profile
+app.get('/api/auth/profile', authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({
+      email: user.email,
+      firstName: user.profile.firstName,
+      lastName: user.profile.lastName,
+      createdAt: user.createdAt, // Ensure this field exists in the schema
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update user profile
+app.patch('/api/auth/profile', authenticate, async (req, res) => {
+  try {
+    const { firstName, lastName, avatarUrl, bio } = req.body; // Define fields you want to allow for update
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (firstName) user.profile.firstName = firstName;
+    if (lastName) user.profile.lastName = lastName;
+    if (avatarUrl) user.profile.avatarUrl = avatarUrl;
+    if (bio) user.profile.bio = bio;
+
+    await user.save();
+
+    res.json({
+      message: 'Profile updated successfully',
+      profile: user.profile,
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);

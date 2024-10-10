@@ -63,11 +63,11 @@ const userSchema = new mongoose.Schema({
   profile: {
     firstName: {
       type: String,
-      required: true, // Make first name required
+      required: true, // First name required
     },
     lastName: {
       type: String,
-      required: true, // Make last name required
+      required: true, // Last name required
     },
     avatarUrl: String,
     bio: String,
@@ -92,7 +92,7 @@ const userSchema = new mongoose.Schema({
       default: 'all',
     },
   },
-});
+}, { timestamps: true }); // Enable timestamps automatically adds createdAt and updatedAt fields
 
 const User = mongoose.model('User', userSchema);
 
