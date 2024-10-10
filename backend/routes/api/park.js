@@ -1,11 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const Park = require('../../models/Park');
-// const Weather = require('../../models/Weather');
 const NearestAmenity = require('../../models/NearestAmenity');
 const auth = require('../../middleware/auth');
 const isAdmin = require('../../middleware/isAdmin');
-// const fetch = require('node-fetch');
 
 // Middleware function to fetch a park by ID
 async function getPark(req, res, next) {
@@ -23,41 +21,6 @@ async function getPark(req, res, next) {
   next();
 }
 
-async function fetchComprehensiveWeatherFromAPI(parkCoordinates) {
-  const apiKey = process.env.OPEN_WEATHER_API; // Accessing the API key from environment variables
-  // Assuming parkCoordinates is an object with properties `latitude` and `longitude`
-  const url = `https://api.openweathermap.org/data/2.5/weather?lat=${parkCoordinates.coordinates[0]}&lon=${parkCoordinates.coordinates[1]}&appid=${apiKey}&units=metric`;
-
-  let response;
-  try {
-    response = await fetch(url);
-    const data = await response.json();  // Parse JSON irrespective of response status
-
-    if (!response.ok) {
-      // Include specific API error information in the thrown error
-      throw new Error(`Failed to fetch weather data: ${response.status} ${response.statusText} - ${data.message}`);
-    }
-
-    return {
-      current: {
-        temperature: data.main.temp,
-        feels_like: data.main.feels_like,
-        description: data.weather[0].description, // Using 'description' for more detail
-        icon: data.weather[0].icon,
-        wind_speed: data.wind.speed,
-        wind_deg: data.wind.deg,
-        // Note: UV index is not available in the basic /weather endpoint; it's available in the /onecall endpoint
-        sunrise: new Date(data.sys.sunrise * 1000),
-        sunset: new Date(data.sys.sunset * 1000),
-      }
-      // Hourly and daily forecasts would be extracted here if using the OneCall API
-    };
-  } catch (error) {
-    // If the error is thrown by fetch itself or there is a network issue
-    throw new Error(`Network or parsing error while fetching weather data: ${error.message}`);
-  }
-}
-
 // Create a new park
 router.post('/', auth, isAdmin, async (req, res) => {
   try {
@@ -67,8 +30,6 @@ router.post('/', auth, isAdmin, async (req, res) => {
       city,
       state,
       interactiveMapPositionDetails,
-      satelliteImageUrl,
-      pictures,
       closestParkingToField,
       bleachers,
       handicapAccess,
@@ -84,7 +45,7 @@ router.post('/', auth, isAdmin, async (req, res) => {
       shadedAreas,
       playground,
       moundType,
-      fieldTypes, // Ensure this is included
+      fieldTypes,
     } = req.body;
 
     const newPark = new Park({
@@ -93,8 +54,6 @@ router.post('/', auth, isAdmin, async (req, res) => {
       city,
       state,
       interactiveMapPositionDetails,
-      satelliteImageUrl,
-      pictures,
       closestParkingToField,
       bleachers,
       handicapAccess,
@@ -110,7 +69,7 @@ router.post('/', auth, isAdmin, async (req, res) => {
       shadedAreas,
       playground,
       moundType,
-      fieldTypes, // Ensure this is saved
+      fieldTypes,
     });
 
     const savedPark = await newPark.save();
@@ -233,8 +192,6 @@ router.patch('/:id', auth, isAdmin, getPark, async (req, res) => {
     'city',
     'state',
     'interactiveMapPositionDetails',
-    'satelliteImageUrl',
-    'pictures',
     'closestParkingToField',
     'bleachers',
     'handicapAccess',
@@ -250,7 +207,7 @@ router.patch('/:id', auth, isAdmin, getPark, async (req, res) => {
     'shadedAreas',
     'playground',
     'moundType',
-    'fieldTypes', // Ensure this field is included in the update
+    'fieldTypes',
   ];
 
   updateFields.forEach(field => {

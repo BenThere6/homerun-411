@@ -25,12 +25,9 @@ const parkSchema = new Schema({
         type: String,
         enum: ['grass', 'dirt'],
       },
-      pictures: [{ type: String }],
     },
   ],
   interactiveMapPositionDetails: { type: String },
-  satelliteImageUrl: { type: String },
-  pictures: [{ type: String }],
   closestParkingToField: { type: String },
   parking: {
     locations: [{ type: String }],
