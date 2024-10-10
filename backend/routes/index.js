@@ -16,6 +16,7 @@ const userRoutes = require('./api/user');
 const checkinRoutes = require('./api/checkin');
 const userActivityRoutes = require('./api/userActivity');
 const appFeedbackRoutes = require('./api/appFeedback');
+const imageRoutes = require('./api/image');
 
 // Use the imported routes
 router.use('/api/amazon-affiliate-item', amazonAffiliateItemRoutes);
@@ -32,5 +33,6 @@ router.use('/api/user', userRoutes);
 router.use('/api/checkin', checkinRoutes);
 router.use('/api/user-activity', userActivityRoutes);
 router.use('/api/app-feedback', appFeedbackRoutes);
+router.use('/api/image', imageRoutes);
 
 module.exports = router;
