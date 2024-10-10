@@ -1,7 +1,11 @@
 const mongoose = require('mongoose');
 const fs = require('fs');
 const csvParser = require('csv-parser');
+const axios = require('axios'); // For making API requests
 const Park = require('./models/Park');
+
+// Google Maps Geocoding API Key (replace with your own key)
+const GEOCODING_API_KEY = 'YOUR_GOOGLE_MAPS_API_KEY'; 
 
 // Connect to MongoDB
 mongoose.connect('mongodb://localhost:27017/yourDatabaseName', {
@@ -9,24 +13,53 @@ mongoose.connect('mongodb://localhost:27017/yourDatabaseName', {
   useUnifiedTopology: true
 });
 
+// Function to get coordinates from the address using Google Maps Geocoding API
+async function getCoordinatesFromAddress(address, city, state) {
+  const fullAddress = `${address}, ${city}, ${state}`;
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(fullAddress)}&key=${GEOCODING_API_KEY}`;
+
+  try {
+    const response = await axios.get(url);
+    if (response.data.results.length > 0) {
+      const { lat, lng } = response.data.results[0].geometry.location;
+      return [lng, lat]; // [longitude, latitude] for MongoDB 2dsphere
+    } else {
+      console.error(`No results found for address: ${fullAddress}`);
+      return null;
+    }
+  } catch (error) {
+    console.error(`Error fetching coordinates for address: ${fullAddress}`, error);
+    return null;
+  }
+}
+
 async function importParks() {
   const parks = [];
 
   // Read parks from CSV file
   fs.createReadStream('parks.csv')
     .pipe(csvParser())
-    .on('data', (row) => {
+    .on('data', async (row) => {
       const park = {};
 
       // Required fields
       park.name = row.name;
+      park.address = row.address;
       park.city = row.city;
       park.state = row.state;
+      park.fieldTypes = row.fieldTypes;
+
+      // Convert address to coordinates
+      const coordinates = await getCoordinatesFromAddress(row.address, row.city, row.state);
+      if (!coordinates) {
+        console.error(`Skipping park due to invalid address: ${row.name}`);
+        return;
+      }
+
       park.coordinates = {
         type: 'Point',
-        coordinates: JSON.parse(row.coordinates), // Parse string coordinates to array
+        coordinates, // Set the coordinates fetched from the Geocoding API
       };
-      park.fieldTypes = row.fieldTypes;
 
       // Optional fields - only include if present in CSV
       if (row.interactiveMapPositionDetails) park.interactiveMapPositionDetails = row.interactiveMapPositionDetails;
@@ -48,7 +81,7 @@ async function importParks() {
       park.concessions = {};
       if (row.concessionsAvailable) park.concessions.available = row.concessionsAvailable === 'true';
       if (row.concessionsDetails) park.concessions.details = row.concessionsDetails;
-      if (row.paymentMethods) park.concessions.paymentMethods = row.paymentMethods;
+      if (row.paymentMethods) park.concessions.paymentMethods = row.paymentMethods ? row.paymentMethods.split(',') : [];
 
       if (row.coolersAllowed) park.coolersAllowed = row.coolersAllowed === 'true';
       if (row.canopiesAllowed) park.canopiesAllowed = row.canopiesAllowed === 'true';
