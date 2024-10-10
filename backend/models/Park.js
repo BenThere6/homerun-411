@@ -3,9 +3,9 @@ const Schema = mongoose.Schema;
 
 const parkSchema = new Schema({
   name: { type: String, required: true },
-  address: { type: String },
-  city: { type: String, required: true },
-  state: { type: String, required: true },
+  address: { type: String, required: true }, // Added address
+  city: { type: String, required: true }, // Added city
+  state: { type: String, required: true }, // Added state
   coordinates: {
     type: { type: String, default: 'Point' },
     coordinates: { type: [Number], required: true },

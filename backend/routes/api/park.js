@@ -26,9 +26,10 @@ router.post('/', auth, isAdmin, async (req, res) => {
   try {
     const {
       name,
+      address, // Include address
+      city, // Include city
+      state, // Include state
       coordinates,
-      city,
-      state,
       interactiveMapPositionDetails,
       closestParkingToField,
       bleachers,
@@ -50,9 +51,10 @@ router.post('/', auth, isAdmin, async (req, res) => {
 
     const newPark = new Park({
       name,
+      address, // Save address
+      city, // Save city
+      state, // Save state
       coordinates,
-      city,
-      state,
       interactiveMapPositionDetails,
       closestParkingToField,
       bleachers,
@@ -106,7 +108,6 @@ router.get('/nearby', async (req, res) => {
   try {
     const { latitude, longitude } = req.query;
 
-    // Validate latitude and longitude
     if (!latitude || !longitude) {
       return res.status(400).json({ message: 'Latitude and longitude are required' });
     }
@@ -118,7 +119,6 @@ router.get('/nearby', async (req, res) => {
       return res.status(400).json({ message: 'Latitude and longitude must be valid numbers' });
     }
 
-    // Find parks near the provided coordinates within a certain radius (using MongoDB geospatial queries)
     const parks = await Park.find({
       coordinates: {
         $near: {
@@ -188,9 +188,10 @@ router.get('/:id', getPark, (req, res) => {
 router.patch('/:id', auth, isAdmin, getPark, async (req, res) => {
   const updateFields = [
     'name',
+    'address', // Allow update of address
+    'city', // Allow update of city
+    'state', // Allow update of state
     'coordinates',
-    'city',
-    'state',
     'interactiveMapPositionDetails',
     'closestParkingToField',
     'bleachers',
