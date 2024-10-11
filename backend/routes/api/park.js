@@ -30,7 +30,7 @@ router.post('/', auth, isAdmin, async (req, res) => {
       city, // Include city
       state, // Include state
       coordinates,
-      interactiveMapPositionDetails,
+      googleMaps, // Include Google Maps data
       closestParkingToField,
       bleachers,
       handicapAccess,
@@ -55,7 +55,7 @@ router.post('/', auth, isAdmin, async (req, res) => {
       city, // Save city
       state, // Save state
       coordinates,
-      interactiveMapPositionDetails,
+      googleMaps, // Save Google Maps data
       closestParkingToField,
       bleachers,
       handicapAccess,
@@ -192,7 +192,7 @@ router.patch('/:id', auth, isAdmin, getPark, async (req, res) => {
     'city', // Allow update of city
     'state', // Allow update of state
     'coordinates',
-    'interactiveMapPositionDetails',
+    'googleMaps', // Include Google Maps data
     'closestParkingToField',
     'bleachers',
     'handicapAccess',

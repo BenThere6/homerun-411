@@ -27,7 +27,10 @@ const parkSchema = new Schema({
       },
     },
   ],
-  interactiveMapPositionDetails: { type: String },
+  googleMaps: {
+    embedUrl: { type: String }, // URL for the Google Maps embed
+    apiData: { type: Map, of: String }, // Other Google Maps API-related data
+  },
   closestParkingToField: { type: String },
   parking: {
     locations: [{ type: String }],
