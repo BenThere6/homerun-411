@@ -8,7 +8,7 @@ const fieldSchema = new Schema({
   fieldType: { type: String, enum: ['baseball', 'softball', 'both'] }, // Baseball, Softball, Both
   outfieldMaterial: { type: String, enum: ['grass', 'turf'] }, // Grass, Turf
   infieldMaterial: { type: String, enum: ['grass', 'dirt'] }, // Grass, Dirt
-  moundType: { type: String, enum: ['dirt', 'turf', 'movable'] }, // Dirt, Turf, Movable
+  moundType: { type: String, enum: ['dirt', 'turf', 'portable'] }, // Dirt, Turf, Portable
   fieldShadeDescription: { type: String }, // Field Shade Description
   parkingDistanceToField: { type: String }, // Parking Distance to Field
   bleachersAvailable: { type: Boolean }, // Field Bleachers?
@@ -53,7 +53,10 @@ const parkSchema = new Schema({
     {
       location: { type: String },
       runningWater: { type: Boolean },
-      changingTable: { type: Boolean },
+      changingTable: { 
+        type: String, 
+        enum: ['men\'s', 'women\'s', 'both', 'neither'] 
+      }, // Men's, Women's, Both, Neither
       numStalls: { type: Number },
     },
   ],
@@ -66,7 +69,7 @@ const parkSchema = new Schema({
     otherFood: { type: String }, // Other food description
     paymentMethods: {
       type: [String],
-      enum: ['cash', 'card', 'Venmo', 'Apple Pay'],
+      enum: ['cash', 'card', 'venmo', 'apple pay'],
     },
   },
 
@@ -77,10 +80,6 @@ const parkSchema = new Schema({
   lights: { type: Boolean },
   fenceDistance: { type: Number }, // Overall park fence distance
   powerAccess: {
-    available: { type: Boolean },
-    locations: [{ type: String }],
-  },
-  waterAccess: {
     available: { type: Boolean },
     locations: [{ type: String }],
   },
