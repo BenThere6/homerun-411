@@ -32,8 +32,9 @@ router.post('/', auth, isAdmin, async (req, res) => {
       coordinates,
       googleMaps, // Include Google Maps data
       closestParkingToField,
+      parking,
+      parkShade,
       bleachers,
-      handicapAccess,
       concessions,
       coolersAllowed,
       canopiesAllowed,
@@ -42,12 +43,16 @@ router.post('/', auth, isAdmin, async (req, res) => {
       restrooms,
       fenceDistance,
       powerAccess, // Use power access
-      waterAccess, // Use water access
-      cellReception,
-      shadedAreas,
+      sidewalks,
+      gravelPaths,
+      stairs,
+      hills,
+      gateEntranceFee,
       playground,
+      spectatorConditions,
       moundType,
       fieldTypes,
+      nearbyAmenities,
     } = req.body;
 
     const newPark = new Park({
@@ -58,8 +63,9 @@ router.post('/', auth, isAdmin, async (req, res) => {
       coordinates,
       googleMaps, // Save Google Maps data
       closestParkingToField,
+      parking,
+      parkShade,
       bleachers,
-      handicapAccess,
       concessions,
       coolersAllowed,
       canopiesAllowed,
@@ -68,12 +74,16 @@ router.post('/', auth, isAdmin, async (req, res) => {
       restrooms,
       fenceDistance,
       powerAccess, // Save power access
-      waterAccess, // Save water access
-      cellReception,
-      shadedAreas,
+      sidewalks,
+      gravelPaths,
+      stairs,
+      hills,
+      gateEntranceFee,
       playground,
+      spectatorConditions,
       moundType,
       fieldTypes,
+      nearbyAmenities,
     });
 
     const savedPark = await newPark.save();
@@ -194,8 +204,9 @@ router.patch('/:id', auth, isAdmin, getPark, async (req, res) => {
     'coordinates',
     'googleMaps', // Include Google Maps data
     'closestParkingToField',
+    'parking',
+    'parkShade',
     'bleachers',
-    'handicapAccess',
     'concessions',
     'coolersAllowed',
     'canopiesAllowed',
@@ -204,12 +215,15 @@ router.patch('/:id', auth, isAdmin, getPark, async (req, res) => {
     'restrooms',
     'fenceDistance',
     'powerAccess', // Update power access
-    'waterAccess', // Update water access
-    'cellReception',
-    'shadedAreas',
+    'sidewalks',
+    'gravelPaths',
+    'stairs',
+    'hills',
+    'gateEntranceFee',
     'playground',
-    'moundType',
+    'spectatorConditions',
     'fieldTypes',
+    'nearbyAmenities',
   ];
 
   updateFields.forEach((field) => {
