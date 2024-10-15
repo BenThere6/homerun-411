@@ -41,7 +41,8 @@ router.post('/', auth, isAdmin, async (req, res) => {
       lights,
       restrooms,
       fenceDistance,
-      powerWaterAccess,
+      powerAccess, // Use power access
+      waterAccess, // Use water access
       cellReception,
       shadedAreas,
       playground,
@@ -66,7 +67,8 @@ router.post('/', auth, isAdmin, async (req, res) => {
       lights,
       restrooms,
       fenceDistance,
-      powerWaterAccess,
+      powerAccess, // Save power access
+      waterAccess, // Save water access
       cellReception,
       shadedAreas,
       playground,
@@ -140,7 +142,7 @@ router.get('/nearby', async (req, res) => {
 // Search parks by field type
 router.get('/searchByFieldType', async (req, res) => {
   try {
-    const fieldType = req.query.fieldType; // Get field type from query
+    const fieldType = req.query.fieldType;
     const parks = await Park.find({ fieldTypes: fieldType });
 
     res.json(parks);
@@ -158,9 +160,7 @@ router.get('/:parkId/weather', async (req, res) => {
       return res.status(404).json({ message: 'Park not found' });
     }
 
-    // Always fetch fresh weather data for comprehensive info
     const weather = await fetchComprehensiveWeatherFromAPI(park.coordinates);
-
     res.json(weather);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -203,7 +203,8 @@ router.patch('/:id', auth, isAdmin, getPark, async (req, res) => {
     'lights',
     'restrooms',
     'fenceDistance',
-    'powerWaterAccess',
+    'powerAccess', // Update power access
+    'waterAccess', // Update water access
     'cellReception',
     'shadedAreas',
     'playground',
@@ -211,7 +212,7 @@ router.patch('/:id', auth, isAdmin, getPark, async (req, res) => {
     'fieldTypes',
   ];
 
-  updateFields.forEach(field => {
+  updateFields.forEach((field) => {
     if (req.body[field] != null) {
       res.park[field] = req.body[field];
     }

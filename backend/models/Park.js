@@ -8,11 +8,11 @@ const parkSchema = new Schema({
   state: { type: String, required: true }, // Added state
   coordinates: {
     type: { type: String, default: 'Point' },
-    coordinates: { type: [Number], required: true },
+    coordinates: { type: [Number] },
   },
   fields: [
     {
-      name: { type: String, required: true },
+      name: { type: String },
       location: { type: String },
       fenceDistance: { type: Number },
       grassOutfield: { type: Boolean },
@@ -61,7 +61,7 @@ const parkSchema = new Schema({
     },
   ],
   concessions: {
-    available: { type: Boolean, required: true },
+    available: { type: Boolean, required: false },
     details: { type: String },
     paymentMethods: {
       type: [String],
@@ -75,10 +75,14 @@ const parkSchema = new Schema({
   },
   coolersAllowed: { type: Boolean },
   canopiesAllowed: { type: Boolean },
-  surfaceMaterial: { type: String, required: true },
-  lights: { type: Boolean, required: true },
+  surfaceMaterial: { type: String, required: false },
+  lights: { type: Boolean, required: false },
   fenceDistance: { type: Number },
-  powerWaterAccess: {
+  powerAccess: {
+    available: { type: Boolean },
+    locations: [{ type: String }],
+  },
+  waterAccess: {
     available: { type: Boolean },
     locations: [{ type: String }],
   },
@@ -88,7 +92,7 @@ const parkSchema = new Schema({
   hills: { type: Boolean },
   gateEntranceFee: { type: Boolean },
   playground: {
-    available: { type: Boolean, required: true },
+    available: { type: Boolean, required: false },
     location: { type: String },
     nearParking: { type: Boolean },
   },
@@ -113,7 +117,7 @@ const parkSchema = new Schema({
   fieldTypes: {
     type: String,
     enum: ['baseball', 'softball', 'both'],
-    required: true,
+    required: false,
   },
 });
 
