@@ -99,16 +99,6 @@ const parkSchema = new Schema({
     },
   },
 
-  // Nearby amenities
-  nearbyAmenities: {
-    gasStations: { type: Boolean, default: false },
-    fastFood: { type: Boolean, default: false },
-    sitDownRestaurants: { type: Boolean, default: false },
-    groceryStores: { type: Boolean, default: false },
-    hotels: { type: Boolean, default: false },
-    otherActivities: { type: Boolean, default: false },
-  },
-
   // Coordinates for geospatial queries (not in the sheet but kept in schema)
   coordinates: {
     type: { type: String, default: 'Point' },

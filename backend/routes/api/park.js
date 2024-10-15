@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const Park = require('../../models/Park');
-const NearestAmenity = require('../../models/NearestAmenity');
 const auth = require('../../middleware/auth');
 const isAdmin = require('../../middleware/isAdmin');
 
@@ -50,9 +49,7 @@ router.post('/', auth, isAdmin, async (req, res) => {
       gateEntranceFee,
       playground,
       spectatorConditions,
-      moundType,
       fieldTypes,
-      nearbyAmenities,
     } = req.body;
 
     const newPark = new Park({
@@ -81,9 +78,7 @@ router.post('/', auth, isAdmin, async (req, res) => {
       gateEntranceFee,
       playground,
       spectatorConditions,
-      moundType,
       fieldTypes,
-      nearbyAmenities,
     });
 
     const savedPark = await newPark.save();
@@ -108,7 +103,6 @@ router.get('/search', async (req, res) => {
   try {
     const parkName = req.query.name;
     const parks = await Park.find({ name: { $regex: parkName, $options: 'i' } });
-
     res.json(parks);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -154,7 +148,6 @@ router.get('/searchByFieldType', async (req, res) => {
   try {
     const fieldType = req.query.fieldType;
     const parks = await Park.find({ fieldTypes: fieldType });
-
     res.json(parks);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -172,18 +165,6 @@ router.get('/:parkId/weather', async (req, res) => {
 
     const weather = await fetchComprehensiveWeatherFromAPI(park.coordinates);
     res.json(weather);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// Get amenities for a specific park by ID
-router.get('/:parkId/amenities', async (req, res) => {
-  try {
-    const parkId = req.params.parkId;
-    const amenities = await NearestAmenity.find({ referencedPark: parkId });
-
-    res.json(amenities);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -223,7 +204,6 @@ router.patch('/:id', auth, isAdmin, getPark, async (req, res) => {
     'playground',
     'spectatorConditions',
     'fieldTypes',
-    'nearbyAmenities',
   ];
 
   updateFields.forEach((field) => {

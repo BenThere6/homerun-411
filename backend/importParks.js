@@ -43,16 +43,15 @@ async function importParks() {
       const park = {};
 
       // Required fields
-      park.name = row.name;
-      park.address = row.address;
-      park.city = row.city;
-      park.state = row.state;
-      park.fieldTypes = row.fieldTypes;
+      park.name = row.Name;
+      park.address = row.Address;
+      park.city = row.City;
+      park.state = row.State;
 
       // Convert address to coordinates
-      const coordinates = await getCoordinatesFromAddress(row.address, row.city, row.state);
+      const coordinates = await getCoordinatesFromAddress(row.Address, row.City, row.State);
       if (!coordinates) {
-        console.error(`Skipping park due to invalid address: ${row.name}`);
+        console.error(`Skipping park due to invalid address: ${row.Name}`);
         return;
       }
 
@@ -61,45 +60,90 @@ async function importParks() {
         coordinates, // Set the coordinates fetched from the Geocoding API
       };
 
-      // Optional fields - only include if present in CSV
-      if (row.interactiveMapPositionDetails) park.interactiveMapPositionDetails = row.interactiveMapPositionDetails;
-      if (row.satelliteImageUrl) park.satelliteImageUrl = row.satelliteImageUrl;
+      // Number of Fields
+      park.numberOfFields = parseInt(row['Number of Fields'], 10) || 0;
 
-      park.pictures = {};
-      if (row.mainImageUrl) park.pictures.mainImageUrl = row.mainImageUrl;
-      if (row.dugoutUrl) park.pictures.dugoutUrl = row.dugoutUrl;
-      if (row.sidelinesUrl) park.pictures.sidelinesUrl = row.sidelinesUrl;
-      if (row.shadedAreasUrl) park.pictures.shadedAreasUrl = row.shadedAreasUrl;
+      // Fields array (up to 8 fields as per provided structure)
+      park.fields = [];
+      for (let i = 1; i <= park.numberOfFields; i++) {
+        const field = {
+          name: row[`Field ${i} Name`],
+          location: row[`Field ${i} Location`],
+          fenceDistance: parseInt(row[`Field ${i} Fence Distance`], 10) || null,
+          fieldType: row[`Field ${i} Type`] || null,
+          outfieldMaterial: row[`Field ${i} Outfield Material`] || null,
+          infieldMaterial: row[`Field ${i} Infield Material`] || null,
+          moundType: row[`Field ${i} Mound Type`] || null,
+          fieldShadeDescription: row[`Field ${i} Field Shade Description`] || null,
+          parkingDistanceToField: row[`Field ${i} Parking Distance to Field`] || null,
+          bleachersAvailable: row[`Field ${i} Bleachers?`] === 'true',
+          bleachersDescription: row[`Field ${i} Bleachers Description`] || null,
+          backstopMaterial: row[`Field ${i} Backstop Material`] || null,
+          backstopDistance: parseInt(row[`Field ${i} Backstop Distance (ft)`], 10) || null,
+          dugoutsCovered: row[`Field ${i} Dugouts Covered?`] === 'true',
+          dugoutsMaterial: row[`Field ${i} Dugouts Material`] || null
+        };
 
-      if (row.closestParkingToField) park.closestParkingToField = row.closestParkingToField;
-      if (row.bleachers) park.bleachers = row.bleachers === 'true';
+        if (field.name) {
+          park.fields.push(field);
+        }
+      }
 
-      park.handicapAccess = {};
-      if (row.hasHandicapAccess) park.handicapAccess.hasAccess = row.hasHandicapAccess === 'true';
-      if (row.handicapDetails) park.handicapAccess.details = row.handicapDetails;
+      // Park-wide amenities and features
+      if (row['Parking Location']) park.closestParkingToField = row['Parking Location'];
+      if (row['Number of Handicap Spots']) park.parking = { handicapSpots: parseInt(row['Number of Handicap Spots'], 10) || 0 };
+      if (row['Park Shade Description']) park.parkShade = row['Park Shade Description'];
 
-      park.concessions = {};
-      if (row.concessionsAvailable) park.concessions.available = row.concessionsAvailable === 'true';
-      if (row.concessionsDetails) park.concessions.details = row.concessionsDetails;
-      if (row.paymentMethods) park.concessions.paymentMethods = row.paymentMethods ? row.paymentMethods.split(',') : [];
+      // Restrooms
+      park.restrooms = [];
+      if (row['Restroom Location']) {
+        park.restrooms.push({
+          location: row['Restroom Location'],
+          runningWater: row['Restroom Running Water?'] === 'true',
+          changingTable: row['Restroom Changing Table?'] || 'neither',
+          numStalls: parseInt(row['Restroom Number of Stalls'], 10) || null,
+        });
+      }
 
-      if (row.coolersAllowed) park.coolersAllowed = row.coolersAllowed === 'true';
-      if (row.canopiesAllowed) park.canopiesAllowed = row.canopiesAllowed === 'true';
-      if (row.surfaceMaterial) park.surfaceMaterial = row.surfaceMaterial;
-      if (row.lights) park.lights = row.lights === 'true';
-      if (row.restrooms) park.restrooms = row.restrooms;
-      if (row.fenceDistance) park.fenceDistance = parseInt(row.fenceDistance, 10);
-      if (row.powerWaterAccess) park.powerWaterAccess = row.powerWaterAccess === 'true';
-      if (row.cellReception) park.cellReception = row.cellReception === 'true';
+      // Concessions
+      park.concessions = {
+        available: row['Concessions Available?'] === 'true',
+        snacks: row['Snacks?'] === 'true',
+        drinks: row['Drinks?'] === 'true',
+        otherFood: row['Other Food Description'] || null,
+        paymentMethods: []
+      };
+      if (row['Cash?'] === 'true') park.concessions.paymentMethods.push('cash');
+      if (row['Card?'] === 'true') park.concessions.paymentMethods.push('card');
+      if (row['Venmo?'] === 'true') park.concessions.paymentMethods.push('venmo');
+      if (row['Tap to pay?'] === 'true') park.concessions.paymentMethods.push('apple pay');
 
-      park.shadedAreas = {};
-      if (row.shadedAreasAvailable) park.shadedAreas.available = row.shadedAreasAvailable === 'true';
+      // Miscellaneous fields
+      if (row['Coolers Allowed?']) park.coolersAllowed = row['Coolers Allowed?'] === 'true';
+      if (row['Canopies Allowed?']) park.canopiesAllowed = row['Canopies Allowed?'] === 'true';
+      if (row['Field Lights?']) park.lights = row['Field Lights?'] === 'true';
+      if (row['Fence Distance (ft)']) park.fenceDistance = parseInt(row['Fence Distance (ft)'], 10) || null;
+      if (row['Electrical Outlets for Public Use?']) park.powerAccess = {
+        available: row['Electrical Outlets for Public Use?'] === 'true',
+        locations: row['Location of Electrical Outlets'] ? [row['Location of Electrical Outlets']] : []
+      };
+      if (row['Sidewalks']) park.sidewalks = row['Sidewalks'] === 'true';
+      if (row['Stairs Description']) park.stairs = row['Stairs Description'] === 'true';
+      if (row['Hills Description']) park.hills = row['Hills Description'] === 'true';
+      if (row['Entrance Fee?']) park.gateEntranceFee = row['Entrance Fee?'] === 'true';
 
-      park.playground = {};
-      if (row.playgroundAvailable) park.playground.available = row.playgroundAvailable === 'true';
-      if (row.playgroundCloseToParking) park.playground.closeToParking = row.playgroundCloseToParking === 'true';
+      // Playground
+      park.playground = {
+        available: row['Playground?'] === 'true',
+        location: row['Playground Location'] || null,
+      };
 
-      if (row.moundType) park.moundType = row.moundType;
+      // Spectator Conditions
+      if (row['Spectator Location Conditions']) {
+        park.spectatorConditions = {
+          locationTypes: row['Spectator Location Conditions'].split(',').map(s => s.trim()),
+        };
+      }
 
       // Add the park to the array
       parks.push(park);
