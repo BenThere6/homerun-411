@@ -1,57 +1,54 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
+const fieldSchema = new Schema({
+  name: { type: String }, // Field Name
+  location: { type: String }, // Field Location
+  fenceDistance: { type: Number }, // Field Fence Distance
+  fieldType: { type: String, enum: ['baseball', 'softball', 'both'] }, // Baseball, Softball, Both
+  outfieldMaterial: { type: String, enum: ['grass', 'turf'] }, // Grass, Turf
+  infieldMaterial: { type: String, enum: ['grass', 'dirt'] }, // Grass, Dirt
+  moundType: { type: String, enum: ['dirt', 'turf', 'movable'] }, // Dirt, Turf, Movable
+  fieldShadeDescription: { type: String }, // Field Shade Description
+  parkingDistanceToField: { type: String }, // Parking Distance to Field
+  bleachersAvailable: { type: Boolean }, // Field Bleachers?
+  bleachersDescription: { type: String }, // Field Bleachers Description
+  backstopMaterial: { type: String, enum: ['fence', 'net'] }, // Fence, Net
+  backstopDistance: { type: Number }, // Backstop Distance (ft)
+  dugoutsCovered: { type: Boolean }, // Dugouts Covered?
+  dugoutsMaterial: { type: String, enum: ['brick', 'fence'] }, // Dugouts Material
+});
+
 const parkSchema = new Schema({
-  name: { type: String, required: true },
-  address: { type: String, required: true }, // Added address
-  city: { type: String, required: true }, // Added city
-  state: { type: String, required: true }, // Added state
-  coordinates: {
-    type: { type: String, default: 'Point' },
-    coordinates: { type: [Number] },
-  },
-  fields: [
-    {
-      name: { type: String },
-      location: { type: String },
-      fenceDistance: { type: Number },
-      grassOutfield: { type: Boolean },
-      turf: { type: Boolean },
-      moundType: {
-        type: String,
-        enum: ['dirt', 'turf', 'movable'],
-      },
-      infieldMaterial: {
-        type: String,
-        enum: ['grass', 'dirt'],
-      },
-    },
-  ],
+  // Required fields from the sheet
+  name: { type: String, required: true }, // Park Name
+  address: { type: String, required: true }, // Park Address
+  city: { type: String, required: true }, // Park City
+  state: { type: String, required: true }, // Park State
+
+  // Non-required fields for the park from the sheet
+  numberOfFields: { type: Number }, // Number of Fields
+  
+  // Fields schema array (1-n fields, based on the sheet structure)
+  fields: [fieldSchema], // Schema for Field details
+
+  // Google Maps-related data (not in the sheet but kept in schema)
   googleMaps: {
-    embedUrl: { type: String }, // URL for the Google Maps embed
-    apiData: { type: Map, of: String }, // Other Google Maps API-related data
+    embedUrl: { type: String }, // URL for Google Maps embed
+    apiData: { type: Map, of: String }, // Additional Google Maps API-related data
   },
+
+  // Closest parking to a field
   closestParkingToField: { type: String },
+
+  // Park-wide amenities and features
   parking: {
     locations: [{ type: String }],
-    distanceToField: { type: String },
     handicapSpots: { type: Number },
   },
-  bleachers: {
-    available: { type: Boolean },
-    description: { type: String },
-  },
-  dugouts: {
-    covered: { type: Boolean },
-    brickedIn: { type: Boolean },
-    fenced: { type: Boolean },
-  },
-  fence: {
-    available: { type: Boolean },
-    material: { type: String, enum: ['wood', 'cement', 'brick'] },
-  },
-  fieldShade: { type: Boolean },
-  parkShade: { type: Boolean },
+  parkShade: { type: String }, // Park Shade Description
+
+  // Restrooms
   restrooms: [
     {
       location: { type: String },
@@ -60,24 +57,25 @@ const parkSchema = new Schema({
       numStalls: { type: Number },
     },
   ],
+
+  // Concessions
   concessions: {
-    available: { type: Boolean, required: false },
-    details: { type: String },
+    available: { type: Boolean },
+    snacks: { type: Boolean },
+    drinks: { type: Boolean },
+    otherFood: { type: String }, // Other food description
     paymentMethods: {
       type: [String],
       enum: ['cash', 'card', 'Venmo', 'Apple Pay'],
     },
-    foodOptions: {
-      drinks: { type: Boolean },
-      snacks: { type: Boolean },
-      otherFood: { type: Boolean },
-    },
   },
+
+  // Other park-level features
   coolersAllowed: { type: Boolean },
   canopiesAllowed: { type: Boolean },
-  surfaceMaterial: { type: String, required: false },
-  lights: { type: Boolean, required: false },
-  fenceDistance: { type: Number },
+  surfaceMaterial: { type: String },
+  lights: { type: Boolean },
+  fenceDistance: { type: Number }, // Overall park fence distance
   powerAccess: {
     available: { type: Boolean },
     locations: [{ type: String }],
@@ -92,9 +90,8 @@ const parkSchema = new Schema({
   hills: { type: Boolean },
   gateEntranceFee: { type: Boolean },
   playground: {
-    available: { type: Boolean, required: false },
+    available: { type: Boolean },
     location: { type: String },
-    nearParking: { type: Boolean },
   },
   spectatorConditions: {
     locationTypes: {
@@ -102,10 +99,8 @@ const parkSchema = new Schema({
       enum: ['grass', 'cement', 'gravel', 'dirt'],
     },
   },
-  backstop: {
-    material: { type: String, enum: ['fence', 'net'] },
-    distance: { type: Number },
-  },
+
+  // Nearby amenities
   nearbyAmenities: {
     gasStations: { type: Boolean, default: false },
     fastFood: { type: Boolean, default: false },
@@ -114,11 +109,15 @@ const parkSchema = new Schema({
     hotels: { type: Boolean, default: false },
     otherActivities: { type: Boolean, default: false },
   },
-  fieldTypes: {
-    type: String,
-    enum: ['baseball', 'softball', 'both'],
-    required: false,
+
+  // Coordinates for geospatial queries (not in the sheet but kept in schema)
+  coordinates: {
+    type: { type: String, default: 'Point' },
+    coordinates: { type: [Number] },
   },
+
+  // Field types (Baseball, Softball, Both)
+  fieldTypes: { type: String, enum: ['baseball', 'softball', 'both'], required: false },
 });
 
 // Create a 2dsphere index on the coordinates field for geospatial queries
