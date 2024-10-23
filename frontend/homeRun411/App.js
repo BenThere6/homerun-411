@@ -15,6 +15,7 @@ import AdminPage from './pages/Admin';
 import SettingsPage from './pages/Settings';
 import LoginPage from './pages/Login';
 import RegisterPage from './pages/Register';
+import NewPostForm from './pages/NewPostForm'; // Import the NewPostForm component
 import colors from './assets/colors';
 import { AuthProvider, useAuth } from './AuthContext'; // Import the AuthProvider and useAuth hook
 
@@ -148,6 +149,15 @@ function MainStack() {
             component={SettingsPage}
             options={{
               title: 'Settings',
+              headerBackTitle: 'Back',
+            }}
+          />
+          {/* Add the NewPostForm screen */}
+          <Stack.Screen
+            name="NewPostForm"
+            component={NewPostForm}
+            options={{
+              title: 'Create a New Post',
               headerBackTitle: 'Back',
             }}
           />

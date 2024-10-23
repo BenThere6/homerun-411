@@ -1,71 +1,42 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; // For icons
 import colors from '../assets/colors'; // Importing the color variables
+import { BACKEND_URL } from '@env'; // Import the backend URL from .env
 
-export default function ForumPage() {
-    // Example data for forum posts
-    const forumPosts = [
-        {
-            id: '1',
-            title: 'Best Baseball Parks in Utah',
-            content: 'Share your favorite parks and what makes them great...',
-            comments: 12,
-            likes: 25,
-            date: 'Sept 10, 2024',
-            taggedParks: ['Park 1', 'Park 2'], // Tagged parks for this post
-        },
-        {
-            id: '2',
-            title: 'Concessions at Park 1',
-            content: 'Does anyone know if Park 1 takes cash at their concessions?',
-            comments: 8,
-            likes: 15,
-            date: 'Sept 9, 2024',
-            taggedParks: ['Park 1'], // Single tagged park
-        },
-        {
-            id: '3',
-            title: 'Best Playgrounds for Kids',
-            content: 'What parks have the best playgrounds for kids to enjoy?',
-            comments: 6,
-            likes: 10,
-            date: 'Sept 5, 2024',
-            taggedParks: [], // No tagged parks
-        },
-        {
-            id: '4',
-            title: 'New Baseball Park Opening',
-            content: 'There’s a new baseball park opening in our city soon!',
-            comments: 15,
-            likes: 30,
-            date: 'Sept 1, 2024',
-            taggedParks: ['Park 3'], // Tagged park
-        },
-        {
-            id: '5',
-            title: 'Night Games at Park 4',
-            content: 'Who wants to join for a night game at Park 4?',
-            comments: 4,
-            likes: 8,
-            date: 'Aug 28, 2024',
-            taggedParks: ['Park 4'], // Tagged park
-        },
-    ];
+export default function ForumPage({ navigation }) {
+    const [forumPosts, setForumPosts] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    // Render each forum post
+    // Fetch forum posts from the backend
+    useEffect(() => {
+        const fetchPosts = async () => {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/post`); // Use the backend URL from .env
+                const data = await response.json();
+                setForumPosts(data);
+            } catch (error) {
+                console.error('Error fetching posts:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchPosts();
+    }, []);
+
     const renderPost = ({ item }) => (
         <TouchableOpacity style={styles.postContainer}>
             {/* Title and Date Row */}
             <View style={styles.titleRow}>
                 <Text style={styles.postTitle}>{item.title}</Text>
-                <Text style={styles.metaDate}>{item.date}</Text>
+                <Text style={styles.metaDate}>{new Date(item.createdAt).toLocaleDateString()}</Text>
             </View>
 
             {/* Display Tagged Parks if they exist */}
-            {item.taggedParks && item.taggedParks.length > 0 && (
+            {item.tags && item.tags.length > 0 && (
                 <View style={styles.taggedParksContainer}>
-                    {item.taggedParks.map((park, index) => (
+                    {item.tags.map((park, index) => (
                         <Text key={index} style={styles.taggedPark}>
                             #{park}
                         </Text>
@@ -81,9 +52,9 @@ export default function ForumPage() {
                 {/* Likes and Comments Icons */}
                 <View style={styles.metaLeft}>
                     <Ionicons name="heart-outline" size={16} color={colors.secondaryText} />
-                    <Text style={styles.metaText}>{item.likes}</Text>
+                    <Text style={styles.metaText}>{item.likes || 0}</Text>
                     <Ionicons name="chatbubble-outline" size={16} color={colors.secondaryText} style={styles.commentIcon} />
-                    <Text style={styles.metaText}>{item.comments}</Text>
+                    <Text style={styles.metaText}>{item.comments || 0}</Text>
                 </View>
             </View>
         </TouchableOpacity>
@@ -101,18 +72,25 @@ export default function ForumPage() {
                 <Text style={styles.headerTitle}>Forum</Text>
 
                 {/* New Post Button on the right */}
-                <TouchableOpacity style={styles.newPostButton}>
+                <TouchableOpacity
+                    style={styles.newPostButton}
+                    onPress={() => navigation.navigate('NewPostForm')}
+                >
                     <Ionicons name="add-circle-outline" size={24} color={colors.ten} />
                 </TouchableOpacity>
             </View>
 
-            {/* Forum Post List */}
-            <FlatList
-                data={forumPosts} // Render all posts in the FlatList
-                renderItem={renderPost}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.listContainer}
-            />
+            {/* Show a loading indicator while fetching data */}
+            {loading ? (
+                <ActivityIndicator size="large" color={colors.primary} />
+            ) : (
+                <FlatList
+                    data={forumPosts}
+                    renderItem={renderPost}
+                    keyExtractor={(item) => item._id} // Use _id as the key from your backend
+                    contentContainerStyle={styles.listContainer}
+                />
+            )}
         </SafeAreaView>
     );
 }
