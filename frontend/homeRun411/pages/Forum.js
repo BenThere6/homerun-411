@@ -8,32 +8,33 @@ export default function ForumPage({ navigation }) {
     const [forumPosts, setForumPosts] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // Fetch forum posts from the backend
-    useEffect(() => {
-        const fetchPosts = async () => {
-            try {
-                const response = await fetch(`${BACKEND_URL}/api/post`); // Use the backend URL from .env
-                const data = await response.json();
-                setForumPosts(data);
-            } catch (error) {
-                console.error('Error fetching posts:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
+    // Function to fetch posts from the backend
+    const fetchPosts = async () => {
+        setLoading(true); // Show loading indicator while fetching
+        try {
+            const response = await fetch(`${BACKEND_URL}/api/post`); // Use the backend URL from .env
+            const data = await response.json();
+            setForumPosts(data);
+        } catch (error) {
+            console.error('Error fetching posts:', error);
+        } finally {
+            setLoading(false); // Stop showing the loading indicator
+        }
+    };
 
+    // Fetch posts on component mount
+    useEffect(() => {
         fetchPosts();
     }, []);
 
+    // Render each post
     const renderPost = ({ item }) => (
         <TouchableOpacity style={styles.postContainer}>
-            {/* Title and Date Row */}
             <View style={styles.titleRow}>
                 <Text style={styles.postTitle}>{item.title}</Text>
                 <Text style={styles.metaDate}>{new Date(item.createdAt).toLocaleDateString()}</Text>
             </View>
 
-            {/* Display Tagged Parks if they exist */}
             {item.tags && item.tags.length > 0 && (
                 <View style={styles.taggedParksContainer}>
                     {item.tags.map((park, index) => (
@@ -44,12 +45,9 @@ export default function ForumPage({ navigation }) {
                 </View>
             )}
 
-            {/* Post Snippet */}
             <Text style={styles.postSnippet}>{item.content}</Text>
 
-            {/* Post Meta Info */}
             <View style={styles.postMeta}>
-                {/* Likes and Comments Icons */}
                 <View style={styles.metaLeft}>
                     <Ionicons name="heart-outline" size={16} color={colors.secondaryText} />
                     <Text style={styles.metaText}>{item.likes || 0}</Text>
@@ -64,9 +62,10 @@ export default function ForumPage({ navigation }) {
         <SafeAreaView style={styles.safeArea}>
             {/* Forum Header */}
             <View style={styles.header}>
-                {/* Filter Icon on the left */}
-                <TouchableOpacity style={styles.filterButton}>
-                    <Ionicons name="filter-outline" size={24} color={colors.ten} />
+                {/* Refresh Button on the left */}
+                <TouchableOpacity style={styles.refreshButton} onPress={fetchPosts}>
+                    <Ionicons name="refresh-outline" size={24} color={colors.ten} />
+                    <Text style={styles.refreshText}>Refresh</Text>
                 </TouchableOpacity>
 
                 <Text style={styles.headerTitle}>Forum</Text>
@@ -100,10 +99,6 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: colors.sixty, // White background (60%)
     },
-    container: {
-        flex: 1,
-        backgroundColor: colors.sixty, // White background (60%)
-    },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -120,9 +115,17 @@ const styles = StyleSheet.create({
         flex: 1, // Takes up the space in the header, ensuring center alignment
         color: colors.primaryText, // Black color for the title text
     },
-    filterButton: {
-        position: 'absolute',
-        left: 20, // Aligns the button to the left side
+    refreshButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 10,
+        backgroundColor: colors.primary,
+        borderRadius: 5,
+    },
+    refreshText: {
+        color: colors.oppText, // Opposite text color (white, probably)
+        marginLeft: 5, // Spacing between icon and text
+        fontSize: 16,
     },
     newPostButton: {
         position: 'absolute', 
