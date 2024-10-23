@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../assets/colors';
 import { useAuth } from '../AuthContext'; // Import the useAuth hook
+import { BACKEND_URL } from '@env'; // Import the BACKEND_URL from .env
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -20,7 +21,7 @@ export default function LoginPage() {
     }
 
     try {
-      const response = await fetch('http://10.0.0.29:5001/api/auth/login', { // Use your local IP address
+      const response = await fetch(`${BACKEND_URL}/api/auth/login`, { // Use the environment variable for the backend URL
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

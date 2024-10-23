@@ -3,6 +3,7 @@ import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, Keyboa
 import { Ionicons } from '@expo/vector-icons'; // For icons
 import { useNavigation } from '@react-navigation/native'; // For navigation
 import colors from '../assets/colors'; // Importing the color variables
+import { BACKEND_URL } from '@env'; // Import the backend URL from the .env file
 
 export default function SearchPage() {
   const navigation = useNavigation(); // Hook for navigation
@@ -13,7 +14,7 @@ export default function SearchPage() {
   useEffect(() => {
     const fetchParks = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/park');
+        const response = await fetch(`${BACKEND_URL}/api/park`); // Use environment variable for the backend URL
         const data = await response.json();
         setParks(data); // Store the fetched parks in the state
       } catch (error) {

@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../AuthContext';
 import { Ionicons } from '@expo/vector-icons'; // Icon for checkbox
 import colors from '../assets/colors'; // Importing colors from your color file
+import { BACKEND_URL } from '@env'; // Import the BACKEND_URL from the .env file
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -29,7 +30,7 @@ export default function RegisterPage() {
   useEffect(() => {
     const checkAdminExists = async () => {
       try {
-        const response = await fetch('http://10.0.0.29:5001/check-admin');
+        const response = await fetch(`${BACKEND_URL}/check-admin`); // Use BACKEND_URL here
         const data = await response.json();
         setAdminExists(data.adminExists);
       } catch (error) {
@@ -51,7 +52,7 @@ export default function RegisterPage() {
     }
 
     try {
-      const registerResponse = await fetch('http://10.0.0.29:5001/api/auth/register', {
+      const registerResponse = await fetch(`${BACKEND_URL}/api/auth/register`, { // Use BACKEND_URL here
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -62,7 +63,7 @@ export default function RegisterPage() {
       const registerData = await registerResponse.json();
 
       if (registerResponse.ok) {
-        const loginResponse = await fetch('http://10.0.0.29:5001/api/auth/login', {
+        const loginResponse = await fetch(`${BACKEND_URL}/api/auth/login`, { // Use BACKEND_URL here for login
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
