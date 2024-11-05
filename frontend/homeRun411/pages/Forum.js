@@ -8,24 +8,87 @@ export default function ForumPage({ navigation }) {
     const [forumPosts, setForumPosts] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    // Assuming you have a way to get the current user's ID
+    const currentUserId = 'CURRENT_USER_ID'; // Replace this with actual user ID logic
+
     // Function to fetch posts from the backend
     const fetchPosts = async () => {
-        setLoading(true); // Show loading indicator while fetching
+        setLoading(true);
         try {
-            const response = await fetch(`${BACKEND_URL}/api/post`); // Use the backend URL from .env
+            const response = await fetch(`${BACKEND_URL}/api/post`);
             const data = await response.json();
-            setForumPosts(data);
+
+            // Add a property to each post to indicate if it's liked by the current user
+            const updatedPosts = data.map((post) => ({
+                ...post,
+                liked: post.likedBy.includes(currentUserId),
+            }));
+
+            setForumPosts(updatedPosts);
         } catch (error) {
             console.error('Error fetching posts:', error);
         } finally {
-            setLoading(false); // Stop showing the loading indicator
+            setLoading(false);
         }
     };
 
-    // Fetch posts on component mount
-    useEffect(() => {
-        fetchPosts();
-    }, []);
+    // Function to handle liking a post
+    const handleLike = async (postId) => {
+        try {
+            const response = await fetch(`${BACKEND_URL}/api/post/${postId}/like`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Add authorization header if needed
+                    // 'Authorization': `Bearer ${YOUR_AUTH_TOKEN}`,
+                },
+            });
+
+            const responseData = await response.json();
+            if (response.ok) {
+                setForumPosts((prevPosts) =>
+                    prevPosts.map((post) =>
+                        post._id === postId
+                            ? { ...post, likes: responseData.likes, liked: true }
+                            : post
+                    )
+                );
+            } else {
+                console.error('Failed to like the post:', responseData.message);
+            }
+        } catch (error) {
+            console.error('Error liking the post:', error);
+        }
+    };
+
+    // Function to handle unliking a post
+    const handleUnlike = async (postId) => {
+        try {
+            const response = await fetch(`${BACKEND_URL}/api/post/${postId}/unlike`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Add authorization header if needed
+                    // 'Authorization': `Bearer ${YOUR_AUTH_TOKEN}`,
+                },
+            });
+
+            const responseData = await response.json();
+            if (response.ok) {
+                setForumPosts((prevPosts) =>
+                    prevPosts.map((post) =>
+                        post._id === postId
+                            ? { ...post, likes: responseData.likes, liked: false }
+                            : post
+                    )
+                );
+            } else {
+                console.error('Failed to unlike the post:', responseData.message);
+            }
+        } catch (error) {
+            console.error('Error unliking the post:', error);
+        }
+    };
 
     // Render each post
     const renderPost = ({ item }) => (
@@ -49,7 +112,13 @@ export default function ForumPage({ navigation }) {
 
             <View style={styles.postMeta}>
                 <View style={styles.metaLeft}>
-                    <Ionicons name="heart-outline" size={16} color={colors.secondaryText} />
+                    <TouchableOpacity onPress={() => item.liked ? handleUnlike(item._id) : handleLike(item._id)}>
+                        <Ionicons
+                            name={item.liked ? "heart" : "heart-outline"}
+                            size={16}
+                            color={item.liked ? 'red' : colors.secondaryText}
+                        />
+                    </TouchableOpacity>
                     <Text style={styles.metaText}>{item.likes || 0}</Text>
                     <Ionicons name="chatbubble-outline" size={16} color={colors.secondaryText} style={styles.commentIcon} />
                     <Text style={styles.metaText}>{item.comments || 0}</Text>
@@ -60,9 +129,7 @@ export default function ForumPage({ navigation }) {
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            {/* Forum Header */}
             <View style={styles.header}>
-                {/* Refresh Button on the left */}
                 <TouchableOpacity style={styles.refreshButton} onPress={fetchPosts}>
                     <Ionicons name="refresh-outline" size={24} color={colors.ten} />
                     <Text style={styles.refreshText}>Refresh</Text>
@@ -70,7 +137,6 @@ export default function ForumPage({ navigation }) {
 
                 <Text style={styles.headerTitle}>Forum</Text>
 
-                {/* New Post Button on the right */}
                 <TouchableOpacity
                     style={styles.newPostButton}
                     onPress={() => navigation.navigate('NewPostForm')}
@@ -79,14 +145,13 @@ export default function ForumPage({ navigation }) {
                 </TouchableOpacity>
             </View>
 
-            {/* Show a loading indicator while fetching data */}
             {loading ? (
                 <ActivityIndicator size="large" color={colors.primary} />
             ) : (
                 <FlatList
                     data={forumPosts}
                     renderItem={renderPost}
-                    keyExtractor={(item) => item._id} // Use _id as the key from your backend
+                    keyExtractor={(item) => item._id}
                     contentContainerStyle={styles.listContainer}
                 />
             )}
@@ -128,7 +193,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     newPostButton: {
-        position: 'absolute', 
+        position: 'absolute',
         right: 20, // Aligns the button to the right side
     },
     listContainer: {

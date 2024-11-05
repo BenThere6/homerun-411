@@ -66,6 +66,51 @@ router.post('/:postId/comments', auth, async (req, res) => {
   }
 });
 
+// Add a like to a post
+router.post('/:id/like', auth, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    // Check if the user has already liked the post
+    if (!post.likedBy.includes(req.user.id)) {
+      post.likes += 1;
+      post.likedBy.push(req.user.id);
+      await post.save();
+      res.status(200).json({ message: 'Post liked!', likes: post.likes, likedBy: post.likedBy });
+    } else {
+      res.status(400).json({ message: 'Post already liked' });
+    }
+  } catch (err) {
+    console.error('Error in like route:', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Remove a like from a post
+router.post('/:id/unlike', auth, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    const userIndex = post.likedBy.indexOf(req.user.id);
+    if (userIndex !== -1) {
+      post.likes -= 1;
+      post.likedBy.splice(userIndex, 1);
+      await post.save();
+      res.status(200).json({ message: 'Post unliked!', likes: post.likes, likedBy: post.likedBy });
+    } else {
+      res.status(400).json({ message: 'User has not liked this post' });
+    }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Get all posts
 router.get('/', async (req, res) => {
   try {

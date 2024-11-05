@@ -22,6 +22,14 @@ const postSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Park',
   },
+  likes: {
+    type: Number,
+    default: 0, // Initialize the like count at 0
+  },
+  likedBy: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  }], // Track users who liked the post
   createdAt: {
     type: Date,
     default: Date.now,
