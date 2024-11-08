@@ -32,6 +32,15 @@ export default function ForumPage({ navigation }) {
         }
     };
 
+    useEffect(() => {
+        const loadPosts = async () => {
+            console.log('Component mounted, loading posts...');
+            await fetchPosts(); // Ensure this is awaited to manage state properly.
+        };
+
+        loadPosts(); // Call the inner function to handle the async call.
+    }, []); // Empty dependency array ensures this runs only once when the component mounts.
+
     // Function to handle liking a post
     const handleLike = async (postId) => {
         try {
@@ -122,6 +131,7 @@ export default function ForumPage({ navigation }) {
                     <Text style={styles.metaText}>{item.likes || 0}</Text>
                     <Ionicons name="chatbubble-outline" size={16} color={colors.secondaryText} style={styles.commentIcon} />
                     <Text style={styles.metaText}>{item.comments || 0}</Text>
+                    <Text >Liked by: {item.likedBy}</Text>
                 </View>
             </View>
         </TouchableOpacity>
