@@ -43,6 +43,7 @@ export default function ForumPage({ navigation }) {
 
     // Function to handle liking a post
     const handleLike = async (postId) => {
+        console.log(`Attempting to like post with ID: ${postId}`);
         try {
             const response = await fetch(`${BACKEND_URL}/api/post/${postId}/like`, {
                 method: 'POST',
@@ -72,6 +73,7 @@ export default function ForumPage({ navigation }) {
 
     // Function to handle unliking a post
     const handleUnlike = async (postId) => {
+        console.log(`Attempting to unlike post with ID: ${postId}`);
         try {
             const response = await fetch(`${BACKEND_URL}/api/post/${postId}/unlike`, {
                 method: 'POST',
@@ -84,13 +86,14 @@ export default function ForumPage({ navigation }) {
 
             const responseData = await response.json();
             if (response.ok) {
-                setForumPosts((prevPosts) =>
-                    prevPosts.map((post) =>
+                setForumPosts((prevPosts) => {
+                    console.log('Updating post state...');
+                    return prevPosts.map((post) =>
                         post._id === postId
-                            ? { ...post, likes: responseData.likes, liked: false }
+                            ? { ...post, likes: responseData.likes, liked: true }
                             : post
-                    )
-                );
+                    );
+                });
             } else {
                 console.error('Failed to unlike the post:', responseData.message);
             }
