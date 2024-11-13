@@ -8,6 +8,7 @@ import { BACKEND_URL } from '@env'; // Import the backend URL from the .env file
 export default function SearchPage() {
   const navigation = useNavigation(); // Hook for navigation
   const [parks, setParks] = useState([]); // State to store the fetched parks
+  const [imageError, setImageError] = useState(false);
   const defaultImage = 'https://images.unsplash.com/photo-1717886091076-56e54c2a360f?q=80&w=2967&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'; // Default image URL
 
   // Fetch parks from the backend API
@@ -43,7 +44,7 @@ export default function SearchPage() {
         </View>
 
         {/* Divider (gray bar) */}
-        <View style={styles.divider} /> 
+        <View style={styles.divider} />
 
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           {/* Recent Searches Section */}
@@ -73,10 +74,10 @@ export default function SearchPage() {
                   onPress={() => navigation.navigate('ParkDetails', { park })}
                 >
                   <ImageBackground
-                    source={{ uri: park.pictures?.mainImageUrl ? park.pictures.mainImageUrl : defaultImage }}
+                    source={{ uri: imageError ? defaultImage : park.pictures?.mainImageUrl || defaultImage }}
                     style={styles.parkImageBackground}
                     resizeMode="cover"
-                    onError={(e) => e.target.src = defaultImage} // Set default image on error
+                    onError={() => setImageError(true)} // Triggers defaultImage if there's an error
                   >
                     <View style={styles.parkContent}>
                       <Text style={styles.parkName}>{park.name}</Text>
@@ -99,10 +100,10 @@ export default function SearchPage() {
                     onPress={() => navigation.navigate('ParkDetails', { park })}
                   >
                     <ImageBackground
-                      source={{ uri: park.pictures?.mainImageUrl ? park.pictures.mainImageUrl : defaultImage }}
+                      source={{ uri: imageError ? defaultImage : park.pictures?.mainImageUrl || defaultImage }}
                       style={styles.parkImageBackground}
                       resizeMode="cover"
-                      onError={(e) => e.target.src = defaultImage} // Set default image on error
+                      onError={() => setImageError(true)} // Triggers defaultImage if there's an error
                     >
                       <View style={styles.parkContent}>
                         <Text style={styles.parkName}>{park.name}</Text>
