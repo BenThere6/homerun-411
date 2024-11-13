@@ -2,36 +2,49 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, Keyboard, TouchableWithoutFeedback, SafeAreaView, ImageBackground } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; // For icons
 import { useNavigation } from '@react-navigation/native'; // For navigation
-import colors from '../assets/colors'; // Importing the color variables
-import { BACKEND_URL } from '@env'; // Import the backend URL from the .env file
+import Fuse from 'fuse.js'; // Import Fuse.js for fuzzy search
+import colors from '../assets/colors';
+import { BACKEND_URL } from '@env';
 
 export default function SearchPage() {
-  const navigation = useNavigation(); // Hook for navigation
+  const navigation = useNavigation();
   const [parks, setParks] = useState([]); // State to store the fetched parks
+  const [query, setQuery] = useState(''); // State to store the search query
+  const [searchResults, setSearchResults] = useState([]); // State to store search results
   const defaultImage = 'https://images.unsplash.com/photo-1717886091076-56e54c2a360f?q=80&w=2967&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'; // Default image URL
 
-  // Fetch parks from the backend API
   useEffect(() => {
     const fetchParks = async () => {
       try {
-        const response = await fetch(`${BACKEND_URL}/api/park`); // Use environment variable for the backend URL
+        const response = await fetch(`${BACKEND_URL}/api/park`);
         const data = await response.json();
-        // Add imageError property to each park for individual error handling
-        const parksWithErrorState = data.map(park => ({ ...park, imageError: false }));
-        setParks(parksWithErrorState); // Store the fetched parks in the state
+        setParks(data.map(park => ({ ...park, imageError: false })));
       } catch (error) {
         console.error('Error fetching parks:', error);
       }
     };
-
-    fetchParks(); // Call the function to fetch parks
+    fetchParks();
   }, []);
 
-  const handleImageError = (index) => {
-    setParks((prevParks) =>
-      prevParks.map((park, i) => (i === index ? { ...park, imageError: true } : park))
-    );
+  // Configure Fuse.js for fuzzy searching
+  const fuse = new Fuse(parks, {
+    keys: ['name', 'city', 'state'], // Specify searchable fields
+    threshold: 0.3, // Adjust for leniency (0 = exact match, 1 = very lenient)
+  });
+
+  // Handle search input
+  const handleSearch = (text) => {
+    setQuery(text);
+    if (text) {
+      const results = fuse.search(text).map(result => result.item); // Map to get items only
+      setSearchResults(results);
+    } else {
+      setSearchResults([]); // Clear results when query is empty
+    }
   };
+
+  // Display recent searches or search results based on query
+  const displayParks = query ? searchResults : parks;
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -43,6 +56,8 @@ export default function SearchPage() {
             placeholder="Search"
             placeholderTextColor={colors.secondaryText}
             style={styles.input}
+            onChangeText={handleSearch}
+            value={query}
             blurOnSubmit={true}
           />
           <View style={styles.filterIconContainer}>
@@ -50,88 +65,41 @@ export default function SearchPage() {
           </View>
         </View>
 
-        {/* Divider (gray bar) */}
         <View style={styles.divider} />
 
+        {/* Render search results or default sections */}
         <ScrollView contentContainerStyle={styles.scrollContainer}>
-          {/* Recent Searches Section */}
-          <Text style={styles.sectionTitle}>Recent Searches</Text>
-          <View style={styles.recentSearchesContainer}>
-            <TouchableOpacity style={styles.searchItem}>
-              <Ionicons name="search" size={20} color={colors.secondaryText} style={styles.recentSearchIcon} />
-              <Text style={styles.searchText}>Park 1</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.searchItem}>
-              <Ionicons name="search" size={20} color={colors.secondaryText} style={styles.recentSearchIcon} />
-              <Text style={styles.searchText}>Park 2</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.searchItem}>
-              <Ionicons name="search" size={20} color={colors.secondaryText} style={styles.recentSearchIcon} />
-              <Text style={styles.searchText}>Park 3</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Featured Parks Section */}
-          <Text style={styles.sectionTitle}>Featured Parks</Text>
-          <View style={styles.featuredParksContainer}>
-            {parks.slice(0, 3).map((park, index) => (
-              <View key={park._id} style={styles.parkContainer}>
-                <TouchableOpacity
-                  style={styles.parkCard}
-                  onPress={() => {
-                    if (park && park._id && park.name) {
-                      navigation.navigate('ParkDetails', { park });
-                    } else {
-                      console.error("Invalid park data:", park);
-                    }
-                  }}
-                >
-                  <ImageBackground
-                    source={{ uri: park.imageError ? defaultImage : park.pictures?.mainImageUrl || defaultImage }}
-                    style={styles.parkImageBackground}
-                    resizeMode="cover"
-                    onError={() => handleImageError(index)} // Handle image error for individual park
-                  >
-                    <View style={styles.parkContent}>
-                      <Text style={styles.parkName}>{park.name}</Text>
-                    </View>
-                  </ImageBackground>
-                </TouchableOpacity>
-                <Text style={styles.parkDetail}>{`${park.city}, ${park.state}`}</Text>
-              </View>
-            ))}
-          </View>
-
-          {/* All Parks Section */}
-          <Text style={styles.sectionTitle}>All Parks</Text>
-          <View style={styles.allParksContainer}>
-            {parks.length > 0 ? (
-              parks.map((park, index) => (
-                <View key={park._id} style={styles.parkContainer}>
-                  <TouchableOpacity
-                    style={styles.parkCard}
-                    onPress={() => {
-                      if (park && park._id && park.name) {
-                        navigation.navigate('ParkDetails', { park });
-                      } else {
-                        console.error("Invalid park data:", park);
-                      }
-                    }}
-                  >
-                    <ImageBackground
-                      source={{ uri: park.imageError ? defaultImage : park.pictures?.mainImageUrl || defaultImage }}
-                      style={styles.parkImageBackground}
-                      resizeMode="cover"
-                      onError={() => handleImageError(index)} // Handle image error for individual park
-                    >
-                      <View style={styles.parkContent}>
-                        <Text style={styles.parkName}>{park.name}</Text>
-                      </View>
-                    </ImageBackground>
+          {query === '' ? (
+            <>
+              {/* Recent Searches Section */}
+              <Text style={styles.sectionTitle}>Recent Searches</Text>
+              <View style={styles.recentSearchesContainer}>
+                {['Park 1', 'Park 2', 'Park 3'].map((recentSearch, index) => (
+                  <TouchableOpacity key={index} style={styles.searchItem} onPress={() => handleSearch(recentSearch)}>
+                    <Ionicons name="search" size={20} color={colors.secondaryText} style={styles.recentSearchIcon} />
+                    <Text style={styles.searchText}>{recentSearch}</Text>
                   </TouchableOpacity>
-                  <Text style={styles.parkDetail}>{`${park.city}, ${park.state}`}</Text>
-                </View>
-              ))
+                ))}
+              </View>
+
+              {/* Featured Parks Section */}
+              <Text style={styles.sectionTitle}>Featured Parks</Text>
+              <View style={styles.featuredParksContainer}>
+                {parks.slice(0, 3).map((park, index) => (
+                  <ParkCard key={park._id} park={park} index={index} />
+                ))}
+              </View>
+
+              {/* All Parks Section */}
+              <Text style={styles.sectionTitle}>All Parks</Text>
+            </>
+          ) : (
+            <Text style={styles.sectionTitle}>Search Results</Text>
+          )}
+
+          <View style={styles.allParksContainer}>
+            {displayParks.length > 0 ? (
+              displayParks.map((park, index) => <ParkCard key={park._id} park={park} index={index} />)
             ) : (
               <Text>No parks available</Text>
             )}
@@ -142,63 +110,72 @@ export default function SearchPage() {
   );
 }
 
+// ParkCard component for displaying individual parks
+function ParkCard({ park, index }) {
+  const navigation = useNavigation();
+  const [imageError, setImageError] = useState(park.imageError);
+  const defaultImage = 'https://images.unsplash.com/photo-1717886091076-56e54c2a360f?q=80&w=2967&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D';
+
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
+  return (
+    <View style={styles.parkContainer}>
+      <TouchableOpacity
+        style={styles.parkCard}
+        onPress={() => navigation.navigate('ParkDetails', { park })}
+      >
+        <ImageBackground
+          source={{ uri: imageError ? defaultImage : park.pictures?.mainImageUrl || defaultImage }}
+          style={styles.parkImageBackground}
+          resizeMode="cover"
+          onError={handleImageError}
+        >
+          <View style={styles.parkContent}>
+            <Text style={styles.parkName}>{park.name}</Text>
+          </View>
+        </ImageBackground>
+      </TouchableOpacity>
+      <Text style={styles.parkDetail}>{`${park.city}, ${park.state}`}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.sixty, // Primary background color (white)
-  },
+  container: { flex: 1, backgroundColor: colors.sixty },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.sixty, // White background
+    backgroundColor: colors.sixty,
     borderRadius: 30,
     paddingVertical: 10,
     paddingHorizontal: 15,
     marginLeft: 20,
     marginRight: 20,
     marginTop: 5,
-    elevation: 5, // Adds shadow for Android
-    shadowColor: '#000', // Adds shadow for iOS
-    shadowOffset: { width: 0, height: 2 }, // Shadow position for iOS
-    shadowOpacity: 0.2, // Shadow opacity for iOS
-    shadowRadius: 3.84, // Shadow blur for iOS
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3.84,
   },
-  searchIcon: {
-    marginRight: 10,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: colors.primaryText, // Primary text color (black)
-  },
+  searchIcon: { marginRight: 10 },
+  input: { flex: 1, fontSize: 16, color: colors.primaryText },
   filterIconContainer: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: colors.sixty, // White background
+    backgroundColor: colors.sixty,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#dcdcdc',
     marginLeft: 10,
   },
-
-  /* Divider (Gray Bar) */
-  divider: {
-    height: 1,
-    backgroundColor: '#e0e0e0',
-    marginTop: 16,
-  },
-
-  scrollContainer: {
-    paddingBottom: 20,
-  },
-
-  /* Recent Searches */
-  recentSearchesContainer: {
-    marginBottom: 20,
-    paddingHorizontal: 20,
-  },
+  divider: { height: 1, backgroundColor: '#e0e0e0', marginTop: 16 },
+  scrollContainer: { paddingBottom: 20 },
+  recentSearchesContainer: { marginBottom: 20, paddingHorizontal: 20 },
   searchItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -208,19 +185,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     elevation: 1,
   },
-  recentSearchIcon: {
-    marginRight: 10,
-  },
-  searchText: {
-    fontSize: 16,
-    color: colors.primaryText, // Primary text color (black)
-  },
-
-  /* Featured Parks */
-  featuredParksContainer: {
-    marginBottom: 0,
-    paddingHorizontal: 20, // Add padding to both sides of the featured parks section
-  },
+  recentSearchIcon: { marginRight: 10 },
+  searchText: { fontSize: 16, color: colors.primaryText },
+  sectionTitle: { paddingTop: 20, paddingBottom: 15, paddingLeft: 20, fontSize: 16, fontWeight: 'bold', color: colors.primaryText },
+  parkContainer: { /* your styles here */ },
   parkCard: {
     width: '100%',
     height: 200,
@@ -232,44 +200,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 3.84,
-    overflow: 'hidden', // Ensure the image and content stay inside the card
+    overflow: 'hidden',
   },
-  parkImageBackground: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-  parkContent: {
-    backgroundColor: 'rgba(0, 0, 0, 0.4)', // Transparent black overlay for better text readability
-    justifyContent: 'flex-end',
-    padding: 10,
-    height: '100%',
-  },
-  parkName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff', // White text for park name
-  },
-  parkDetail: {
-    fontSize: 14,
-    color: colors.secondaryText, // Gray text for park details
-    marginLeft: 10,
-    marginBottom: 20,
-  },
-
-  /* All Parks */
-  allParksContainer: {
-    marginBottom: 20,
-    paddingHorizontal: 20,
-  },
-
-  /* Section Title */
-  sectionTitle: {
-    paddingTop: 20,
-    paddingBottom: 15,
-    paddingLeft: 20,
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.primaryText, // Black color for section titles
-  },
+  parkImageBackground: { flex: 1, width: '100%', height: '100%' },
+  parkContent: { backgroundColor: 'rgba(0, 0, 0, 0.4)', justifyContent: 'flex-end', padding: 10, height: '100%' },
+  parkName: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
+  parkDetail: { fontSize: 14, color: colors.secondaryText, marginLeft: 10, marginBottom: 20 },
+  allParksContainer: { marginBottom: 20, paddingHorizontal: 20 },
+  featuredParksContainer: { marginBottom: 0, paddingHorizontal: 20 },
 });
