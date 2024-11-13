@@ -78,7 +78,13 @@ export default function SearchPage() {
               <View key={park._id} style={styles.parkContainer}>
                 <TouchableOpacity
                   style={styles.parkCard}
-                  onPress={() => navigation.navigate('ParkDetails', { park })}
+                  onPress={() => {
+                    if (park && park._id && park.name) {
+                      navigation.navigate('ParkDetails', { park });
+                    } else {
+                      console.error("Invalid park data:", park);
+                    }
+                  }}
                 >
                   <ImageBackground
                     source={{ uri: park.imageError ? defaultImage : park.pictures?.mainImageUrl || defaultImage }}
@@ -104,7 +110,13 @@ export default function SearchPage() {
                 <View key={park._id} style={styles.parkContainer}>
                   <TouchableOpacity
                     style={styles.parkCard}
-                    onPress={() => navigation.navigate('ParkDetails', { park })}
+                    onPress={() => {
+                      if (park && park._id && park.name) {
+                        navigation.navigate('ParkDetails', { park });
+                      } else {
+                        console.error("Invalid park data:", park);
+                      }
+                    }}
                   >
                     <ImageBackground
                       source={{ uri: park.imageError ? defaultImage : park.pictures?.mainImageUrl || defaultImage }}
