@@ -8,7 +8,6 @@ import { BACKEND_URL } from '@env'; // Import the backend URL from the .env file
 export default function SearchPage() {
   const navigation = useNavigation(); // Hook for navigation
   const [parks, setParks] = useState([]); // State to store the fetched parks
-  const [imageError, setImageError] = useState(false);
   const defaultImage = 'https://images.unsplash.com/photo-1717886091076-56e54c2a360f?q=80&w=2967&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'; // Default image URL
 
   // Fetch parks from the backend API
@@ -17,7 +16,9 @@ export default function SearchPage() {
       try {
         const response = await fetch(`${BACKEND_URL}/api/park`); // Use environment variable for the backend URL
         const data = await response.json();
-        setParks(data); // Store the fetched parks in the state
+        // Add imageError property to each park for individual error handling
+        const parksWithErrorState = data.map(park => ({ ...park, imageError: false }));
+        setParks(parksWithErrorState); // Store the fetched parks in the state
       } catch (error) {
         console.error('Error fetching parks:', error);
       }
@@ -25,6 +26,12 @@ export default function SearchPage() {
 
     fetchParks(); // Call the function to fetch parks
   }, []);
+
+  const handleImageError = (index) => {
+    setParks((prevParks) =>
+      prevParks.map((park, i) => (i === index ? { ...park, imageError: true } : park))
+    );
+  };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -67,17 +74,17 @@ export default function SearchPage() {
           {/* Featured Parks Section */}
           <Text style={styles.sectionTitle}>Featured Parks</Text>
           <View style={styles.featuredParksContainer}>
-            {parks.slice(0, 3).map((park) => (
+            {parks.slice(0, 3).map((park, index) => (
               <View key={park._id} style={styles.parkContainer}>
                 <TouchableOpacity
                   style={styles.parkCard}
                   onPress={() => navigation.navigate('ParkDetails', { park })}
                 >
                   <ImageBackground
-                    source={{ uri: imageError ? defaultImage : park.pictures?.mainImageUrl || defaultImage }}
+                    source={{ uri: park.imageError ? defaultImage : park.pictures?.mainImageUrl || defaultImage }}
                     style={styles.parkImageBackground}
                     resizeMode="cover"
-                    onError={() => setImageError(true)} // Triggers defaultImage if there's an error
+                    onError={() => handleImageError(index)} // Handle image error for individual park
                   >
                     <View style={styles.parkContent}>
                       <Text style={styles.parkName}>{park.name}</Text>
@@ -93,17 +100,17 @@ export default function SearchPage() {
           <Text style={styles.sectionTitle}>All Parks</Text>
           <View style={styles.allParksContainer}>
             {parks.length > 0 ? (
-              parks.map((park) => (
+              parks.map((park, index) => (
                 <View key={park._id} style={styles.parkContainer}>
                   <TouchableOpacity
                     style={styles.parkCard}
                     onPress={() => navigation.navigate('ParkDetails', { park })}
                   >
                     <ImageBackground
-                      source={{ uri: imageError ? defaultImage : park.pictures?.mainImageUrl || defaultImage }}
+                      source={{ uri: park.imageError ? defaultImage : park.pictures?.mainImageUrl || defaultImage }}
                       style={styles.parkImageBackground}
                       resizeMode="cover"
-                      onError={() => setImageError(true)} // Triggers defaultImage if there's an error
+                      onError={() => handleImageError(index)} // Handle image error for individual park
                     >
                       <View style={styles.parkContent}>
                         <Text style={styles.parkName}>{park.name}</Text>
