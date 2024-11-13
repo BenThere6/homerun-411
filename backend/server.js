@@ -37,20 +37,25 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
+    // Generate access and refresh tokens
+    const accessToken = jwt.sign(
+      { id: user._id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' } // Access token with 1-hour expiration
+    );
+
     const refreshToken = jwt.sign(
       { id: user._id, email: user.email },
       process.env.JWT_SECRET,
-      { expiresIn: '14d' }
+      { expiresIn: '14d' } // Refresh token with 14-day expiration
     );
 
+    // Save the refresh token in the database
     user.refreshToken = refreshToken;
     await user.save();
 
-    res.json({
-      refreshToken,
-      firstName: user.profile.firstName, // Send firstName to the frontend
-      lastName: user.profile.lastName,   // Send lastName to the frontend
-    });
+    // Send tokens to the client
+    res.json({ accessToken, refreshToken });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
@@ -74,13 +79,12 @@ const authenticate = (req, res, next) => {
   }
 };
 
-// Logout Route
+/// Logout route
 app.post('/api/auth/logout', authenticate, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
-    user.refreshToken = null;
+    user.refreshToken = null; // Clear the refresh token
     await user.save();
-
     res.json({ message: 'Logged out successfully' });
   } catch (err) {
     console.error(err);
@@ -113,6 +117,38 @@ app.post('/api/auth/register', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Refresh token route
+app.post('/api/auth/refresh', async (req, res) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    return res.status(401).json({ message: 'Access denied. No refresh token provided.' });
+  }
+
+  try {
+    // Verify the refresh token
+    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+
+    // Find the user and check if the refresh token matches the one in the database
+    const user = await User.findById(decoded.id);
+    if (!user || user.refreshToken !== refreshToken) {
+      return res.status(401).json({ message: 'Invalid refresh token' });
+    }
+
+    // Generate a new access token
+    const newAccessToken = jwt.sign(
+      { id: user._id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' } // New access token with 1-hour expiration
+    );
+
+    res.json({ accessToken: newAccessToken });
+  } catch (err) {
+    console.error('Error refreshing token:', err);
+    return res.status(401).json({ message: 'Invalid refresh token' });
   }
 });
 

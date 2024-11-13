@@ -1,7 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Keyboard, TouchableWithoutFeedback, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as LocalAuthentication from 'expo-local-authentication'; // Import biometric auth library
 import colors from '../assets/colors';
 import { useAuth } from '../AuthContext'; // Import the useAuth hook
 import { BACKEND_URL } from '@env'; // Import the BACKEND_URL from .env
@@ -14,6 +15,34 @@ export default function LoginPage() {
 
   const passwordInputRef = useRef(null); // Ref for the password input
 
+  // Biometric authentication on component mount
+  useEffect(() => {
+    const tryBiometricLogin = async () => {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      if (!hasHardware) return;
+
+      const biometricTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
+      if (biometricTypes.length === 0) return;
+
+      const savedToken = await AsyncStorage.getItem('token');
+      if (savedToken) {
+        const result = await LocalAuthentication.authenticateAsync({
+          promptMessage: 'Authenticate with Biometrics',
+        });
+
+        if (result.success) {
+          setIsLoggedIn(true);
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Tabs' }],
+          });
+        }
+      }
+    };
+
+    tryBiometricLogin();
+  }, []);
+
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Please enter both email and password.');
@@ -21,7 +50,7 @@ export default function LoginPage() {
     }
 
     try {
-      const response = await fetch(`${BACKEND_URL}/api/auth/login`, { // Use the environment variable for the backend URL
+      const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -34,6 +63,26 @@ export default function LoginPage() {
       if (response.ok && data.refreshToken) {
         await AsyncStorage.setItem('token', data.refreshToken);
         setIsLoggedIn(true);
+
+        // Ask the user to enable biometric authentication for future logins
+        Alert.alert(
+          'Biometric Authentication',
+          'Would you like to enable biometric authentication for future logins?',
+          [
+            {
+              text: 'Yes',
+              onPress: async () => {
+                const result = await LocalAuthentication.authenticateAsync({
+                  promptMessage: 'Set up biometrics',
+                });
+                if (result.success) {
+                  console.log('Biometric setup completed successfully');
+                }
+              },
+            },
+            { text: 'No', style: 'cancel' },
+          ]
+        );
 
         // Reset navigation to the Tabs screen
         navigation.reset({
@@ -60,9 +109,9 @@ export default function LoginPage() {
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
-          returnKeyType="next" // This shows the "Next" button on the keyboard
-          onSubmitEditing={() => passwordInputRef.current.focus()} // Move focus to password input
-          blurOnSubmit={false} // Prevent the keyboard from dismissing on submit
+          returnKeyType="next"
+          onSubmitEditing={() => passwordInputRef.current.focus()}
+          blurOnSubmit={false}
         />
         <TextInput
           style={styles.input}
@@ -71,9 +120,9 @@ export default function LoginPage() {
           secureTextEntry
           value={password}
           onChangeText={setPassword}
-          ref={passwordInputRef} // Attach ref to password input
-          returnKeyType="go" // This shows the "Go" button on the keyboard
-          onSubmitEditing={handleLogin} // Trigger login on submit
+          ref={passwordInputRef}
+          returnKeyType="go"
+          onSubmitEditing={handleLogin}
         />
         <TouchableOpacity style={styles.button} onPress={handleLogin}>
           <Text style={styles.buttonText}>Login</Text>
