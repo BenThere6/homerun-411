@@ -3,14 +3,20 @@ const fs = require('fs');
 const csvParser = require('csv-parser');
 const axios = require('axios'); // For making API requests
 const Park = require('./models/Park');
+require('dotenv').config();
 
-// Google Maps Geocoding API Key (replace with your own key)
-const GEOCODING_API_KEY = 'YOUR_GOOGLE_MAPS_API_KEY'; 
+// Google Maps Geocoding API Key
+const GEOCODING_API_KEY = process.env.GEOCODING_API_KEY;
 
 // Connect to MongoDB
-mongoose.connect('mongodb://localhost:27017/yourDatabaseName', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
+mongoose.connect('mongodb://localhost:27017/yourDatabaseName');
+
+// Monitor MongoDB connection
+mongoose.connection.once('open', () => {
+  console.log('Connected to MongoDB');
+});
+mongoose.connection.on('error', (err) => {
+  console.error('MongoDB connection error:', err);
 });
 
 // Function to get coordinates from the address using Google Maps Geocoding API
@@ -35,34 +41,64 @@ async function getCoordinatesFromAddress(address, city, state) {
 
 async function importParks() {
   const parks = [];
+  let isFirstRow = true;
 
   // Read parks from CSV file
   fs.createReadStream('parks.csv')
-    .pipe(csvParser())
+    .pipe(
+      csvParser({
+        mapHeaders: ({ header }) => header.trim(), // Trim headers
+      })
+    )
     .on('data', async (row) => {
-      const park = {};
+      if (isFirstRow) {
+        // console.log('CSV Headers:', Object.keys(row));
+        isFirstRow = false;
+      }
 
-      // Required fields
-      park.name = row.Name;
-      park.address = row.Address;
-      park.city = row.City;
-      park.state = row.State;
+      // console.log('Row read from CSV:', JSON.stringify(row, null, 2));
 
-      // Convert address to coordinates
-      const coordinates = await getCoordinatesFromAddress(row.Address, row.City, row.State);
+      // Validate required fields
+      if (!row.Name || !row.Address || !row.City || !row.State) {
+        console.error('Skipping invalid row (missing required fields):', JSON.stringify(row, null, 2));
+        return;
+      }
+
+      const park = {
+        name: row.Name,
+        address: row.Address,
+        city: row.City,
+        state: row.State,
+      };
+
+      console.log('log 1 : ', JSON.stringify(park, null, 2));
+
+      // Fetch coordinates
+      let coordinates;
+      try {
+        console.log(`Fetching coordinates for: ${row.Address}, ${row.City}, ${row.State}`);
+        coordinates = await getCoordinatesFromAddress(row.Address, row.City, row.State);
+        console.log('Coordinates fetched:', coordinates);
+      } catch (error) {
+        console.error(`Error fetching coordinates for ${row.Address}:`, error);
+        coordinates = null;
+      }
+
       if (!coordinates) {
-        console.error(`Skipping park due to invalid address: ${row.Name}`);
+        console.error(`Skipping park due to invalid coordinates: ${park.name}`);
         return;
       }
 
       park.coordinates = {
         type: 'Point',
-        coordinates, // Set the coordinates fetched from the Geocoding API
+        coordinates,
       };
+
 
       // Number of Fields
       park.numberOfFields = parseInt(row['Number of Fields'], 10) || 0;
 
+      console.log('log 2 : ', JSON.stringify(park, null, 2));
       // Fields array (up to 8 fields as per provided structure)
       park.fields = [];
       for (let i = 1; i <= park.numberOfFields; i++) {
@@ -76,12 +112,12 @@ async function importParks() {
           moundType: row[`Field ${i} Mound Type`] || null,
           fieldShadeDescription: row[`Field ${i} Field Shade Description`] || null,
           parkingDistanceToField: row[`Field ${i} Parking Distance to Field`] || null,
-          bleachersAvailable: row[`Field ${i} Bleachers?`] === 'true',
+          bleachersAvailable: row[`Field ${i} Bleachers?`] === 'TRUE',
           bleachersDescription: row[`Field ${i} Bleachers Description`] || null,
           backstopMaterial: row[`Field ${i} Backstop Material`] || null,
           backstopDistance: parseInt(row[`Field ${i} Backstop Distance (ft)`], 10) || null,
-          dugoutsCovered: row[`Field ${i} Dugouts Covered?`] === 'true',
-          dugoutsMaterial: row[`Field ${i} Dugouts Material`] || null
+          dugoutsCovered: row[`Field ${i} Dugouts Covered?`] === 'TRUE',
+          dugoutsMaterial: row[`Field ${i} Dugouts Material`] || null,
         };
 
         if (field.name) {
@@ -89,9 +125,12 @@ async function importParks() {
         }
       }
 
+      console.log('log 3 : ', JSON.stringify(park, null, 2));
       // Park-wide amenities and features
       if (row['Parking Location']) park.closestParkingToField = row['Parking Location'];
-      if (row['Number of Handicap Spots']) park.parking = { handicapSpots: parseInt(row['Number of Handicap Spots'], 10) || 0 };
+      if (row['Number of Handicap Spots']) {
+        park.parking = { handicapSpots: parseInt(row['Number of Handicap Spots'], 10) || 0 };
+      }
       if (row['Park Shade Description']) park.parkShade = row['Park Shade Description'];
 
       // Restrooms
@@ -99,56 +138,56 @@ async function importParks() {
       if (row['Restroom Location']) {
         park.restrooms.push({
           location: row['Restroom Location'],
-          runningWater: row['Restroom Running Water?'] === 'true',
+          runningWater: row['Restroom Running Water?'] === 'TRUE',
           changingTable: row['Restroom Changing Table?'] || 'neither',
-          numStalls: parseInt(row['Restroom Number of Stalls'], 10) || null,
+          womensStalls: row["Women's stalls"] || null,
+          mensStallsUrinals: row["Men's Stalls/Urinals"] || null,
         });
       }
 
+      console.log('log 4 : ', JSON.stringify(park, null, 2));
       // Concessions
       park.concessions = {
-        available: row['Concessions Available?'] === 'true',
-        snacks: row['Snacks?'] === 'true',
-        drinks: row['Drinks?'] === 'true',
+        available: row['Concessions area'] === 'TRUE',
+        snacks: row['Snacks?'] === 'TRUE',
+        drinks: row['Drinks?'] === 'TRUE',
         otherFood: row['Other Food Description'] || null,
-        paymentMethods: []
+        paymentMethods: [],
       };
-      if (row['Cash?'] === 'true') park.concessions.paymentMethods.push('cash');
-      if (row['Card?'] === 'true') park.concessions.paymentMethods.push('card');
-      if (row['Venmo?'] === 'true') park.concessions.paymentMethods.push('venmo');
-      if (row['Tap to pay?'] === 'true') park.concessions.paymentMethods.push('apple pay');
+      if (row['Cash?'] === 'TRUE') park.concessions.paymentMethods.push('cash');
+      if (row['Card?'] === 'TRUE') park.concessions.paymentMethods.push('card');
+      if (row['Venmo?'] === 'TRUE') park.concessions.paymentMethods.push('venmo');
+      if (row['Tap to pay?'] === 'TRUE') park.concessions.paymentMethods.push('tap to pay');
 
-      // Miscellaneous fields
-      if (row['Coolers Allowed?']) park.coolersAllowed = row['Coolers Allowed?'] === 'true';
-      if (row['Canopies Allowed?']) park.canopiesAllowed = row['Canopies Allowed?'] === 'true';
-      if (row['Field Lights?']) park.lights = row['Field Lights?'] === 'true';
-      if (row['Fence Distance (ft)']) park.fenceDistance = parseInt(row['Fence Distance (ft)'], 10) || null;
-      if (row['Electrical Outlets for Public Use?']) park.powerAccess = {
-        available: row['Electrical Outlets for Public Use?'] === 'true',
-        locations: row['Location of Electrical Outlets'] ? [row['Location of Electrical Outlets']] : []
-      };
-      if (row['Sidewalks']) park.sidewalks = row['Sidewalks'] === 'true';
-      if (row['Stairs Description']) park.stairs = row['Stairs Description'] === 'true';
-      if (row['Hills Description']) park.hills = row['Hills Description'] === 'true';
-      if (row['Entrance Fee?']) park.gateEntranceFee = row['Entrance Fee?'] === 'true';
-
+      console.log('log 5 : ', JSON.stringify(park, null, 2));
       // Playground
       park.playground = {
-        available: row['Playground?'] === 'true',
+        available: row['Playground?'] === 'TRUE',
         location: row['Playground Location'] || null,
       };
 
-      // Spectator Conditions
-      if (row['Spectator Location Conditions']) {
-        park.spectatorConditions = {
-          locationTypes: row['Spectator Location Conditions'].split(',').map(s => s.trim()),
-        };
-      }
+      console.log('log 6 : ', JSON.stringify(park, null, 2));
+      // Notes
+      park.notes = row['OTHER NOTES'] || null;
 
-      // Add the park to the array
-      parks.push(park);
+      console.log('log 7 : ', JSON.stringify(park, null, 2));
+      console.log('Processing park:', JSON.stringify(park, null, 2)); // Debugging: Log the park object
+
+      if (Object.keys(park).length === 0) {
+        console.error('Skipping empty park object:', park);
+      } else {
+        parks.push(park);
+        console.log('Park added to array. Current parks array length:', parks.length); // Debugging: Confirm park addition
+      }
     })
     .on('end', async () => {
+      console.log('Final parks array:', JSON.stringify(parks, null, 2)); // Debugging: Log the final array
+
+      if (parks.length === 0) {
+        console.error('No parks to insert. Check your CSV or parsing logic.');
+        process.exit(1);
+      }
+
       try {
         // Bulk insert into MongoDB
         await Park.insertMany(parks);
