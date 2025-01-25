@@ -43,24 +43,17 @@ async function importParks() {
   const parks = [];
   let isFirstRow = true;
 
-  // Read parks from CSV file
-  fs.createReadStream('parks.csv')
-    .pipe(
-      csvParser({
-        mapHeaders: ({ header }) => header.trim(), // Trim headers
-      })
-    )
-    .on('data', async (row) => {
+  const processRow = async (row) => {
+    try {
       if (isFirstRow) {
-        // console.log('CSV Headers:', Object.keys(row));
+        console.log('CSV Headers:', Object.keys(row));
         isFirstRow = false;
       }
 
-      // console.log('Row read from CSV:', JSON.stringify(row, null, 2));
+      console.log('Processing row:', JSON.stringify(row, null, 2));
 
-      // Validate required fields
       if (!row.Name || !row.Address || !row.City || !row.State) {
-        console.error('Skipping invalid row (missing required fields):', JSON.stringify(row, null, 2));
+        console.warn('Skipping row with missing fields:', JSON.stringify(row, null, 2));
         return;
       }
 
@@ -71,9 +64,6 @@ async function importParks() {
         state: row.State,
       };
 
-      console.log('log 1 : ', JSON.stringify(park, null, 2));
-
-      // Fetch coordinates
       let coordinates;
       try {
         console.log(`Fetching coordinates for: ${row.Address}, ${row.City}, ${row.State}`);
@@ -85,7 +75,7 @@ async function importParks() {
       }
 
       if (!coordinates) {
-        console.error(`Skipping park due to invalid coordinates: ${park.name}`);
+        console.warn(`Skipping park due to missing coordinates: ${park.name}`);
         return;
       }
 
@@ -94,17 +84,14 @@ async function importParks() {
         coordinates,
       };
 
-
-      // Number of Fields
       park.numberOfFields = parseInt(row['Number of Fields'], 10) || 0;
 
-      console.log('log 2 : ', JSON.stringify(park, null, 2));
-      // Fields array (up to 8 fields as per provided structure)
+      console.log('Number of fields:', park.numberOfFields);
       park.fields = [];
       for (let i = 1; i <= park.numberOfFields; i++) {
         const field = {
-          name: row[`Field ${i} Name`],
-          location: row[`Field ${i} Location`],
+          name: row[`Field ${i} Name`] || null,
+          location: row[`Field ${i} Location`] || null,
           fenceDistance: parseInt(row[`Field ${i} Fence Distance`], 10) || null,
           fieldType: row[`Field ${i} Type`] || null,
           outfieldMaterial: row[`Field ${i} Outfield Material`] || null,
@@ -125,15 +112,12 @@ async function importParks() {
         }
       }
 
-      console.log('log 3 : ', JSON.stringify(park, null, 2));
-      // Park-wide amenities and features
       if (row['Parking Location']) park.closestParkingToField = row['Parking Location'];
       if (row['Number of Handicap Spots']) {
         park.parking = { handicapSpots: parseInt(row['Number of Handicap Spots'], 10) || 0 };
       }
       if (row['Park Shade Description']) park.parkShade = row['Park Shade Description'];
 
-      // Restrooms
       park.restrooms = [];
       if (row['Restroom Location']) {
         park.restrooms.push({
@@ -145,8 +129,6 @@ async function importParks() {
         });
       }
 
-      console.log('log 4 : ', JSON.stringify(park, null, 2));
-      // Concessions
       park.concessions = {
         available: row['Concessions area'] === 'TRUE',
         snacks: row['Snacks?'] === 'TRUE',
@@ -159,43 +141,43 @@ async function importParks() {
       if (row['Venmo?'] === 'TRUE') park.concessions.paymentMethods.push('venmo');
       if (row['Tap to pay?'] === 'TRUE') park.concessions.paymentMethods.push('tap to pay');
 
-      console.log('log 5 : ', JSON.stringify(park, null, 2));
-      // Playground
       park.playground = {
         available: row['Playground?'] === 'TRUE',
         location: row['Playground Location'] || null,
       };
 
-      console.log('log 6 : ', JSON.stringify(park, null, 2));
-      // Notes
       park.notes = row['OTHER NOTES'] || null;
 
-      console.log('log 7 : ', JSON.stringify(park, null, 2));
-      console.log('Processing park:', JSON.stringify(park, null, 2)); // Debugging: Log the park object
+      console.log('Final park object:', JSON.stringify(park, null, 2));
+      parks.push(park);
+      console.log('Park added to array. Current parks array length:', parks.length);
+    } catch (error) {
+      console.error('Error processing row:', error);
+    }
+  };
 
-      if (Object.keys(park).length === 0) {
-        console.error('Skipping empty park object:', park);
-      } else {
-        parks.push(park);
-        console.log('Park added to array. Current parks array length:', parks.length); // Debugging: Confirm park addition
-      }
+  fs.createReadStream('parks.csv')
+    .pipe(csvParser({ mapHeaders: ({ header }) => header.trim() }))
+    .on('error', (err) => {
+      console.error('Error reading CSV:', err);
     })
+    .on('data', (row) => processRow(row))
     .on('end', async () => {
-      console.log('Final parks array:', JSON.stringify(parks, null, 2)); // Debugging: Log the final array
+      console.log('Final parks array:', JSON.stringify(parks, null, 2));
 
       if (parks.length === 0) {
         console.error('No parks to insert. Check your CSV or parsing logic.');
-        process.exit(1);
+        mongoose.disconnect();
+        return;
       }
 
       try {
-        // Bulk insert into MongoDB
         await Park.insertMany(parks);
         console.log('Parks imported successfully!');
-        process.exit();
       } catch (error) {
-        console.error('Error importing parks:', error);
-        process.exit(1);
+        console.error('Error inserting parks into MongoDB:', error);
+      } finally {
+        mongoose.disconnect();
       }
     });
 }
