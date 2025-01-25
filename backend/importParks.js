@@ -54,11 +54,11 @@ async function importParks() {
   const processRow = async (row) => {
     try {
       if (isFirstRow) {
-        console.log('CSV Headers:', Object.keys(row));
+        // console.log('CSV Headers:', Object.keys(row));
         isFirstRow = false;
       }
 
-      console.log('Processing row:', JSON.stringify(row, null, 2));
+      // console.log('Processing row:', JSON.stringify(row, null, 2));
 
       if (!row.Name || !row.Address || !row.City || !row.State) {
         console.warn('Skipping row with missing fields:', JSON.stringify(row, null, 2));

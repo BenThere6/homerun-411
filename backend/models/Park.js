@@ -17,6 +17,7 @@ const fieldSchema = new Schema({
   backstopDistance: { type: Number }, // Backstop Distance (ft)
   dugoutsCovered: { type: Boolean }, // Dugouts Covered?
   dugoutsMaterial: { type: String, enum: ['brick', 'fence'] }, // Dugouts Material
+  battingCages: { type: Boolean }, // **Does this field have a dedicated batting cage?**
 });
 
 const restroomSchema = new Schema({
@@ -33,7 +34,7 @@ const concessionsSchema = new Schema({
   otherFood: { type: String }, // Other Food Description
   paymentMethods: {
     type: [String],
-    enum: ['cash', 'card', 'venmo', 'apple pay'], // Payment Methods
+    enum: ['cash', 'card', 'venmo', 'tap to pay'], // Payment Methods
   },
 });
 
@@ -50,23 +51,18 @@ const parkSchema = new Schema({
   state: { type: String, required: true }, // Park State
   numberOfFields: { type: Number }, // Number of Fields
   fields: [fieldSchema], // Fields Array
-
   googleMaps: {
     embedUrl: { type: String }, // Google Maps Embed URL
     apiData: { type: Map, of: String }, // Google Maps API Data
   },
-
   closestParkingToField: { type: String }, // Closest Parking to Field
   parking: {
     locations: [{ type: String }], // Parking Locations
     handicapSpots: { type: Number }, // Handicap Spots
   },
   parkShade: { type: String }, // Park Shade Description
-
   restrooms: [restroomSchema], // Restroom Array
-
   concessions: concessionsSchema, // Concessions Schema
-
   coolersAllowed: { type: Boolean }, // Coolers Allowed?
   canopiesAllowed: { type: Boolean }, // Canopies Allowed?
   surfaceMaterial: { type: String }, // Surface Material
@@ -93,6 +89,10 @@ const parkSchema = new Schema({
     coordinates: { type: [Number] },
   },
   fieldTypes: { type: String, enum: ['baseball', 'softball', 'both'] }, // Field Types
+  battingCages: {
+    shared: { type: Boolean }, // Is there a shared batting cage at the park level?
+    description: { type: String }, // Description of shared batting cages, if applicable
+  },
 });
 
 parkSchema.index({ coordinates: '2dsphere' });
