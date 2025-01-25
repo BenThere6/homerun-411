@@ -11,10 +11,10 @@ const userSchema = new mongoose.Schema({
     required: true,
   },
   refreshToken: { type: String },
-  role: {
-    type: String,
-    enum: ['User', 'Admin'],
-    default: 'User',
+  adminLevel: {
+    type: Number,
+    enum: [0, 1, 2], // 0 = Top Admin, 1 = Admin, 2 = Regular User
+    default: 2, // Default to a regular user
   },
   location: {
     type: {
@@ -63,11 +63,11 @@ const userSchema = new mongoose.Schema({
   profile: {
     firstName: {
       type: String,
-      required: true, // First name required
+      required: true,
     },
     lastName: {
       type: String,
-      required: true, // Last name required
+      required: true,
     },
     avatarUrl: String,
     bio: String,

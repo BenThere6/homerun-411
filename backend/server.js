@@ -6,6 +6,7 @@ const connectDB = require('./mongoose');
 const User = require('./models/User');
 const bcrypt = require('bcrypt');
 const isAdmin = require('./middleware/isAdmin');
+const isTopAdmin = require('./middleware/isTopAdmin');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -38,7 +39,11 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     const refreshToken = jwt.sign(
-      { id: user._id, email: user.email },
+      {
+        id: user._id,
+        email: user.email,
+        adminLevel: user.adminLevel, // Include adminLevel in token
+      },
       process.env.JWT_SECRET,
       { expiresIn: '14d' }
     );
@@ -67,7 +72,7 @@ const authenticate = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    req.user = decoded; // Include adminLevel from token
     next();
   } catch (err) {
     res.status(401).json({ message: 'Invalid token' });
@@ -91,7 +96,7 @@ app.post('/api/auth/logout', authenticate, async (req, res) => {
 // User registration route
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { email, password, zipCode, firstName, lastName, role } = req.body; // Include role
+    const { email, password, zipCode, firstName, lastName, adminLevel } = req.body; // Include adminLevel
 
     if (!email || !password || !zipCode || !firstName || !lastName) {
       return res.status(400).json({ message: 'First name, last name, email, password, and zip code are required.' });
@@ -105,7 +110,7 @@ app.post('/api/auth/register', async (req, res) => {
       passwordHash: hashedPassword,
       zipCode,
       profile: { firstName, lastName },
-      role: role || 'User', // Set role or default to 'User'
+      adminLevel: adminLevel !== undefined ? adminLevel : 2, // Default to regular user (Level 2)
     });
 
     const savedUser = await newUser.save();
@@ -129,15 +134,15 @@ app.get('/api/admin/users', authenticate, isAdmin, async (req, res) => {
 // Check if an admin exists
 app.get('/check-admin', async (req, res) => {
   try {
-    const adminExists = await User.exists({ role: 'Admin' });
+    const adminExists = await User.exists({ adminLevel: { $lte: 1 } }); // Check for Top Admin or Admin
     res.json({ adminExists });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-// Promote a user to admin (Admin only)
-app.patch('/api/admin/promote/:userId', authenticate, isAdmin, async (req, res) => {
+// Promote a user to admin (Top Admin only)
+app.patch('/api/admin/promote/:userId', authenticate, isTopAdmin, async (req, res) => {
   try {
     const user = await User.findById(req.params.userId);
 
@@ -145,10 +150,34 @@ app.patch('/api/admin/promote/:userId', authenticate, isAdmin, async (req, res) 
       return res.status(404).json({ message: 'User not found' });
     }
 
-    user.role = 'Admin';
-    await user.save();
-    
-    res.json({ message: 'User promoted to admin', user });
+    if (user.adminLevel === 2) {
+      user.adminLevel = 1; // Promote Regular User (2) to Admin (1)
+      await user.save();
+      return res.json({ message: 'User promoted to Admin (Level 1)', user });
+    }
+
+    res.status(400).json({ message: 'User is already an Admin or Top Admin.' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Demote a user to regular user (Top Admin only)
+app.patch('/api/admin/demote/:userId', authenticate, isTopAdmin, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.adminLevel === 1) {
+      user.adminLevel = 2; // Demote Admin (1) to Regular User (2)
+      await user.save();
+      return res.json({ message: 'User demoted to Regular User (Level 2)', user });
+    }
+
+    res.status(400).json({ message: 'User is already a Regular User or Top Admin.' });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
