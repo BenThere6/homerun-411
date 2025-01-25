@@ -39,9 +39,17 @@ async function getCoordinatesFromAddress(address, city, state) {
   }
 }
 
+const normalizeEnumValue = (value, validValues) => {
+  if (value && validValues.includes(value.toLowerCase())) {
+    return value.toLowerCase();
+  }
+  return null; // Or a default value like `null` or 'unknown'
+};
+
 async function importParks() {
   const parks = [];
   let isFirstRow = true;
+  const rowProcessingPromises = [];
 
   const processRow = async (row) => {
     try {
@@ -57,32 +65,36 @@ async function importParks() {
         return;
       }
 
+      const validFieldTypes = ['baseball', 'softball', 'both'];
+      const validOutfieldMaterials = ['grass', 'turf'];
+      const validInfieldMaterials = ['grass', 'dirt'];
+      const validMoundTypes = ['dirt', 'turf', 'portable'];
+      const validBackstopMaterials = ['fence', 'net'];
+      const validDugoutMaterials = ['brick', 'fence'];
+      const validChangingTableValues = ["men's", "women's", 'both', 'neither'];
+
       const park = {
         name: row.Name,
         address: row.Address,
         city: row.City,
-        state: row.State,
+        state: row.State.toLowerCase(), // Normalize state to lowercase
       };
 
-      let coordinates;
       try {
         console.log(`Fetching coordinates for: ${row.Address}, ${row.City}, ${row.State}`);
-        coordinates = await getCoordinatesFromAddress(row.Address, row.City, row.State);
-        console.log('Coordinates fetched:', coordinates);
+        const coordinates = await getCoordinatesFromAddress(row.Address, row.City, row.State);
+        if (!coordinates) {
+          console.warn(`Skipping park due to missing coordinates: ${park.name}`);
+          return;
+        }
+        park.coordinates = {
+          type: 'Point',
+          coordinates,
+        };
       } catch (error) {
         console.error(`Error fetching coordinates for ${row.Address}:`, error);
-        coordinates = null;
-      }
-
-      if (!coordinates) {
-        console.warn(`Skipping park due to missing coordinates: ${park.name}`);
         return;
       }
-
-      park.coordinates = {
-        type: 'Point',
-        coordinates,
-      };
 
       park.numberOfFields = parseInt(row['Number of Fields'], 10) || 0;
 
@@ -93,18 +105,18 @@ async function importParks() {
           name: row[`Field ${i} Name`] || null,
           location: row[`Field ${i} Location`] || null,
           fenceDistance: parseInt(row[`Field ${i} Fence Distance`], 10) || null,
-          fieldType: row[`Field ${i} Type`] || null,
-          outfieldMaterial: row[`Field ${i} Outfield Material`] || null,
-          infieldMaterial: row[`Field ${i} Infield Material`] || null,
-          moundType: row[`Field ${i} Mound Type`] || null,
+          fieldType: normalizeEnumValue(row[`Field ${i} Type`], validFieldTypes),
+          outfieldMaterial: normalizeEnumValue(row[`Field ${i} Outfield Material`], validOutfieldMaterials),
+          infieldMaterial: normalizeEnumValue(row[`Field ${i} Infield Material`], validInfieldMaterials),
+          moundType: normalizeEnumValue(row[`Field ${i} Mound Type`], validMoundTypes),
           fieldShadeDescription: row[`Field ${i} Field Shade Description`] || null,
           parkingDistanceToField: row[`Field ${i} Parking Distance to Field`] || null,
           bleachersAvailable: row[`Field ${i} Bleachers?`] === 'TRUE',
           bleachersDescription: row[`Field ${i} Bleachers Description`] || null,
-          backstopMaterial: row[`Field ${i} Backstop Material`] || null,
+          backstopMaterial: normalizeEnumValue(row[`Field ${i} Backstop Material`], validBackstopMaterials),
           backstopDistance: parseInt(row[`Field ${i} Backstop Distance (ft)`], 10) || null,
           dugoutsCovered: row[`Field ${i} Dugouts Covered?`] === 'TRUE',
-          dugoutsMaterial: row[`Field ${i} Dugouts Material`] || null,
+          dugoutsMaterial: normalizeEnumValue(row[`Field ${i} Dugouts Material`], validDugoutMaterials),
         };
 
         if (field.name) {
@@ -123,7 +135,7 @@ async function importParks() {
         park.restrooms.push({
           location: row['Restroom Location'],
           runningWater: row['Restroom Running Water?'] === 'TRUE',
-          changingTable: row['Restroom Changing Table?'] || 'neither',
+          changingTable: normalizeEnumValue(row['Restroom Changing Table?'], validChangingTableValues),
           womensStalls: row["Women's stalls"] || null,
           mensStallsUrinals: row["Men's Stalls/Urinals"] || null,
         });
@@ -156,30 +168,35 @@ async function importParks() {
     }
   };
 
-  fs.createReadStream('parks.csv')
-    .pipe(csvParser({ mapHeaders: ({ header }) => header.trim() }))
-    .on('error', (err) => {
-      console.error('Error reading CSV:', err);
-    })
-    .on('data', (row) => processRow(row))
-    .on('end', async () => {
-      console.log('Final parks array:', JSON.stringify(parks, null, 2));
+  const processCSV = new Promise((resolve, reject) => {
+    fs.createReadStream('parks.csv')
+      .pipe(csvParser({ mapHeaders: ({ header }) => header.trim() }))
+      .on('error', (err) => reject(err))
+      .on('data', (row) => {
+        rowProcessingPromises.push(processRow(row));
+      })
+      .on('end', resolve);
+  });
 
-      if (parks.length === 0) {
-        console.error('No parks to insert. Check your CSV or parsing logic.');
-        mongoose.disconnect();
-        return;
-      }
+  try {
+    await processCSV;
+    await Promise.all(rowProcessingPromises);
 
-      try {
-        await Park.insertMany(parks);
-        console.log('Parks imported successfully!');
-      } catch (error) {
-        console.error('Error inserting parks into MongoDB:', error);
-      } finally {
-        mongoose.disconnect();
-      }
-    });
+    console.log('Final parks array:', JSON.stringify(parks, null, 2));
+
+    if (parks.length === 0) {
+      console.error('No parks to insert. Check your CSV or processing logic.');
+      mongoose.disconnect();
+      return;
+    }
+
+    await Park.insertMany(parks);
+    console.log('Parks imported successfully!');
+  } catch (error) {
+    console.error('Error processing CSV or inserting parks:', error);
+  } finally {
+    mongoose.disconnect();
+  }
 }
 
 importParks();
