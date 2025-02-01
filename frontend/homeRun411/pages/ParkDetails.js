@@ -6,9 +6,9 @@ export default function ParkDetails({ route }) {
   const defaultImage = 'https://images.unsplash.com/photo-1717886091076-56e54c2a360f?q=80&w=2967&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D';
   const [imageUrl, setImageUrl] = useState(park.pictures?.mainImageUrl || defaultImage);
 
-  useEffect(() => {
-    console.log("Park Data in Component:", JSON.stringify(park, null, 2));
-  }, [park]);
+  // useEffect(() => {
+  //   console.log("Park Data in Component:", JSON.stringify(park, null, 2));
+  // }, [park]);
 
   const openMapsApp = () => {
     const lat = park.coordinates?.coordinates?.[1];
@@ -50,21 +50,14 @@ export default function ParkDetails({ route }) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>General Information</Text>
 
-          {park.name && (
-            <>
-              <Text style={styles.subtitle}>Name</Text>
-              <Text style={styles.text}>{park.name}</Text>
-            </>
-          )}
+          <Text style={styles.subtitle}>Name</Text>
+          <Text style={styles.text}>{park.name}</Text>
 
-          {(park.city || park.state) && (
-            <>
-              <Text style={styles.subtitle}>Location</Text>
-              <Text style={styles.text}>
-                {park.city || 'No city available'}, {park.state || 'No state available'}
-              </Text>
-            </>
-          )}
+
+          <Text style={styles.subtitle}>City</Text>
+          <Text style={styles.text}>
+            {park.city || 'No city available'}, {park.state || 'No state available'}
+          </Text>
 
           {park.address && (
             <>
@@ -73,66 +66,66 @@ export default function ParkDetails({ route }) {
             </>
           )}
 
-          {park.numberOfFields && (
-            <>
+          {/* {park.numberOfFields && (
+            <> */}
               <Text style={styles.subtitle}>Number of Fields</Text>
               <Text style={styles.text}>{park.numberOfFields}</Text>
-            </>
-          )}
+            {/* </>
+          )} */}
 
-          {park.sharedBattingCages && (
-            <>
+          {/* {park.sharedBattingCages && (
+            <> */}
               <Text style={styles.subtitle}>Shared Batting Cages</Text>
               <Text style={styles.text}>{park.sharedBattingCages}</Text>
-            </>
-          )}
+            {/* </>
+          )} */}
 
-          {park.sharedBattingCageDescription && (
-            <>
+          {/* {park.sharedBattingCageDescription && (
+            <> */}
               <Text style={styles.subtitle}>Batting Cage Description</Text>
               <Text style={styles.text}>{park.sharedBattingCageDescription}</Text>
-            </>
-          )}
+            {/* </>
+          )} */}
         </View>
 
         {/* Additional Features */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Additional Features</Text>
 
-          {park.entranceFee && (
-            <>
+          {/* {park.entranceFee && (
+            <> */}
               <Text style={styles.subtitle}>Entrance Fee</Text>
               <Text style={styles.text}>{park.entranceFee ? 'Yes' : 'No'}</Text>
-            </>
-          )}
+            {/* </>
+          )} */}
 
-          {park.playground && (
-            <>
+          {/* {park.playground && (
+            <> */}
               <Text style={styles.subtitle}>Playground</Text>
               <Text style={styles.text}>{park.playground ? 'Yes' : 'No'}</Text>
-            </>
-          )}
+            {/* </>
+          )} */}
 
-          {park.playgroundLocation && (
-            <>
+          {/* {park.playgroundLocation && (
+            <> */}
               <Text style={styles.subtitle}>Playground Location</Text>
               <Text style={styles.text}>{park.playgroundLocation}</Text>
-            </>
-          )}
+            {/* </>
+          )} */}
 
-          {park.spectatorLocationConditions && (
-            <>
+          {/* {park.spectatorLocationConditions && (
+            <> */}
               <Text style={styles.subtitle}>Spectator Conditions</Text>
               <Text style={styles.text}>{park.spectatorLocationConditions}</Text>
-            </>
-          )}
+            {/* </>
+          )} */}
 
-          {park.otherNotes && (
-            <>
+          {/* {park.otherNotes && (
+            <> */}
               <Text style={styles.subtitle}>Other Notes</Text>
               <Text style={styles.text}>{park.otherNotes}</Text>
-            </>
-          )}
+            {/* </>
+          )} */}
         </View>
 
         {/* Navigate Button */}
@@ -211,40 +204,40 @@ export default function ParkDetails({ route }) {
                 <Text style={styles.text}>
                   Bleachers Available: {field.bleachersAvailable ? 'Yes' : 'No data available'}
                 </Text>
-                {field.scoreboardAvailable && (
-                  <>
+                {/* {field.scoreboardAvailable && (
+                  <> */}
                     <Text style={styles.subtitle}>Scoreboard Available</Text>
                     <Text style={styles.text}>{field.scoreboardAvailable ? 'Yes' : 'No'}</Text>
-                  </>
-                )}
+                  {/* </>
+                )} */}
 
-                {field.scoreboardType && (
-                  <>
+                {/* {field.scoreboardType && (
+                  <> */}
                     <Text style={styles.subtitle}>Scoreboard Type</Text>
                     <Text style={styles.text}>{field.scoreboardType}</Text>
-                  </>
-                )}
+                  {/* </>
+                )} */}
 
-                {field.portableMounds && (
-                  <>
+                {/* {field.portableMounds && (
+                  <> */}
                     <Text style={styles.subtitle}>Portable Mounds</Text>
                     <Text style={styles.text}>{field.portableMounds ? 'Yes' : 'No'}</Text>
-                  </>
-                )}
+                  {/* </>
+                )} */}
 
-                {field.grassInfield && (
-                  <>
+                {/* {field.grassInfield && (
+                  <> */}
                     <Text style={styles.subtitle}>Grass Infield</Text>
                     <Text style={styles.text}>{field.grassInfield ? 'Yes' : 'No'}</Text>
-                  </>
-                )}
+                  {/* </>
+                )} */}
 
-                {field.fieldLightingQuality && (
-                  <>
+                {/* {field.fieldLightingQuality && (
+                  <> */}
                     <Text style={styles.subtitle}>Lighting Quality</Text>
                     <Text style={styles.text}>{field.fieldLightingQuality}</Text>
-                  </>
-                )}
+                  {/* </>
+                )} */}
 
               </View>
             ))
