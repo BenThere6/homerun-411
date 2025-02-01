@@ -45,16 +45,90 @@ export default function ParkDetails({ route }) {
         {/* General Information */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>General Information</Text>
-          <Text style={styles.subtitle}>Name</Text>
-          <Text style={styles.text}>{park.name || 'No data available'}</Text>
-          <Text style={styles.subtitle}>Location</Text>
-          <Text style={styles.text}>
-            {park.city || 'No city available'}, {park.state || 'No state available'}
-          </Text>
-          <Text style={styles.subtitle}>Address</Text>
-          <Text style={styles.text}>{park.address || 'No data available'}</Text>
-          <Text style={styles.subtitle}>Number of Fields</Text>
-          <Text style={styles.text}>{park.numberOfFields || 'No data available'}</Text>
+
+          {park.name && (
+            <>
+              <Text style={styles.subtitle}>Name</Text>
+              <Text style={styles.text}>{park.name}</Text>
+            </>
+          )}
+
+          {(park.city || park.state) && (
+            <>
+              <Text style={styles.subtitle}>Location</Text>
+              <Text style={styles.text}>
+                {park.city || 'No city available'}, {park.state || 'No state available'}
+              </Text>
+            </>
+          )}
+
+          {park.address && (
+            <>
+              <Text style={styles.subtitle}>Address</Text>
+              <Text style={styles.text}>{park.address}</Text>
+            </>
+          )}
+
+          {park.numberOfFields && (
+            <>
+              <Text style={styles.subtitle}>Number of Fields</Text>
+              <Text style={styles.text}>{park.numberOfFields}</Text>
+            </>
+          )}
+
+          {park.sharedBattingCages && (
+            <>
+              <Text style={styles.subtitle}>Shared Batting Cages</Text>
+              <Text style={styles.text}>{park.sharedBattingCages}</Text>
+            </>
+          )}
+
+          {park.sharedBattingCageDescription && (
+            <>
+              <Text style={styles.subtitle}>Batting Cage Description</Text>
+              <Text style={styles.text}>{park.sharedBattingCageDescription}</Text>
+            </>
+          )}
+        </View>
+
+        {/* Additional Features */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Additional Features</Text>
+
+          {park.entranceFee && (
+            <>
+              <Text style={styles.subtitle}>Entrance Fee</Text>
+              <Text style={styles.text}>{park.entranceFee ? 'Yes' : 'No'}</Text>
+            </>
+          )}
+
+          {park.playground && (
+            <>
+              <Text style={styles.subtitle}>Playground</Text>
+              <Text style={styles.text}>{park.playground ? 'Yes' : 'No'}</Text>
+            </>
+          )}
+
+          {park.playgroundLocation && (
+            <>
+              <Text style={styles.subtitle}>Playground Location</Text>
+              <Text style={styles.text}>{park.playgroundLocation}</Text>
+            </>
+          )}
+
+          {park.spectatorLocationConditions && (
+            <>
+              <Text style={styles.subtitle}>Spectator Conditions</Text>
+              <Text style={styles.text}>{park.spectatorLocationConditions}</Text>
+            </>
+          )}
+
+          {park.otherNotes && (
+            <>
+              <Text style={styles.subtitle}>Other Notes</Text>
+              <Text style={styles.text}>{park.otherNotes}</Text>
+            </>
+          )}
         </View>
 
         {/* Navigate Button */}
@@ -62,12 +136,6 @@ export default function ParkDetails({ route }) {
           <TouchableOpacity style={styles.customButton} onPress={openMapsApp}>
             <Text style={styles.buttonText}>Navigate</Text>
           </TouchableOpacity>
-        </View>
-
-        {/* Google Maps */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Google Maps</Text>
-          <Text style={styles.text}>{park.googleMaps?.embedUrl || 'No data available'}</Text>
         </View>
 
         {/* Parking Information */}
@@ -139,6 +207,41 @@ export default function ParkDetails({ route }) {
                 <Text style={styles.text}>
                   Bleachers Available: {field.bleachersAvailable ? 'Yes' : 'No data available'}
                 </Text>
+                {field.scoreboardAvailable && (
+                  <>
+                    <Text style={styles.subtitle}>Scoreboard Available</Text>
+                    <Text style={styles.text}>{field.scoreboardAvailable ? 'Yes' : 'No'}</Text>
+                  </>
+                )}
+
+                {field.scoreboardType && (
+                  <>
+                    <Text style={styles.subtitle}>Scoreboard Type</Text>
+                    <Text style={styles.text}>{field.scoreboardType}</Text>
+                  </>
+                )}
+
+                {field.portableMounds && (
+                  <>
+                    <Text style={styles.subtitle}>Portable Mounds</Text>
+                    <Text style={styles.text}>{field.portableMounds ? 'Yes' : 'No'}</Text>
+                  </>
+                )}
+
+                {field.grassInfield && (
+                  <>
+                    <Text style={styles.subtitle}>Grass Infield</Text>
+                    <Text style={styles.text}>{field.grassInfield ? 'Yes' : 'No'}</Text>
+                  </>
+                )}
+
+                {field.fieldLightingQuality && (
+                  <>
+                    <Text style={styles.subtitle}>Lighting Quality</Text>
+                    <Text style={styles.text}>{field.fieldLightingQuality}</Text>
+                  </>
+                )}
+
               </View>
             ))
           ) : (

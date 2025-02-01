@@ -18,6 +18,13 @@ const fieldSchema = new Schema({
   dugoutsCovered: { type: Boolean }, // Dugouts Covered?
   dugoutsMaterial: { type: String, enum: ['brick', 'fence'] }, // Dugouts Material
   battingCages: { type: Boolean }, // **Does this field have a dedicated batting cage?**
+  scoreboardAvailable: { type: Boolean }, // Scoreboard Available?
+  scoreboardType: { type: String }, // Scoreboard Type
+  fenceHeight: { type: Number }, // Fence Height (ft)
+  warningTrack: { type: Boolean }, // Warning Track Present?
+  bullpenAvailable: { type: Boolean }, // Bullpen Available?
+  bullpenLocation: { type: String }, // Bullpen Location
+  dugoutCoverageMaterial: { type: String, enum: ['tarp', 'roof', 'none'] }, // Coverage Type
 });
 
 const restroomSchema = new Schema({
@@ -74,9 +81,9 @@ const parkSchema = new Schema({
   },
   sidewalks: { type: Boolean }, // Sidewalks Available?
   gravelPaths: { type: Boolean }, // Gravel Paths Available?
-  stairs: { type: Boolean }, // Stairs Available?
-  hills: { type: Boolean }, // Hills Available?
-  gateEntranceFee: { type: Boolean }, // Gate Entrance Fee?
+  stairs: { type: Boolean, default: null }, // Stairs Available?
+  hills: { type: Boolean, default: null }, // Hills Available?
+  gateEntranceFee: { type: Boolean, default: null }, // Gate Entrance Fee?
   playground: playgroundSchema, // Playground Schema
   spectatorConditions: {
     locationTypes: {
@@ -93,8 +100,16 @@ const parkSchema = new Schema({
     shared: { type: Boolean }, // Is there a shared batting cage at the park level?
     description: { type: String }, // Description of shared batting cages, if applicable
   },
+  otherNotes: { type: String }, // Notes from CSV
+  numberOfParkingLots: { type: Number }, // Number of Parking Lots
+  rvParkingAvailable: { type: Boolean }, // RV Parking Availability
+  bikeRackAvailability: { type: Boolean }, // Bike Racks Available
+  electricalOutletsForPublicUse: { type: Boolean, default: null }, // Public Electrical Outlets?
+  stairsDescription: { type: String }, // Stairs Description
+  hillsDescription: { type: String }, // Hills Description
 });
 
 parkSchema.index({ coordinates: '2dsphere' });
+parkSchema.index({ name: 1, city: 1 });
 
 module.exports = mongoose.model('Park', parkSchema);

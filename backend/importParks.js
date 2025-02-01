@@ -77,7 +77,7 @@ async function importParks() {
         name: row.Name,
         address: row.Address,
         city: row.City,
-        state: row.State.toLowerCase(), // Normalize state to lowercase
+        state: row.State.toLowerCase(),
       };
 
       try {
