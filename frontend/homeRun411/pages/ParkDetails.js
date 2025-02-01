@@ -160,9 +160,7 @@ export default function ParkDetails({ route }) {
           <Text style={styles.text}>{park.coolersAllowed ? 'Yes' : 'No data available'}</Text>
           <Text style={styles.subtitle}>Canopies Allowed</Text>
           <Text style={styles.text}>{park.canopiesAllowed ? 'Yes' : 'No data available'}</Text>
-          <Text style={styles.subtitle}>Surface Material</Text>
-          <Text style={styles.text}>{park.surfaceMaterial || 'No data available'}</Text>
-          <Text style={styles.subtitle}>Lights</Text>
+          <Text style={styles.subtitle}>Field Lights</Text>
           <Text style={styles.text}>{park.lights ? 'Yes' : 'No data available'}</Text>
         </View>
 
@@ -195,50 +193,38 @@ export default function ParkDetails({ route }) {
                 <Text style={styles.subtitle}>Field {index + 1}</Text>
                 <Text style={styles.text}>Name: {field.name || 'No data available'}</Text>
                 <Text style={styles.text}>Location: {field.location || 'No data available'}</Text>
-                <Text style={styles.text}>Fence Distance: {field.fenceDistance || 'No data available'}</Text>
-                <Text style={styles.text}>Type: {field.fieldType || 'No data available'}</Text>
-                <Text style={styles.text}>Outfield Material: {field.outfieldMaterial || 'No data available'}</Text>
-                <Text style={styles.text}>Infield Material: {field.infieldMaterial || 'No data available'}</Text>
-                <Text style={styles.text}>Mound Type: {field.moundType || 'No data available'}</Text>
+                <Text style={styles.text}>
+                  Field Type: {field.fieldType
+                    ? field.fieldType === 'both'
+                      ? 'Baseball and Softball'
+                      : field.fieldType.charAt(0).toUpperCase() + field.fieldType.slice(1)
+                    : 'No data available'}
+                </Text>
+                <Text style={styles.text}>
+                  Fence Distance: {field.fenceDistance
+                    ? `${String(field.fenceDistance).trim()} ft`
+                    : 'No data available'}
+                </Text>
+                <Text style={styles.text}>
+                  Outfield Material: {field.outfieldMaterial
+                    ? field.outfieldMaterial.charAt(0).toUpperCase() + field.outfieldMaterial.slice(1)
+                    : 'No data available'}
+                </Text>
+                <Text style={styles.text}>
+                  Infield Material: {field.infieldMaterial
+                    ? field.infieldMaterial.charAt(0).toUpperCase() + field.infieldMaterial.slice(1)
+                    : 'No data available'}
+                </Text>
+                <Text style={styles.text}>
+                  Mound Type: {field.moundType
+                    ? field.moundType.charAt(0).toUpperCase() + field.moundType.slice(1)
+                    : 'No data available'}
+                </Text>
                 <Text style={styles.text}>Shade Description: {field.fieldShadeDescription || 'No data available'}</Text>
                 <Text style={styles.text}>Parking Distance: {field.parkingDistanceToField || 'No data available'}</Text>
                 <Text style={styles.text}>
                   Bleachers Available: {field.bleachersAvailable ? 'Yes' : 'No data available'}
                 </Text>
-                {/* {field.scoreboardAvailable && (
-                  <> */}
-                <Text style={styles.subtitle}>Scoreboard Available</Text>
-                <Text style={styles.text}>{field.scoreboardAvailable ? 'Yes' : 'No'}</Text>
-                {/* </>
-                )} */}
-
-                {/* {field.scoreboardType && (
-                  <> */}
-                <Text style={styles.subtitle}>Scoreboard Type</Text>
-                <Text style={styles.text}>{field.scoreboardType}</Text>
-                {/* </>
-                )} */}
-
-                {/* {field.portableMounds && (
-                  <> */}
-                <Text style={styles.subtitle}>Portable Mounds</Text>
-                <Text style={styles.text}>{field.portableMounds ? 'Yes' : 'No'}</Text>
-                {/* </>
-                )} */}
-
-                {/* {field.grassInfield && (
-                  <> */}
-                <Text style={styles.subtitle}>Grass Infield</Text>
-                <Text style={styles.text}>{field.grassInfield ? 'Yes' : 'No'}</Text>
-                {/* </>
-                )} */}
-
-                {/* {field.fieldLightingQuality && (
-                  <> */}
-                <Text style={styles.subtitle}>Lighting Quality</Text>
-                <Text style={styles.text}>{field.fieldLightingQuality}</Text>
-                {/* </>
-                )} */}
 
               </View>
             ))

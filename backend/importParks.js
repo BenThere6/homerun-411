@@ -80,6 +80,8 @@ async function importParks() {
         address: row.Address,
         city: row.City,
         state: row.State.toLowerCase(),
+        coolersAllowed: toBoolean(row['Coolers Allowed?']),  // Ensure this line is included
+        canopiesAllowed: toBoolean(row['Canopies Allowed?']),
         battingCages: {
           shared: toBoolean(row['Shared Batting Cages?']),
           description: row['Shared Batting Cage Description']?.trim() || null,
@@ -92,6 +94,7 @@ async function importParks() {
         hillsDescription: row['Hills Description'] || null,
         gateEntranceFee: toBoolean(row['Entrance Fee?']),
         otherNotes: row['OTHER NOTES'] || null,
+        lights: toBoolean(row['Field Lights?']),
       };
 
       try {
