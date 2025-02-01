@@ -70,7 +70,7 @@ async function importParks() {
       const validInfieldMaterials = ['grass', 'dirt'];
       const validMoundTypes = ['dirt', 'turf', 'portable'];
       const validBackstopMaterials = ['fence', 'net'];
-      const validDugoutMaterials = ['brick', 'fence'];
+      const validDugoutMaterials = ['brick', 'fence', 'wood'];
       const validChangingTableValues = ["men's", "women's", 'both', 'neither'];
 
       const park = {
@@ -134,7 +134,7 @@ async function importParks() {
           bullpenAvailable: row[`Field ${i} Bullpen Available?`]?.toLowerCase() === 'true',
           bullpenLocation: row[`Field ${i} Bullpen Location`] || null,
           dugoutCoverageMaterial: row[`Field ${i} Dugout Coverage Material`] || null,
-        };        
+        };
 
         if (field.name) {
           park.fields.push(field);
@@ -155,7 +155,7 @@ async function importParks() {
         park.restrooms.push({
           location: row['Restroom Location'],
           runningWater: row['Restroom Running Water?']?.toLowerCase() === 'true',
-          changingTable: normalizeEnumValue(row['Restroom Changing Table?'], ["men's", "women's", 'both', 'neither']),
+          changingTable: normalizeEnumValue(row['Restroom Changing Table?'], validChangingTableValues),
           numStalls: parseInt(row["Women's stalls"], 10) || parseInt(row["Men's Stalls/Urinals"], 10) || null,
         });
       }
@@ -185,7 +185,7 @@ async function importParks() {
             .split(',')
             .map((s) => s.trim().toLowerCase()),
         };
-      }      
+      }
 
       console.log('Final park object:', JSON.stringify(park, null, 2));
       parks.push(park);
