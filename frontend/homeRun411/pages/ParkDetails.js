@@ -205,6 +205,12 @@ export default function ParkDetails({ route }) {
                     ? `${String(field.fenceDistance).trim()} ft`
                     : 'No data available'}
                 </Text>
+
+                <Text style={styles.text}>Fence Height: {field.fenceHeight != null
+                  ? `${String(field.fenceHeight).trim()} ft`
+                  : 'No data available'}
+                </Text>
+
                 <Text style={styles.text}>
                   Outfield Material: {field.outfieldMaterial
                     ? field.outfieldMaterial.charAt(0).toUpperCase() + field.outfieldMaterial.slice(1)
@@ -225,6 +231,55 @@ export default function ParkDetails({ route }) {
                 <Text style={styles.text}>
                   Bleachers Available: {field.bleachersAvailable ? 'Yes' : 'No data available'}
                 </Text>
+
+                <Text style={styles.text}>Backstop Material: {field.backstopMaterial
+                  ? field.backstopMaterial.charAt(0).toUpperCase() + field.backstopMaterial.slice(1)
+                  : 'No data available'}
+                </Text>
+
+                <Text style={styles.text}>Backstop Distance: {field.backstopDistance != null
+                  ? `${String(field.backstopDistance).trim()} ft`
+                  : 'No data available'}
+                </Text>
+
+                <Text style={styles.text}>Dugouts Covered: {field.dugoutsCovered != null
+                  ? (field.dugoutsCovered ? 'Yes' : 'No')
+                  : 'No data available'}
+                </Text>
+
+                <Text style={styles.text}>Dugout Material: {field.dugoutsMaterial
+                  ? field.dugoutsMaterial.charAt(0).toUpperCase() + field.dugoutsMaterial.slice(1)
+                  : 'No data available'}
+                </Text>
+
+                <Text style={styles.text}>Batting Cages: {field.battingCages != null
+                  ? (field.battingCages ? 'Yes' : 'No')
+                  : 'No data available'}
+                </Text>
+
+                {/* <Text style={styles.text}>Scoreboard Available: {field.scoreboardAvailable != null
+                  ? (field.scoreboardAvailable ? 'Yes' : 'No')
+                  : 'No data available'}
+                </Text>
+
+                <Text style={styles.text}>Scoreboard Type: {field.scoreboardType || 'No data available'}</Text> */}
+
+                <Text style={styles.text}>Warning Track: {field.warningTrack != null
+                  ? (field.warningTrack ? 'Yes' : 'No')
+                  : 'No data available'}
+                </Text>
+
+                {/* <Text style={styles.text}>Bullpen Available: {field.bullpenAvailable != null
+                  ? (field.bullpenAvailable ? 'Yes' : 'No')
+                  : 'No data available'}
+                </Text>
+
+                <Text style={styles.text}>Bullpen Location: {field.bullpenLocation || 'No data available'}</Text>
+
+                <Text style={styles.text}>Dugout Coverage Material: {field.dugoutCoverageMaterial
+                  ? field.dugoutCoverageMaterial.charAt(0).toUpperCase() + field.dugoutCoverageMaterial.slice(1)
+                  : 'No data available'}
+                </Text> */}
 
               </View>
             ))

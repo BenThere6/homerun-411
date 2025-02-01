@@ -72,15 +72,29 @@ async function importParks() {
       const validBackstopMaterials = ['fence', 'net'];
       const validDugoutMaterials = ['brick', 'fence', 'wood'];
       const validChangingTableValues = ["men's", "women's", 'both', 'neither'];
+      const validSpectatorSurfaces = ['grass', 'cement', 'gravel', 'dirt'];
 
       const toBoolean = (value) => (typeof value === 'string' ? value.trim().toLowerCase() === 'true' : !!value);
 
+      const normalizeAddress = (address) => {
+        if (!address) return null;
+      
+        return address
+          .toLowerCase() // Convert entire string to lowercase
+          .replace(/\b(?:west|w)\b/gi, 'W')
+          .replace(/\b(?:east|e)\b/gi, 'E')
+          .replace(/\b(?:south|s)\b/gi, 'S')
+          .replace(/\b(?:north|n)\b/gi, 'N')
+          .replace(/\b\w+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1)) // Capitalize every word
+          .trim();
+      };
+      
       const park = {
         name: row.Name,
-        address: row.Address,
+        address: normalizeAddress(row.Address),  // ✅ Apply improved formatting
         city: row.City,
-        state: row.State.toLowerCase(),
-        coolersAllowed: toBoolean(row['Coolers Allowed?']),  // Ensure this line is included
+        state: row.State.toUpperCase(),
+        coolersAllowed: toBoolean(row['Coolers Allowed?']),
         canopiesAllowed: toBoolean(row['Canopies Allowed?']),
         battingCages: {
           shared: toBoolean(row['Shared Batting Cages?']),
@@ -95,7 +109,7 @@ async function importParks() {
         gateEntranceFee: toBoolean(row['Entrance Fee?']),
         otherNotes: row['OTHER NOTES'] || null,
         lights: toBoolean(row['Field Lights?']),
-      };
+      };         
 
       try {
         console.log(`Fetching coordinates for: ${row.Address}, ${row.City}, ${row.State}`);
@@ -122,25 +136,26 @@ async function importParks() {
           name: row[`Field ${i} Name`] || null,
           location: row[`Field ${i} Location`] || null,
           fenceDistance: parseInt(row[`Field ${i} Fence Distance`], 10) || null,
+          fenceHeight: parseInt(row[`Field ${i} Fence Height`], 10) || null, // ✅ New fence height field
           fieldType: normalizeEnumValue(row[`Field ${i} Type`], validFieldTypes),
           outfieldMaterial: normalizeEnumValue(row[`Field ${i} Outfield Material`], validOutfieldMaterials),
           infieldMaterial: normalizeEnumValue(row[`Field ${i} Infield Material`], validInfieldMaterials),
           moundType: normalizeEnumValue(row[`Field ${i} Mound Type`], validMoundTypes),
           fieldShadeDescription: row[`Field ${i} Field Shade Description`] || null,
           parkingDistanceToField: row[`Field ${i} Parking Distance to Field`] || null,
-          bleachersAvailable: row[`Field ${i} Bleachers?`]?.toLowerCase() === 'true',
+          bleachersAvailable: toBoolean(row[`Field ${i} Bleachers?`]),
           bleachersDescription: row[`Field ${i} Bleachers Description`] || null,
           backstopMaterial: normalizeEnumValue(row[`Field ${i} Backstop Material`], validBackstopMaterials),
           backstopDistance: parseInt(row[`Field ${i} Backstop Distance (ft)`], 10) || null,
-          dugoutsCovered: row[`Field ${i} Dugouts Covered?`]?.toLowerCase() === 'true',
+          dugoutsCovered: toBoolean(row[`Field ${i} Dugouts Covered?`]),
           dugoutsMaterial: normalizeEnumValue(row[`Field ${i} Dugouts Material`], validDugoutMaterials),
-          scoreboardAvailable: row[`Field ${i} Scoreboard Available?`]?.toLowerCase() === 'true',
+          scoreboardAvailable: toBoolean(row[`Field ${i} Scoreboard Available?`]),
           scoreboardType: row[`Field ${i} Scoreboard Type`] || null,
-          fenceHeight: parseInt(row[`Field ${i} Fence Height`], 10) || null,
-          warningTrack: row[`Field ${i} Warning Track?`]?.toLowerCase() === 'true',
-          bullpenAvailable: row[`Field ${i} Bullpen Available?`]?.toLowerCase() === 'true',
+          warningTrack: toBoolean(row[`Field ${i} Warning Track?`]) || false,
+          bullpenAvailable: toBoolean(row[`Field ${i} Bullpen Available?`]),
           bullpenLocation: row[`Field ${i} Bullpen Location`] || null,
           dugoutCoverageMaterial: row[`Field ${i} Dugout Coverage Material`] || null,
+          battingCages: toBoolean(row[`Field ${i} Batting Cages?`]),
         };
 
         if (field.name) {
@@ -186,11 +201,14 @@ async function importParks() {
 
       park.notes = row['OTHER NOTES'] || null;
 
+
+
       if (row['Spectator Location Conditions']) {
         park.spectatorConditions = {
           locationTypes: row['Spectator Location Conditions']
             .split(',')
-            .map((s) => s.trim().toLowerCase()),
+            .map((s) => s.trim().toLowerCase())
+            .filter((s) => validSpectatorSurfaces.includes(s)), // ✅ Only keep valid values
         };
       }
 
