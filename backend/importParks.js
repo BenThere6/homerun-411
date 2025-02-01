@@ -78,6 +78,16 @@ async function importParks() {
         address: row.Address,
         city: row.City,
         state: row.State.toLowerCase(),
+        sharedBattingCages: row['Shared Batting Cages?']?.toLowerCase() === 'true',
+        sharedBattingCageDescription: row['Shared Batting Cage Description'] || null,
+        numberOfParkingLots: parseInt(row['Number of Parking Lots'], 10) || null,
+        rvParkingAvailable: row['RV Parking Available?']?.toLowerCase() === 'true',
+        bikeRackAvailability: row['Bike Rack Availability?']?.toLowerCase() === 'true',
+        electricalOutletsForPublicUse: row['Electrical Outlets for Public Use?']?.toLowerCase() === 'true',
+        stairsDescription: row['Stairs Description'] || null,
+        hillsDescription: row['Hills Description'] || null,
+        gateEntranceFee: row['Entrance Fee?']?.toLowerCase() === 'true',
+        otherNotes: row['OTHER NOTES'] || null,
       };
 
       try {
@@ -111,13 +121,20 @@ async function importParks() {
           moundType: normalizeEnumValue(row[`Field ${i} Mound Type`], validMoundTypes),
           fieldShadeDescription: row[`Field ${i} Field Shade Description`] || null,
           parkingDistanceToField: row[`Field ${i} Parking Distance to Field`] || null,
-          bleachersAvailable: row[`Field ${i} Bleachers?`] === 'TRUE',
+          bleachersAvailable: row[`Field ${i} Bleachers?`]?.toLowerCase() === 'true',
           bleachersDescription: row[`Field ${i} Bleachers Description`] || null,
           backstopMaterial: normalizeEnumValue(row[`Field ${i} Backstop Material`], validBackstopMaterials),
           backstopDistance: parseInt(row[`Field ${i} Backstop Distance (ft)`], 10) || null,
-          dugoutsCovered: row[`Field ${i} Dugouts Covered?`] === 'TRUE',
+          dugoutsCovered: row[`Field ${i} Dugouts Covered?`]?.toLowerCase() === 'true',
           dugoutsMaterial: normalizeEnumValue(row[`Field ${i} Dugouts Material`], validDugoutMaterials),
-        };
+          scoreboardAvailable: row[`Field ${i} Scoreboard Available?`]?.toLowerCase() === 'true',
+          scoreboardType: row[`Field ${i} Scoreboard Type`] || null,
+          fenceHeight: parseInt(row[`Field ${i} Fence Height`], 10) || null,
+          warningTrack: row[`Field ${i} Warning Track?`]?.toLowerCase() === 'true',
+          bullpenAvailable: row[`Field ${i} Bullpen Available?`]?.toLowerCase() === 'true',
+          bullpenLocation: row[`Field ${i} Bullpen Location`] || null,
+          dugoutCoverageMaterial: row[`Field ${i} Dugout Coverage Material`] || null,
+        };        
 
         if (field.name) {
           park.fields.push(field);
@@ -126,7 +143,10 @@ async function importParks() {
 
       if (row['Parking Location']) park.closestParkingToField = row['Parking Location'];
       if (row['Number of Handicap Spots']) {
-        park.parking = { handicapSpots: parseInt(row['Number of Handicap Spots'], 10) || 0 };
+        park.parking = {
+          locations: row['Parking Location'] ? [row['Parking Location']] : [],
+          handicapSpots: parseInt(row['Number of Handicap Spots'], 10) || 0,
+        };
       }
       if (row['Park Shade Description']) park.parkShade = row['Park Shade Description'];
 
@@ -134,10 +154,9 @@ async function importParks() {
       if (row['Restroom Location']) {
         park.restrooms.push({
           location: row['Restroom Location'],
-          runningWater: row['Restroom Running Water?'] === 'TRUE',
-          changingTable: normalizeEnumValue(row['Restroom Changing Table?'], validChangingTableValues),
-          womensStalls: row["Women's stalls"] || null,
-          mensStallsUrinals: row["Men's Stalls/Urinals"] || null,
+          runningWater: row['Restroom Running Water?']?.toLowerCase() === 'true',
+          changingTable: normalizeEnumValue(row['Restroom Changing Table?'], ["men's", "women's", 'both', 'neither']),
+          numStalls: parseInt(row["Women's stalls"], 10) || parseInt(row["Men's Stalls/Urinals"], 10) || null,
         });
       }
 
@@ -159,6 +178,14 @@ async function importParks() {
       };
 
       park.notes = row['OTHER NOTES'] || null;
+
+      if (row['Spectator Location Conditions']) {
+        park.spectatorConditions = {
+          locationTypes: row['Spectator Location Conditions']
+            .split(',')
+            .map((s) => s.trim().toLowerCase()),
+        };
+      }      
 
       console.log('Final park object:', JSON.stringify(park, null, 2));
       parks.push(park);
