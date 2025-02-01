@@ -16,8 +16,8 @@ const fieldSchema = new Schema({
   backstopMaterial: { type: String, enum: ['fence', 'net'] }, // Fence, Net
   backstopDistance: { type: Number }, // Backstop Distance (ft)
   dugoutsCovered: { type: Boolean }, // Dugouts Covered?
-  dugoutsMaterial: { type: String, enum: ['brick', 'fence'] }, // Dugouts Material
-  battingCages: { type: Boolean }, // **Does this field have a dedicated batting cage?**
+  dugoutsMaterial: { type: String, enum: ['brick', 'fence', 'wood'] }, // Dugouts Material
+  battingCages: { type: Boolean }, // Dedicated Batting Cage?
   scoreboardAvailable: { type: Boolean }, // Scoreboard Available?
   scoreboardType: { type: String }, // Scoreboard Type
   fenceHeight: { type: Number }, // Fence Height (ft)
@@ -32,6 +32,8 @@ const restroomSchema = new Schema({
   runningWater: { type: Boolean }, // Running Water?
   changingTable: { type: String, enum: ["men's", "women's", 'both', 'neither'] }, // Changing Table
   numStalls: { type: Number }, // Number of Stalls
+  mensStallsUrinals: { type: Number }, // Men's Stalls/Urinals
+  womensStalls: { type: Number }, // Women's Stalls
 });
 
 const concessionsSchema = new Schema({
@@ -66,6 +68,7 @@ const parkSchema = new Schema({
   parking: {
     locations: [{ type: String }], // Parking Locations
     handicapSpots: { type: Number }, // Handicap Spots
+    numberOfParkingLots: { type: Number }, // Total Number of Parking Lots
   },
   parkShade: { type: String }, // Park Shade Description
   restrooms: [restroomSchema], // Restroom Array
@@ -101,10 +104,10 @@ const parkSchema = new Schema({
     description: { type: String }, // Description of shared batting cages, if applicable
   },
   otherNotes: { type: String }, // Notes from CSV
-  numberOfParkingLots: { type: Number }, // Number of Parking Lots
   rvParkingAvailable: { type: Boolean }, // RV Parking Availability
   bikeRackAvailability: { type: Boolean }, // Bike Racks Available
   electricalOutletsForPublicUse: { type: Boolean, default: null }, // Public Electrical Outlets?
+  locationOfElectricalOutlets: { type: String }, // Location of Electrical Outlets
   stairsDescription: { type: String }, // Stairs Description
   hillsDescription: { type: String }, // Hills Description
 });
