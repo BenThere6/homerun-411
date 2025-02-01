@@ -68,23 +68,25 @@ export default function ParkDetails({ route }) {
 
           {/* {park.numberOfFields && (
             <> */}
-              <Text style={styles.subtitle}>Number of Fields</Text>
-              <Text style={styles.text}>{park.numberOfFields}</Text>
-            {/* </>
+          <Text style={styles.subtitle}>Number of Fields</Text>
+          <Text style={styles.text}>{park.numberOfFields}</Text>
+          {/* </>
           )} */}
 
           {/* {park.sharedBattingCages && (
             <> */}
-              <Text style={styles.subtitle}>Shared Batting Cages</Text>
-              <Text style={styles.text}>{park.sharedBattingCages}</Text>
-            {/* </>
+          <Text style={styles.subtitle}>Shared Batting Cages</Text>
+          <Text style={styles.text}>
+            {park.battingCages?.shared != null ? (park.battingCages.shared ? 'Yes' : 'No') : 'No data available'}
+          </Text>
+          {/* </>
           )} */}
 
           {/* {park.sharedBattingCageDescription && (
             <> */}
-              <Text style={styles.subtitle}>Batting Cage Description</Text>
-              <Text style={styles.text}>{park.sharedBattingCageDescription}</Text>
-            {/* </>
+          <Text style={styles.subtitle}>Batting Cage Description</Text>
+          <Text style={styles.text}>{park.battingCages.description}</Text>
+          {/* </>
           )} */}
         </View>
 
@@ -94,37 +96,42 @@ export default function ParkDetails({ route }) {
 
           {/* {park.entranceFee && (
             <> */}
-              <Text style={styles.subtitle}>Entrance Fee</Text>
-              <Text style={styles.text}>{park.entranceFee ? 'Yes' : 'No'}</Text>
-            {/* </>
+          <Text style={styles.subtitle}>Entrance Fee</Text>
+          <Text style={styles.text}>{park.gateEntranceFee ? 'Yes' : 'No'}</Text>
+          {/* </>
           )} */}
 
           {/* {park.playground && (
             <> */}
-              <Text style={styles.subtitle}>Playground</Text>
-              <Text style={styles.text}>{park.playground ? 'Yes' : 'No'}</Text>
-            {/* </>
+          <Text style={styles.subtitle}>Playground</Text>
+          <Text style={styles.text}>{park.playground.available ? 'Yes' : 'No'}</Text>
+          {/* </>
           )} */}
 
           {/* {park.playgroundLocation && (
             <> */}
-              <Text style={styles.subtitle}>Playground Location</Text>
-              <Text style={styles.text}>{park.playgroundLocation}</Text>
-            {/* </>
+          <Text style={styles.subtitle}>Playground Location</Text>
+          <Text style={styles.text}>{park.playground.location}</Text>
+          {/* </>
           )} */}
 
           {/* {park.spectatorLocationConditions && (
             <> */}
-              <Text style={styles.subtitle}>Spectator Conditions</Text>
-              <Text style={styles.text}>{park.spectatorLocationConditions}</Text>
-            {/* </>
+          <Text style={styles.subtitle}>Spectator Surface Type</Text>
+          <Text style={styles.text}>
+            {Array.isArray(park.spectatorConditions?.locationTypes) && park.spectatorConditions.locationTypes.length > 0
+              ? park.spectatorConditions.locationTypes[0].charAt(0).toUpperCase() + park.spectatorConditions.locationTypes[0].slice(1)
+              : 'No data available'}
+          </Text>
+
+          {/* </>
           )} */}
 
           {/* {park.otherNotes && (
             <> */}
-              <Text style={styles.subtitle}>Other Notes</Text>
-              <Text style={styles.text}>{park.otherNotes}</Text>
-            {/* </>
+          <Text style={styles.subtitle}>Other Notes</Text>
+          <Text style={styles.text}>{park.otherNotes}</Text>
+          {/* </>
           )} */}
         </View>
 
@@ -138,14 +145,8 @@ export default function ParkDetails({ route }) {
         {/* Parking Information */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Parking Information</Text>
-          <Text style={styles.subtitle}>Closest Parking to Field</Text>
-          <Text style={styles.text}>{park.closestParkingToField || 'No data available'}</Text>
-          <Text style={styles.subtitle}>Parking Locations</Text>
-          <Text style={styles.text}>
-            {Array.isArray(park.parking?.locations) && park.parking.locations.length > 0
-              ? park.parking.locations.join(', ')
-              : 'No data available'}
-          </Text>
+          <Text style={styles.subtitle}>Parking Location</Text>
+          <Text style={styles.text}>{park.parking.locations || 'No data available'}</Text>
           <Text style={styles.subtitle}>Handicap Parking Spots</Text>
           <Text style={styles.text}>{park.parking?.handicapSpots || 'No data available'}</Text>
         </View>
@@ -206,37 +207,37 @@ export default function ParkDetails({ route }) {
                 </Text>
                 {/* {field.scoreboardAvailable && (
                   <> */}
-                    <Text style={styles.subtitle}>Scoreboard Available</Text>
-                    <Text style={styles.text}>{field.scoreboardAvailable ? 'Yes' : 'No'}</Text>
-                  {/* </>
+                <Text style={styles.subtitle}>Scoreboard Available</Text>
+                <Text style={styles.text}>{field.scoreboardAvailable ? 'Yes' : 'No'}</Text>
+                {/* </>
                 )} */}
 
                 {/* {field.scoreboardType && (
                   <> */}
-                    <Text style={styles.subtitle}>Scoreboard Type</Text>
-                    <Text style={styles.text}>{field.scoreboardType}</Text>
-                  {/* </>
+                <Text style={styles.subtitle}>Scoreboard Type</Text>
+                <Text style={styles.text}>{field.scoreboardType}</Text>
+                {/* </>
                 )} */}
 
                 {/* {field.portableMounds && (
                   <> */}
-                    <Text style={styles.subtitle}>Portable Mounds</Text>
-                    <Text style={styles.text}>{field.portableMounds ? 'Yes' : 'No'}</Text>
-                  {/* </>
+                <Text style={styles.subtitle}>Portable Mounds</Text>
+                <Text style={styles.text}>{field.portableMounds ? 'Yes' : 'No'}</Text>
+                {/* </>
                 )} */}
 
                 {/* {field.grassInfield && (
                   <> */}
-                    <Text style={styles.subtitle}>Grass Infield</Text>
-                    <Text style={styles.text}>{field.grassInfield ? 'Yes' : 'No'}</Text>
-                  {/* </>
+                <Text style={styles.subtitle}>Grass Infield</Text>
+                <Text style={styles.text}>{field.grassInfield ? 'Yes' : 'No'}</Text>
+                {/* </>
                 )} */}
 
                 {/* {field.fieldLightingQuality && (
                   <> */}
-                    <Text style={styles.subtitle}>Lighting Quality</Text>
-                    <Text style={styles.text}>{field.fieldLightingQuality}</Text>
-                  {/* </>
+                <Text style={styles.subtitle}>Lighting Quality</Text>
+                <Text style={styles.text}>{field.fieldLightingQuality}</Text>
+                {/* </>
                 )} */}
 
               </View>

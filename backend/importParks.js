@@ -73,20 +73,24 @@ async function importParks() {
       const validDugoutMaterials = ['brick', 'fence', 'wood'];
       const validChangingTableValues = ["men's", "women's", 'both', 'neither'];
 
+      const toBoolean = (value) => (typeof value === 'string' ? value.trim().toLowerCase() === 'true' : !!value);
+
       const park = {
         name: row.Name,
         address: row.Address,
         city: row.City,
         state: row.State.toLowerCase(),
-        sharedBattingCages: row['Shared Batting Cages?']?.toLowerCase() === 'true',
-        sharedBattingCageDescription: row['Shared Batting Cage Description'] || null,
+        battingCages: {
+          shared: toBoolean(row['Shared Batting Cages?']),
+          description: row['Shared Batting Cage Description']?.trim() || null,
+        },
         numberOfParkingLots: parseInt(row['Number of Parking Lots'], 10) || null,
-        rvParkingAvailable: row['RV Parking Available?']?.toLowerCase() === 'true',
-        bikeRackAvailability: row['Bike Rack Availability?']?.toLowerCase() === 'true',
-        electricalOutletsForPublicUse: row['Electrical Outlets for Public Use?']?.toLowerCase() === 'true',
+        rvParkingAvailable: toBoolean(row['RV Parking Available?']),
+        bikeRackAvailability: toBoolean(row['Bike Rack Availability?']),
+        electricalOutletsForPublicUse: toBoolean(row['Electrical Outlets for Public Use?']),
         stairsDescription: row['Stairs Description'] || null,
         hillsDescription: row['Hills Description'] || null,
-        gateEntranceFee: row['Entrance Fee?']?.toLowerCase() === 'true',
+        gateEntranceFee: toBoolean(row['Entrance Fee?']),
         otherNotes: row['OTHER NOTES'] || null,
       };
 
