@@ -36,240 +36,234 @@ export default function ParkDetails({ route }) {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.contentContainer}>
-        {/* Main Park Image */}
-        <ImageBackground
-          source={{ uri: imageUrl }}
-          style={styles.mainImage}
-          resizeMode="cover"
-          onError={() => setImageUrl(defaultImage)}
-        />
+    <View style={styles.container}>
+      <ScrollView style={styles.scrollContainer} contentContainerStyle={{ paddingBottom: 100 }}>
+        <View style={styles.contentContainer}>
+          {/* Main Park Image */}
+          <ImageBackground
+            source={{ uri: imageUrl }}
+            style={styles.mainImage}
+            resizeMode="cover"
+            onError={() => setImageUrl(defaultImage)}
+          />
 
-        {/* General Information */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>General Information</Text>
+          {/* General Information */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>General Information</Text>
 
-          <Text style={styles.subtitle}>Name</Text>
-          <Text style={styles.text}>{park.name}</Text>
+            <Text style={styles.subtitle}>Name</Text>
+            <Text style={styles.text}>{park.name}</Text>
 
 
-          <Text style={styles.subtitle}>City</Text>
-          <Text style={styles.text}>
-            {park.city || 'No city available'}, {park.state || 'No state available'}
-          </Text>
+            <Text style={styles.subtitle}>City</Text>
+            <Text style={styles.text}>
+              {park.city || 'No city available'}, {park.state || 'No state available'}
+            </Text>
 
-          {park.address && (
-            <>
-              <Text style={styles.subtitle}>Address</Text>
-              <Text style={styles.text}>{park.address}</Text>
-            </>
-          )}
+            {park.address && (
+              <>
+                <Text style={styles.subtitle}>Address</Text>
+                <Text style={styles.text}>{park.address}</Text>
+              </>
+            )}
 
-          {/* {park.numberOfFields && (
+            {/* {park.numberOfFields && (
             <> */}
-          <Text style={styles.subtitle}>Number of Fields</Text>
-          <Text style={styles.text}>{park.numberOfFields}</Text>
-          {/* </>
+            <Text style={styles.subtitle}>Number of Fields</Text>
+            <Text style={styles.text}>{park.numberOfFields}</Text>
+            {/* </>
           )} */}
 
-          {/* {park.sharedBattingCages && (
+            {/* {park.sharedBattingCages && (
             <> */}
-          <Text style={styles.subtitle}>Shared Batting Cages</Text>
-          <Text style={styles.text}>
-            {park.battingCages?.shared != null ? (park.battingCages.shared ? 'Yes' : 'No') : 'No data available'}
-          </Text>
-          {/* </>
+            <Text style={styles.subtitle}>Shared Batting Cages</Text>
+            <Text style={styles.text}>
+              {park.battingCages?.shared != null ? (park.battingCages.shared ? 'Yes' : 'No') : 'No data available'}
+            </Text>
+            {/* </>
           )} */}
 
-          {/* {park.sharedBattingCageDescription && (
+            {/* {park.sharedBattingCageDescription && (
             <> */}
-          <Text style={styles.subtitle}>Batting Cage Description</Text>
-          <Text style={styles.text}>{park.battingCages.description}</Text>
-          {/* </>
+            <Text style={styles.subtitle}>Batting Cage Description</Text>
+            <Text style={styles.text}>{park.battingCages.description}</Text>
+            {/* </>
           )} */}
-        </View>
+          </View>
 
-        {/* Additional Features */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Additional Features</Text>
+          {/* Additional Features */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Additional Features</Text>
 
-          {/* {park.entranceFee && (
+            {/* {park.entranceFee && (
             <> */}
-          <Text style={styles.subtitle}>Entrance Fee</Text>
-          <Text style={styles.text}>{park.gateEntranceFee ? 'Yes' : 'No'}</Text>
-          {/* </>
-          )} */}
-
-          {/* {park.playground && (
-            <> */}
-          <Text style={styles.subtitle}>Playground</Text>
-          <Text style={styles.text}>{park.playground.available ? 'Yes' : 'No'}</Text>
-          {/* </>
+            <Text style={styles.subtitle}>Entrance Fee</Text>
+            <Text style={styles.text}>{park.gateEntranceFee ? 'Yes' : 'No'}</Text>
+            {/* </>
           )} */}
 
-          {/* {park.playgroundLocation && (
+            {/* {park.playground && (
             <> */}
-          <Text style={styles.subtitle}>Playground Location</Text>
-          <Text style={styles.text}>{park.playground.location}</Text>
-          {/* </>
+            <Text style={styles.subtitle}>Playground</Text>
+            <Text style={styles.text}>{park.playground.available ? 'Yes' : 'No'}</Text>
+            {/* </>
           )} */}
 
-          {/* {park.spectatorLocationConditions && (
+            {/* {park.playgroundLocation && (
             <> */}
-          <Text style={styles.subtitle}>Spectator Surface Type</Text>
-          <Text style={styles.text}>
-            {Array.isArray(park.spectatorConditions?.locationTypes) && park.spectatorConditions.locationTypes.length > 0
-              ? park.spectatorConditions.locationTypes[0].charAt(0).toUpperCase() + park.spectatorConditions.locationTypes[0].slice(1)
-              : 'No data available'}
-          </Text>
-
-          {/* </>
+            <Text style={styles.subtitle}>Playground Location</Text>
+            <Text style={styles.text}>{park.playground.location}</Text>
+            {/* </>
           )} */}
 
-          {/* {park.otherNotes && (
+            {/* {park.spectatorLocationConditions && (
             <> */}
-          <Text style={styles.subtitle}>Other Notes</Text>
-          <Text style={styles.text}>{park.otherNotes}</Text>
-          {/* </>
+            <Text style={styles.subtitle}>Spectator Surface Type</Text>
+            <Text style={styles.text}>
+              {Array.isArray(park.spectatorConditions?.locationTypes) && park.spectatorConditions.locationTypes.length > 0
+                ? park.spectatorConditions.locationTypes[0].charAt(0).toUpperCase() + park.spectatorConditions.locationTypes[0].slice(1)
+                : 'No data available'}
+            </Text>
+
+            {/* </>
           )} */}
-        </View>
 
-        {/* Navigate Button */}
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.customButton} onPress={openMapsApp}>
-            <Text style={styles.buttonText}>Navigate</Text>
-          </TouchableOpacity>
-        </View>
+            {/* {park.otherNotes && (
+            <> */}
+            <Text style={styles.subtitle}>Other Notes</Text>
+            <Text style={styles.text}>{park.otherNotes}</Text>
+            {/* </>
+          )} */}
+          </View>
 
-        {/* Parking Information */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Parking Information</Text>
-          <Text style={styles.subtitle}>Parking Location</Text>
-          <Text style={styles.text}>{park.parking.locations || 'No data available'}</Text>
-          <Text style={styles.subtitle}>Handicap Parking Spots</Text>
-          <Text style={styles.text}>{park.parking?.handicapSpots || 'No data available'}</Text>
-        </View>
+          {/* Parking Information */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Parking Information</Text>
+            <Text style={styles.subtitle}>Parking Location</Text>
+            <Text style={styles.text}>{park.parking.locations || 'No data available'}</Text>
+            <Text style={styles.subtitle}>Handicap Parking Spots</Text>
+            <Text style={styles.text}>{park.parking?.handicapSpots || 'No data available'}</Text>
+          </View>
 
-        {/* Park Amenities */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Park Amenities</Text>
-          <Text style={styles.subtitle}>Park Shade</Text>
-          <Text style={styles.text}>{park.parkShade || 'No data available'}</Text>
-          <Text style={styles.subtitle}>Coolers Allowed</Text>
-          <Text style={styles.text}>{park.coolersAllowed ? 'Yes' : 'No data available'}</Text>
-          <Text style={styles.subtitle}>Canopies Allowed</Text>
-          <Text style={styles.text}>{park.canopiesAllowed ? 'Yes' : 'No data available'}</Text>
-          <Text style={styles.subtitle}>Field Lights</Text>
-          <Text style={styles.text}>{park.lights ? 'Yes' : 'No data available'}</Text>
-        </View>
+          {/* Park Amenities */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Park Amenities</Text>
+            <Text style={styles.subtitle}>Park Shade</Text>
+            <Text style={styles.text}>{park.parkShade || 'No data available'}</Text>
+            <Text style={styles.subtitle}>Coolers Allowed</Text>
+            <Text style={styles.text}>{park.coolersAllowed ? 'Yes' : 'No data available'}</Text>
+            <Text style={styles.subtitle}>Canopies Allowed</Text>
+            <Text style={styles.text}>{park.canopiesAllowed ? 'Yes' : 'No data available'}</Text>
+            <Text style={styles.subtitle}>Field Lights</Text>
+            <Text style={styles.text}>{park.lights ? 'Yes' : 'No data available'}</Text>
+          </View>
 
-        {/* Concessions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Concessions</Text>
-          <Text style={styles.text}>
-            {park.concessions?.available ? 'Available' : 'Not available'}
-          </Text>
-          <Text style={styles.text}>
-            Snacks: {park.concessions?.snacks ? 'Yes' : 'No data available'}
-          </Text>
-          <Text style={styles.text}>
-            Drinks: {park.concessions?.drinks ? 'Yes' : 'No data available'}
-          </Text>
-          <Text style={styles.text}>
-            Payment Methods:{' '}
-            {Array.isArray(park.concessions?.paymentMethods) && park.concessions.paymentMethods.length > 0
-              ? park.concessions.paymentMethods.join(', ')
-              : 'No data available'}
-          </Text>
-        </View>
+          {/* Concessions */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Concessions</Text>
+            <Text style={styles.text}>
+              {park.concessions?.available ? 'Available' : 'Not available'}
+            </Text>
+            <Text style={styles.text}>
+              Snacks: {park.concessions?.snacks ? 'Yes' : 'No data available'}
+            </Text>
+            <Text style={styles.text}>
+              Drinks: {park.concessions?.drinks ? 'Yes' : 'No data available'}
+            </Text>
+            <Text style={styles.text}>
+              Payment Methods:{' '}
+              {Array.isArray(park.concessions?.paymentMethods) && park.concessions.paymentMethods.length > 0
+                ? park.concessions.paymentMethods.join(', ')
+                : 'No data available'}
+            </Text>
+          </View>
 
-        {/* Fields */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Fields</Text>
-          {park.fields?.length > 0 ? (
-            park.fields.map((field, index) => (
-              <View key={index}>
-                <Text style={styles.subtitle}>Field {index + 1}</Text>
-                <Text style={styles.text}>Name: {field.name || 'No data available'}</Text>
-                <Text style={styles.text}>Location: {field.location || 'No data available'}</Text>
-                <Text style={styles.text}>
-                  Field Type: {field.fieldType
-                    ? field.fieldType === 'both'
-                      ? 'Baseball and Softball'
-                      : field.fieldType.charAt(0).toUpperCase() + field.fieldType.slice(1)
+          {/* Fields */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Fields</Text>
+            {park.fields?.length > 0 ? (
+              park.fields.map((field, index) => (
+                <View key={index}>
+                  <Text style={styles.subtitle}>Field {index + 1}</Text>
+                  <Text style={styles.text}>Name: {field.name || 'No data available'}</Text>
+                  <Text style={styles.text}>Location: {field.location || 'No data available'}</Text>
+                  <Text style={styles.text}>
+                    Field Type: {field.fieldType
+                      ? field.fieldType === 'both'
+                        ? 'Baseball and Softball'
+                        : field.fieldType.charAt(0).toUpperCase() + field.fieldType.slice(1)
+                      : 'No data available'}
+                  </Text>
+                  <Text style={styles.text}>
+                    Fence Distance: {field.fenceDistance
+                      ? `${String(field.fenceDistance).trim()} ft`
+                      : 'No data available'}
+                  </Text>
+
+                  <Text style={styles.text}>Fence Height: {field.fenceHeight != null
+                    ? `${String(field.fenceHeight).trim()} ft`
                     : 'No data available'}
-                </Text>
-                <Text style={styles.text}>
-                  Fence Distance: {field.fenceDistance
-                    ? `${String(field.fenceDistance).trim()} ft`
+                  </Text>
+
+                  <Text style={styles.text}>
+                    Outfield Material: {field.outfieldMaterial
+                      ? field.outfieldMaterial.charAt(0).toUpperCase() + field.outfieldMaterial.slice(1)
+                      : 'No data available'}
+                  </Text>
+                  <Text style={styles.text}>
+                    Infield Material: {field.infieldMaterial
+                      ? field.infieldMaterial.charAt(0).toUpperCase() + field.infieldMaterial.slice(1)
+                      : 'No data available'}
+                  </Text>
+                  <Text style={styles.text}>
+                    Mound Type: {field.moundType
+                      ? field.moundType.charAt(0).toUpperCase() + field.moundType.slice(1)
+                      : 'No data available'}
+                  </Text>
+                  <Text style={styles.text}>Shade Description: {field.fieldShadeDescription || 'No data available'}</Text>
+                  <Text style={styles.text}>Parking Distance: {field.parkingDistanceToField || 'No data available'}</Text>
+                  <Text style={styles.text}>
+                    Bleachers Available: {field.bleachersAvailable ? 'Yes' : 'No data available'}
+                  </Text>
+
+                  <Text style={styles.text}>Backstop Material: {field.backstopMaterial
+                    ? field.backstopMaterial.charAt(0).toUpperCase() + field.backstopMaterial.slice(1)
                     : 'No data available'}
-                </Text>
+                  </Text>
 
-                <Text style={styles.text}>Fence Height: {field.fenceHeight != null
-                  ? `${String(field.fenceHeight).trim()} ft`
-                  : 'No data available'}
-                </Text>
-
-                <Text style={styles.text}>
-                  Outfield Material: {field.outfieldMaterial
-                    ? field.outfieldMaterial.charAt(0).toUpperCase() + field.outfieldMaterial.slice(1)
+                  <Text style={styles.text}>Backstop Distance: {field.backstopDistance != null
+                    ? `${String(field.backstopDistance).trim()} ft`
                     : 'No data available'}
-                </Text>
-                <Text style={styles.text}>
-                  Infield Material: {field.infieldMaterial
-                    ? field.infieldMaterial.charAt(0).toUpperCase() + field.infieldMaterial.slice(1)
+                  </Text>
+
+                  <Text style={styles.text}>Dugouts Covered: {field.dugoutsCovered != null
+                    ? (field.dugoutsCovered ? 'Yes' : 'No')
                     : 'No data available'}
-                </Text>
-                <Text style={styles.text}>
-                  Mound Type: {field.moundType
-                    ? field.moundType.charAt(0).toUpperCase() + field.moundType.slice(1)
+                  </Text>
+
+                  <Text style={styles.text}>Dugout Material: {field.dugoutsMaterial
+                    ? field.dugoutsMaterial.charAt(0).toUpperCase() + field.dugoutsMaterial.slice(1)
                     : 'No data available'}
-                </Text>
-                <Text style={styles.text}>Shade Description: {field.fieldShadeDescription || 'No data available'}</Text>
-                <Text style={styles.text}>Parking Distance: {field.parkingDistanceToField || 'No data available'}</Text>
-                <Text style={styles.text}>
-                  Bleachers Available: {field.bleachersAvailable ? 'Yes' : 'No data available'}
-                </Text>
+                  </Text>
 
-                <Text style={styles.text}>Backstop Material: {field.backstopMaterial
-                  ? field.backstopMaterial.charAt(0).toUpperCase() + field.backstopMaterial.slice(1)
-                  : 'No data available'}
-                </Text>
+                  <Text style={styles.text}>Batting Cages: {field.battingCages != null
+                    ? (field.battingCages ? 'Yes' : 'No')
+                    : 'No data available'}
+                  </Text>
 
-                <Text style={styles.text}>Backstop Distance: {field.backstopDistance != null
-                  ? `${String(field.backstopDistance).trim()} ft`
-                  : 'No data available'}
-                </Text>
-
-                <Text style={styles.text}>Dugouts Covered: {field.dugoutsCovered != null
-                  ? (field.dugoutsCovered ? 'Yes' : 'No')
-                  : 'No data available'}
-                </Text>
-
-                <Text style={styles.text}>Dugout Material: {field.dugoutsMaterial
-                  ? field.dugoutsMaterial.charAt(0).toUpperCase() + field.dugoutsMaterial.slice(1)
-                  : 'No data available'}
-                </Text>
-
-                <Text style={styles.text}>Batting Cages: {field.battingCages != null
-                  ? (field.battingCages ? 'Yes' : 'No')
-                  : 'No data available'}
-                </Text>
-
-                {/* <Text style={styles.text}>Scoreboard Available: {field.scoreboardAvailable != null
+                  {/* <Text style={styles.text}>Scoreboard Available: {field.scoreboardAvailable != null
                   ? (field.scoreboardAvailable ? 'Yes' : 'No')
                   : 'No data available'}
                 </Text>
 
                 <Text style={styles.text}>Scoreboard Type: {field.scoreboardType || 'No data available'}</Text> */}
 
-                <Text style={styles.text}>Warning Track: {field.warningTrack != null
-                  ? (field.warningTrack ? 'Yes' : 'No')
-                  : 'No data available'}
-                </Text>
+                  <Text style={styles.text}>Warning Track: {field.warningTrack != null
+                    ? (field.warningTrack ? 'Yes' : 'No')
+                    : 'No data available'}
+                  </Text>
 
-                {/* <Text style={styles.text}>Bullpen Available: {field.bullpenAvailable != null
+                  {/* <Text style={styles.text}>Bullpen Available: {field.bullpenAvailable != null
                   ? (field.bullpenAvailable ? 'Yes' : 'No')
                   : 'No data available'}
                 </Text>
@@ -281,14 +275,20 @@ export default function ParkDetails({ route }) {
                   : 'No data available'}
                 </Text> */}
 
-              </View>
-            ))
-          ) : (
-            <Text style={styles.text}>No fields available</Text>
-          )}
+                </View>
+              ))
+            ) : (
+              <Text style={styles.text}>No fields available</Text>
+            )}
+          </View>
         </View>
+      </ScrollView>
+      <View style={styles.fixedBottomBar}>
+        <TouchableOpacity style={styles.customButton} onPress={openMapsApp}>
+          <Text style={styles.buttonText}>Navigate</Text>
+        </TouchableOpacity>
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
@@ -340,4 +340,26 @@ const styles = StyleSheet.create({
   },
   errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   errorText: { fontSize: 18, color: 'red' },
+  fixedBottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'white',
+    paddingVertical: 12,
+    paddingBottom: Platform.OS === 'ios' ? 30 : 12, // Extra bottom padding for iPhones
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderTopWidth: 1,
+    borderColor: '#ddd',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+  },  
+  scrollContainer: {
+    flex: 1,
+    paddingBottom: 0, // Increased padding to avoid overlap with the fixed bar
+  },
 });
