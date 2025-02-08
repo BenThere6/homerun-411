@@ -37,7 +37,7 @@ export default function ParkDetails({ route }) {
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollContainer} contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView style={styles.scrollContainer} contentContainerStyle={{ paddingBottom: 60 }}>
         <View style={styles.contentContainer}>
           {/* Main Park Image */}
           <ImageBackground
@@ -67,57 +67,32 @@ export default function ParkDetails({ route }) {
               </>
             )}
 
-            {/* {park.numberOfFields && (
-            <> */}
             <Text style={styles.subtitle}>Number of Fields</Text>
             <Text style={styles.text}>{park.numberOfFields}</Text>
-            {/* </>
-          )} */}
 
-            {/* {park.sharedBattingCages && (
-            <> */}
-            <Text style={styles.subtitle}>Shared Batting Cages</Text>
-            <Text style={styles.text}>
-              {park.battingCages?.shared != null ? (park.battingCages.shared ? 'Yes' : 'No') : 'No data available'}
-            </Text>
-            {/* </>
-          )} */}
-
-            {/* {park.sharedBattingCageDescription && (
-            <> */}
-            <Text style={styles.subtitle}>Batting Cage Description</Text>
-            <Text style={styles.text}>{park.battingCages.description}</Text>
-            {/* </>
-          )} */}
           </View>
 
           {/* Additional Features */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Additional Features</Text>
-
-            {/* {park.entranceFee && (
-            <> */}
+            
             <Text style={styles.subtitle}>Entrance Fee</Text>
             <Text style={styles.text}>{park.gateEntranceFee ? 'Yes' : 'No'}</Text>
-            {/* </>
-          )} */}
 
-            {/* {park.playground && (
-            <> */}
             <Text style={styles.subtitle}>Playground</Text>
             <Text style={styles.text}>{park.playground.available ? 'Yes' : 'No'}</Text>
-            {/* </>
-          )} */}
 
-            {/* {park.playgroundLocation && (
-            <> */}
             <Text style={styles.subtitle}>Playground Location</Text>
             <Text style={styles.text}>{park.playground.location}</Text>
-            {/* </>
-          )} */}
 
-            {/* {park.spectatorLocationConditions && (
-            <> */}
+            <Text style={styles.subtitle}>Shared Batting Cages</Text>
+            <Text style={styles.text}>
+              {park.battingCages?.shared != null ? (park.battingCages.shared ? 'Yes' : 'No') : 'No data available'}
+            </Text>
+
+            <Text style={styles.subtitle}>Batting Cage Description</Text>
+            <Text style={styles.text}>{park.battingCages.description}</Text>
+
             <Text style={styles.subtitle}>Spectator Surface Type</Text>
             <Text style={styles.text}>
               {Array.isArray(park.spectatorConditions?.locationTypes) && park.spectatorConditions.locationTypes.length > 0
@@ -125,15 +100,9 @@ export default function ParkDetails({ route }) {
                 : 'No data available'}
             </Text>
 
-            {/* </>
-          )} */}
-
-            {/* {park.otherNotes && (
-            <> */}
             <Text style={styles.subtitle}>Other Notes</Text>
             <Text style={styles.text}>{park.otherNotes}</Text>
-            {/* </>
-          )} */}
+
           </View>
 
           {/* Parking Information */}
@@ -357,7 +326,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 5,
-  },  
+  },
   scrollContainer: {
     flex: 1,
     paddingBottom: 0, // Increased padding to avoid overlap with the fixed bar
