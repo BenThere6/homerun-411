@@ -35,7 +35,6 @@ export default function ParkDetails({ route }) {
     <View style={styles.container}>
       <ScrollView style={styles.scrollContainer} contentContainerStyle={{ paddingBottom: 60 }}>
         <View style={styles.contentContainer}>
-
           {/* Main Park Image */}
           <ImageBackground
             source={{ uri: imageUrl }}
@@ -74,23 +73,87 @@ export default function ParkDetails({ route }) {
             <Text style={styles.text}>{park.playground?.location || 'No data available'}</Text>
             <Text style={styles.subtitle}>Shared Batting Cages</Text>
             <Text style={styles.text}>{park.battingCages?.shared ? 'Yes' : 'No'}</Text>
-            <Text style={styles.subtitle}>Park Shade</Text>
-            <Text style={styles.text}>{park.parkShade || 'No data available'}</Text>
-            <Text style={styles.subtitle}>Coolers Allowed</Text>
-            <Text style={styles.text}>{park.coolersAllowed ? 'Yes' : 'No'}</Text>
-            <Text style={styles.subtitle}>Canopies Allowed</Text>
-            <Text style={styles.text}>{park.canopiesAllowed ? 'Yes' : 'No'}</Text>
-            <Text style={styles.subtitle}>Field Lights</Text>
-            <Text style={styles.text}>{park.lights ? 'Yes' : 'No'}</Text>
           </View>
 
-          {/* Notes */}
-          {park.otherNotes && (
+          {/* Additional Park Details */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Additional Park Details</Text>
+            <Text style={styles.subtitle}>Shared Batting Cage Description</Text>
+            <Text style={styles.text}>{park.battingCages?.description || 'No data available'}</Text>
+
+            <Text style={styles.subtitle}>Parking Location</Text>
+            <Text style={styles.text}>{park.closestParkingToField || 'No data available'}</Text>
+
+            <Text style={styles.subtitle}>Number of Handicap Spots</Text>
+            <Text style={styles.text}>{park.parking?.handicapSpots || 'No data available'}</Text>
+
+            <Text style={styles.subtitle}>Electrical Outlets for Public Use</Text>
+            <Text style={styles.text}>{park.electricalOutletsForPublicUse ? 'Yes' : 'No'}</Text>
+
+            <Text style={styles.subtitle}>Location of Electrical Outlets</Text>
+            <Text style={styles.text}>{park.electricalOutletsLocation || 'No data available'}</Text>
+
+            <Text style={styles.subtitle}>Sidewalks</Text>
+            <Text style={styles.text}>{park.sidewalks || 'No data available'}</Text>
+
+            <Text style={styles.subtitle}>Stairs Description</Text>
+            <Text style={styles.text}>{park.stairsDescription || 'No data available'}</Text>
+
+            <Text style={styles.subtitle}>Hills Description</Text>
+            <Text style={styles.text}>{park.hillsDescription || 'No data available'}</Text>
+
+            <Text style={styles.subtitle}>Spectator Location Conditions</Text>
+            <Text style={styles.text}>
+              {park.spectatorConditions?.locationTypes?.length > 0
+                ? park.spectatorConditions.locationTypes.join(', ')
+                : 'No data available'}
+            </Text>
+          </View>
+
+          {/* Restrooms */}
+          {park.restrooms?.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Additional Notes</Text>
-              <Text style={styles.text}>{park.otherNotes}</Text>
+              <Text style={styles.sectionTitle}>Restrooms</Text>
+              {park.restrooms.map((restroom, idx) => (
+                <View key={idx} style={{ marginBottom: 10 }}>
+                  <Text style={styles.subtitle}>Restroom Location</Text>
+                  <Text style={styles.text}>{restroom.location || 'No data available'}</Text>
+
+                  <Text style={styles.subtitle}>Running Water</Text>
+                  <Text style={styles.text}>{restroom.runningWater ? 'Yes' : 'No'}</Text>
+
+                  <Text style={styles.subtitle}>Changing Table</Text>
+                  <Text style={styles.text}>{restroom.changingTable || 'No data available'}</Text>
+
+                  <Text style={styles.subtitle}>Stalls (Combined)</Text>
+                  <Text style={styles.text}>{restroom.numStalls || 'No data available'}</Text>
+                </View>
+              ))}
             </View>
           )}
+
+          {/* Concessions */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Concessions</Text>
+            <Text style={styles.subtitle}>Available</Text>
+            <Text style={styles.text}>{park.concessions?.available ? 'Yes' : 'No'}</Text>
+
+            <Text style={styles.subtitle}>Snacks</Text>
+            <Text style={styles.text}>{park.concessions?.snacks ? 'Yes' : 'No'}</Text>
+
+            <Text style={styles.subtitle}>Drinks</Text>
+            <Text style={styles.text}>{park.concessions?.drinks ? 'Yes' : 'No'}</Text>
+
+            <Text style={styles.subtitle}>Other Food Description</Text>
+            <Text style={styles.text}>{park.concessions?.otherFood || 'No data available'}</Text>
+
+            <Text style={styles.subtitle}>Payment Methods</Text>
+            <Text style={styles.text}>
+              {park.concessions?.paymentMethods?.length > 0
+                ? park.concessions.paymentMethods.join(', ')
+                : 'No data available'}
+            </Text>
+          </View>
 
           {/* Fields */}
           <View style={styles.section}>
@@ -98,21 +161,60 @@ export default function ParkDetails({ route }) {
             {park.fields?.length > 0 ? (
               park.fields.map((field, index) => (
                 <View key={index} style={styles.fieldCard}>
-                  <Text style={styles.subtitle}>Field {index + 1}: {field.name || 'Unnamed Field'}</Text>
-                  <Text style={styles.text}>Type: {field.fieldType || 'No data available'}</Text>
-                  <Text style={styles.text}>Fence Distance: {field.fenceDistance ? `${field.fenceDistance} ft` : 'No data available'}</Text>
-                  <Text style={styles.text}>Fence Height: {field.fenceHeight ? `${field.fenceHeight} ft` : 'No data available'}</Text>
-                  <Text style={styles.text}>Outfield Material: {field.outfieldMaterial || 'No data available'}</Text>
-                  <Text style={styles.text}>Infield Material: {field.infieldMaterial || 'No data available'}</Text>
-                  <Text style={styles.text}>Mound Type: {field.moundType || 'No data available'}</Text>
-                  <Text style={styles.text}>Parking Distance: {field.parkingDistanceToField || 'No data available'}</Text>
-                  <Text style={styles.text}>Bleachers Available: {field.bleachersAvailable ? 'Yes' : 'No'}</Text>
-                  <Text style={styles.text}>Backstop Material: {field.backstopMaterial || 'No data available'}</Text>
-                  <Text style={styles.text}>Backstop Distance: {field.backstopDistance ? `${field.backstopDistance} ft` : 'No data available'}</Text>
-                  <Text style={styles.text}>Dugouts Covered: {field.dugoutsCovered ? 'Yes' : 'No'}</Text>
-                  <Text style={styles.text}>Dugout Material: {field.dugoutsMaterial || 'No data available'}</Text>
-                  <Text style={styles.text}>Batting Cages: {field.battingCages ? 'Yes' : 'No'}</Text>
-                  <Text style={styles.text}>Warning Track: {field.warningTrack ? 'Yes' : 'No'}</Text>
+                  <Text style={styles.subtitle}>
+                    Field {index + 1}: {field.name || 'Unnamed Field'}
+                  </Text>
+
+                  <Text style={styles.subtitle}>Field Location</Text>
+                  <Text style={styles.text}>{field.location || 'No data available'}</Text>
+
+                  <Text style={styles.subtitle}>Type</Text>
+                  <Text style={styles.text}>{field.fieldType || 'No data available'}</Text>
+
+                  <Text style={styles.subtitle}>Fence Distance</Text>
+                  <Text style={styles.text}>{field.fenceDistance ? `${field.fenceDistance} ft` : 'No data available'}</Text>
+
+                  <Text style={styles.subtitle}>Fence Height</Text>
+                  <Text style={styles.text}>{field.fenceHeight ? `${field.fenceHeight} ft` : 'No data available'}</Text>
+
+                  <Text style={styles.subtitle}>Outfield Material</Text>
+                  <Text style={styles.text}>{field.outfieldMaterial || 'No data available'}</Text>
+
+                  <Text style={styles.subtitle}>Infield Material</Text>
+                  <Text style={styles.text}>{field.infieldMaterial || 'No data available'}</Text>
+
+                  <Text style={styles.subtitle}>Mound Type</Text>
+                  <Text style={styles.text}>{field.moundType || 'No data available'}</Text>
+
+                  <Text style={styles.subtitle}>Field Shade Description</Text>
+                  <Text style={styles.text}>{field.fieldShadeDescription || 'No data available'}</Text>
+
+                  <Text style={styles.subtitle}>Parking Distance</Text>
+                  <Text style={styles.text}>{field.parkingDistanceToField || 'No data available'}</Text>
+
+                  <Text style={styles.subtitle}>Bleachers Available</Text>
+                  <Text style={styles.text}>{field.bleachersAvailable ? 'Yes' : 'No'}</Text>
+
+                  <Text style={styles.subtitle}>Bleachers Description</Text>
+                  <Text style={styles.text}>{field.bleachersDescription || 'No data available'}</Text>
+
+                  <Text style={styles.subtitle}>Backstop Material</Text>
+                  <Text style={styles.text}>{field.backstopMaterial || 'No data available'}</Text>
+
+                  <Text style={styles.subtitle}>Backstop Distance</Text>
+                  <Text style={styles.text}>{field.backstopDistance ? `${field.backstopDistance} ft` : 'No data available'}</Text>
+
+                  <Text style={styles.subtitle}>Dugouts Covered</Text>
+                  <Text style={styles.text}>{field.dugoutsCovered ? 'Yes' : 'No'}</Text>
+
+                  <Text style={styles.subtitle}>Dugouts Material</Text>
+                  <Text style={styles.text}>{field.dugoutsMaterial || 'No data available'}</Text>
+
+                  <Text style={styles.subtitle}>Batting Cages</Text>
+                  <Text style={styles.text}>{field.battingCages ? 'Yes' : 'No'}</Text>
+
+                  <Text style={styles.subtitle}>Warning Track</Text>
+                  <Text style={styles.text}>{field.warningTrack ? 'Yes' : 'No'}</Text>
                 </View>
               ))
             ) : (
@@ -134,11 +236,12 @@ export default function ParkDetails({ route }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'white' },
+  scrollContainer: { flex: 1 },
   contentContainer: { padding: 8 },
   mainImage: { width: '100%', height: 200, justifyContent: 'center', alignItems: 'center' },
-  section: { marginBottom: 20, padding: 0, backgroundColor: '#f9f9f9', borderRadius: 10 },
+  section: { marginBottom: 20, padding: 10, backgroundColor: '#f9f9f9', borderRadius: 10 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: '#333' },
-  subtitle: { fontSize: 16, fontWeight: '600', color: 'gray' },
+  subtitle: { fontSize: 16, fontWeight: '600', color: 'gray', marginTop: 5 },
   text: { fontSize: 14, color: 'black' },
   fieldCard: { padding: 10, backgroundColor: '#eef', borderRadius: 8, marginBottom: 10 },
   fixedBottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'white', padding: 25 },
