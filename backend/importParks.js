@@ -11,7 +11,6 @@ const GEOCODING_API_KEY = process.env.GEOCODING_API_KEY;
 // Connect to MongoDB
 mongoose.connect('mongodb://localhost:27017/yourDatabaseName');
 
-// Monitor MongoDB connection
 mongoose.connection.once('open', () => {
   console.log('Connected to MongoDB');
 });
@@ -23,7 +22,6 @@ mongoose.connection.on('error', (err) => {
 async function getCoordinatesFromAddress(address, city, state) {
   const fullAddress = `${address}, ${city}, ${state}`;
   const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(fullAddress)}&key=${GEOCODING_API_KEY}`;
-
   try {
     const response = await axios.get(url);
     if (response.data.results.length > 0) {
@@ -39,12 +37,51 @@ async function getCoordinatesFromAddress(address, city, state) {
   }
 }
 
+// Normalizes a value based on allowed enum values.
 const normalizeEnumValue = (value, validValues) => {
   if (value && validValues.includes(value.toLowerCase())) {
     return value.toLowerCase();
   }
-  return null; // Or a default value like `null` or 'unknown'
+  return null;
 };
+
+// Updated helper function to safely parse integers.
+// Returns null if the value is falsy, equals "nan", or cannot be parsed.
+function safeParseInt(value) {
+  if (!value || value.trim().toLowerCase() === 'nan') return null;
+  const parsed = parseInt(value, 10);
+  return isNaN(parsed) ? null : parsed;
+}
+
+// Converts a value to Boolean.
+function toBoolean(value) {
+  return typeof value === 'string'
+    ? value.trim().toLowerCase() === 'true'
+    : !!value;
+}
+
+// Normalizes an address string.
+function normalizeAddress(address) {
+  if (!address) return null;
+  return address
+    .toLowerCase()
+    .replace(/\b(?:west|w)\b/gi, 'W')
+    .replace(/\b(?:east|e)\b/gi, 'E')
+    .replace(/\b(?:south|s)\b/gi, 'S')
+    .replace(/\b(?:north|n)\b/gi, 'N')
+    .replace(/\b\w+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .trim();
+}
+
+// Maps the CSV value for the changing table to one of the allowed enum strings.
+function mapChangingTable(value) {
+  if (!value) return 'neither'; // Default if missing
+  const lower = value.trim().toLowerCase();
+  if (lower === 'true') return 'both';
+  if (lower === 'false') return 'neither';
+  if (["men's", "women's", 'both', 'neither'].includes(lower)) return lower;
+  return 'neither';
+}
 
 async function importParks() {
   const parks = [];
@@ -54,12 +91,10 @@ async function importParks() {
   const processRow = async (row) => {
     try {
       if (isFirstRow) {
-        // console.log('CSV Headers:', Object.keys(row));
         isFirstRow = false;
       }
 
-      // console.log('Processing row:', JSON.stringify(row, null, 2));
-
+      // Skip rows missing key fields.
       if (!row.Name || !row.Address || !row.City || !row.State) {
         console.warn('Skipping row with missing fields:', JSON.stringify(row, null, 2));
         return;
@@ -71,27 +106,11 @@ async function importParks() {
       const validMoundTypes = ['dirt', 'turf', 'portable'];
       const validBackstopMaterials = ['fence', 'net'];
       const validDugoutMaterials = ['brick', 'fence', 'wood'];
-      const validChangingTableValues = ["men's", "women's", 'both', 'neither'];
       const validSpectatorSurfaces = ['grass', 'cement', 'gravel', 'dirt'];
 
-      const toBoolean = (value) => (typeof value === 'string' ? value.trim().toLowerCase() === 'true' : !!value);
-
-      const normalizeAddress = (address) => {
-        if (!address) return null;
-      
-        return address
-          .toLowerCase() // Convert entire string to lowercase
-          .replace(/\b(?:west|w)\b/gi, 'W')
-          .replace(/\b(?:east|e)\b/gi, 'E')
-          .replace(/\b(?:south|s)\b/gi, 'S')
-          .replace(/\b(?:north|n)\b/gi, 'N')
-          .replace(/\b\w+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1)) // Capitalize every word
-          .trim();
-      };
-      
       const park = {
         name: row.Name,
-        address: normalizeAddress(row.Address),  // ✅ Apply improved formatting
+        address: normalizeAddress(row.Address),
         city: row.City,
         state: row.State.toUpperCase(),
         coolersAllowed: toBoolean(row['Coolers Allowed?']),
@@ -100,7 +119,7 @@ async function importParks() {
           shared: toBoolean(row['Shared Batting Cages?']),
           description: row['Shared Batting Cage Description']?.trim() || null,
         },
-        numberOfParkingLots: parseInt(row['Number of Parking Lots'], 10) || null,
+        numberOfParkingLots: safeParseInt(row['Number of Parking Lots']),
         rvParkingAvailable: toBoolean(row['RV Parking Available?']),
         bikeRackAvailability: toBoolean(row['Bike Rack Availability?']),
         electricalOutletsForPublicUse: toBoolean(row['Electrical Outlets for Public Use?']),
@@ -109,34 +128,32 @@ async function importParks() {
         gateEntranceFee: toBoolean(row['Entrance Fee?']),
         otherNotes: row['OTHER NOTES'] || null,
         lights: toBoolean(row['Field Lights?']),
-      };         
+      };
 
-      try {
-        console.log(`Fetching coordinates for: ${row.Address}, ${row.City}, ${row.State}`);
-        const coordinates = await getCoordinatesFromAddress(row.Address, row.City, row.State);
-        if (!coordinates) {
-          console.warn(`Skipping park due to missing coordinates: ${park.name}`);
-          return;
-        }
-        park.coordinates = {
-          type: 'Point',
-          coordinates,
-        };
-      } catch (error) {
-        console.error(`Error fetching coordinates for ${row.Address}:`, error);
+      // Store electrical outlets location as a string and convert sidewalks to Boolean.
+      park.electricalOutletsLocation = row['Location of Electrical Outlets']?.trim() || null;
+      park.sidewalks = toBoolean(row['Sidewalks']);
+
+      console.log(`Fetching coordinates for: ${row.Address}, ${row.City}, ${row.State}`);
+      const coordinates = await getCoordinatesFromAddress(row.Address, row.City, row.State);
+      if (!coordinates) {
+        console.warn(`Skipping park due to missing coordinates: ${park.name}`);
         return;
       }
+      park.coordinates = {
+        type: 'Point',
+        coordinates,
+      };
 
-      park.numberOfFields = parseInt(row['Number of Fields'], 10) || 0;
-
+      park.numberOfFields = safeParseInt(row['Number of Fields']) || 0;
       console.log('Number of fields:', park.numberOfFields);
       park.fields = [];
       for (let i = 1; i <= park.numberOfFields; i++) {
         const field = {
           name: row[`Field ${i} Name`] || null,
           location: row[`Field ${i} Location`] || null,
-          fenceDistance: parseInt(row[`Field ${i} Fence Distance`], 10) || null,
-          fenceHeight: parseInt(row[`Field ${i} Fence Height`], 10) || null, // ✅ New fence height field
+          fenceDistance: safeParseInt(row[`Field ${i} Fence Distance`]),
+          fenceHeight: safeParseInt(row[`Field ${i} Fence Height`]),
           fieldType: normalizeEnumValue(row[`Field ${i} Type`], validFieldTypes),
           outfieldMaterial: normalizeEnumValue(row[`Field ${i} Outfield Material`], validOutfieldMaterials),
           infieldMaterial: normalizeEnumValue(row[`Field ${i} Infield Material`], validInfieldMaterials),
@@ -146,7 +163,7 @@ async function importParks() {
           bleachersAvailable: toBoolean(row[`Field ${i} Bleachers?`]),
           bleachersDescription: row[`Field ${i} Bleachers Description`] || null,
           backstopMaterial: normalizeEnumValue(row[`Field ${i} Backstop Material`], validBackstopMaterials),
-          backstopDistance: parseInt(row[`Field ${i} Backstop Distance (ft)`], 10) || null,
+          backstopDistance: safeParseInt(row[`Field ${i} Backstop Distance (ft)`]),
           dugoutsCovered: toBoolean(row[`Field ${i} Dugouts Covered?`]),
           dugoutsMaterial: normalizeEnumValue(row[`Field ${i} Dugouts Material`], validDugoutMaterials),
           scoreboardAvailable: toBoolean(row[`Field ${i} Scoreboard Available?`]),
@@ -167,7 +184,7 @@ async function importParks() {
       if (row['Number of Handicap Spots']) {
         park.parking = {
           locations: row['Parking Location'] ? [row['Parking Location']] : [],
-          handicapSpots: parseInt(row['Number of Handicap Spots'], 10) || 0,
+          handicapSpots: safeParseInt(row['Number of Handicap Spots']) || 0,
         };
       }
       if (row['Park Shade Description']) park.parkShade = row['Park Shade Description'];
@@ -176,9 +193,10 @@ async function importParks() {
       if (row['Restroom Location']) {
         park.restrooms.push({
           location: row['Restroom Location'],
-          runningWater: row['Restroom Running Water?']?.toLowerCase() === 'true',
-          changingTable: normalizeEnumValue(row['Restroom Changing Table?'], validChangingTableValues),
-          numStalls: parseInt(row["Women's stalls"], 10) || parseInt(row["Men's Stalls/Urinals"], 10) || null,
+          runningWater: toBoolean(row['Restroom Running Water?']),
+          changingTable: mapChangingTable(row['Restroom Changing Table?']),
+          womensStalls: safeParseInt(row["Women's stalls"]),
+          mensStalls: safeParseInt(row["Men's Stalls/Urinals"]),
         });
       }
 
@@ -201,14 +219,12 @@ async function importParks() {
 
       park.notes = row['OTHER NOTES'] || null;
 
-
-
       if (row['Spectator Location Conditions']) {
         park.spectatorConditions = {
           locationTypes: row['Spectator Location Conditions']
             .split(',')
             .map((s) => s.trim().toLowerCase())
-            .filter((s) => validSpectatorSurfaces.includes(s)), // ✅ Only keep valid values
+            .filter((s) => validSpectatorSurfaces.includes(s)),
         };
       }
 

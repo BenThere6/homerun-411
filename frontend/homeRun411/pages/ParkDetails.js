@@ -123,10 +123,25 @@ export default function ParkDetails({ route }) {
                   <Text style={styles.text}>{restroom.runningWater ? 'Yes' : 'No'}</Text>
 
                   <Text style={styles.subtitle}>Changing Table</Text>
-                  <Text style={styles.text}>{restroom.changingTable || 'No data available'}</Text>
+                  <Text style={styles.text}>
+                    {typeof restroom.changingTable === 'boolean'
+                      ? restroom.changingTable ? 'Yes' : 'No'
+                      : restroom.changingTable || 'No data available'}
+                  </Text>
 
-                  <Text style={styles.subtitle}>Stalls (Combined)</Text>
-                  <Text style={styles.text}>{restroom.numStalls || 'No data available'}</Text>
+                  <Text style={styles.subtitle}>Women's Stalls</Text>
+                  <Text style={styles.text}>
+                    {restroom.womensStalls !== null && restroom.womensStalls !== undefined
+                      ? restroom.womensStalls
+                      : 'No data available'}
+                  </Text>
+
+                  <Text style={styles.subtitle}>Men's Stalls/Urinals</Text>
+                  <Text style={styles.text}>
+                    {restroom.mensStalls !== null && restroom.mensStalls !== undefined
+                      ? restroom.mensStalls
+                      : 'No data available'}
+                  </Text>
                 </View>
               ))}
             </View>

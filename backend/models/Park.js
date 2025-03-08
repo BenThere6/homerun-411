@@ -112,6 +112,12 @@ const parkSchema = new Schema({
   hillsDescription: { type: String }, // Hills Description
 });
 
+// Helper function to safely parse integers
+function safeParseInt(value) {
+  const parsed = parseInt(value, 10);
+  return isNaN(parsed) ? null : parsed;
+}
+
 parkSchema.index({ coordinates: '2dsphere' });
 parkSchema.index({ name: 1, city: 1 });
 
