@@ -103,6 +103,16 @@ const parkSchema = new Schema({
     shared: { type: Boolean }, // Is there a shared batting cage at the park level?
     description: { type: String }, // Description of shared batting cages, if applicable
   },
+  images: [
+    {
+      url: String,
+      label: String, // category name
+      section: String,
+      uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      uploadedAt: { type: Date, default: Date.now },
+      status: { type: String, enum: ["pending", "approved"], default: "approved" }
+    }
+  ],
   otherNotes: { type: String }, // Notes from CSV
   rvParkingAvailable: { type: Boolean }, // RV Parking Availability
   bikeRackAvailability: { type: Boolean }, // Bike Racks Available
