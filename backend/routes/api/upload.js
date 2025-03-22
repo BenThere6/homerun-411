@@ -55,17 +55,18 @@ router.post("/", authenticate, isAdmin, async (req, res) => {
       uploadedBy: req.user.id,
       uploadedAt: new Date(),
       status: "approved",
-      isCategoryMain: isCategoryMain === "true" // Cast from string (form-data comes as string)
     };
     
-    // If it's the main park image, set it
-    if (isMainImage === "true") {
+    park.images.push(newImage);
+    
+    // ✅ Set as main park image if flag is true
+    if (req.body.isMainImage === 'true') {
       park.mainImageUrl = result.secure_url;
     }
     
-    // If it's the main image for the category, clear others
-    if (isCategoryMain === "true") {
-      park.images.forEach((img) => {
+    // ✅ If it's marked as category main, unset others in that category
+    if (req.body.isCategoryMain === 'true') {
+      park.images.forEach(img => {
         if (img.label === category.name) {
           img.isCategoryMain = false;
         }
@@ -73,8 +74,7 @@ router.post("/", authenticate, isAdmin, async (req, res) => {
       newImage.isCategoryMain = true;
     }
     
-    park.images.push(newImage);
-    await park.save();
+    await park.save();    
 
     res.json({
       message: "Image uploaded and saved successfully",
