@@ -127,7 +127,7 @@ function ParkCard({ park, index }) {
         onPress={() => navigation.navigate('ParkDetails', { park })}
       >
         <ImageBackground
-          source={{ uri: imageError ? defaultImage : park.pictures?.mainImageUrl || defaultImage }}
+          source={{ uri: imageError ? defaultImage : park.mainImageUrl || defaultImage }}
           style={styles.parkImageBackground}
           resizeMode="cover"
           onError={handleImageError}
