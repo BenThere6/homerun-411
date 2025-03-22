@@ -110,9 +110,11 @@ const parkSchema = new Schema({
       section: String,
       uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
       uploadedAt: { type: Date, default: Date.now },
-      status: { type: String, enum: ["pending", "approved"], default: "approved" }
+      status: { type: String, enum: ["pending", "approved"], default: "approved" },
+      isCategoryMain: { type: Boolean, default: false },
     }
   ],
+  mainImageUrl: { type: String },
   otherNotes: { type: String }, // Notes from CSV
   rvParkingAvailable: { type: Boolean }, // RV Parking Availability
   bikeRackAvailability: { type: Boolean }, // Bike Racks Available

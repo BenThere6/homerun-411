@@ -221,6 +221,55 @@ router.patch('/:id', auth, isAdmin, getPark, async (req, res) => {
   }
 });
 
+router.patch('/:id/main-image', auth, isAdmin, async (req, res) => {
+  try {
+    const { imageUrl } = req.body;
+    if (!imageUrl) {
+      return res.status(400).json({ message: "Image URL is required" });
+    }
+
+    const park = await Park.findById(req.params.id);
+    if (!park) return res.status(404).json({ message: "Park not found" });
+
+    park.mainImageUrl = imageUrl;
+    await park.save();
+
+    res.json({ message: "Main image updated", mainImageUrl: imageUrl });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.patch('/:parkId/category-main-image', auth, isAdmin, async (req, res) => {
+  try {
+    const { imageId } = req.body;
+    if (!imageId) {
+      return res.status(400).json({ message: "Image ID is required" });
+    }
+
+    const park = await Park.findById(req.params.parkId);
+    if (!park) return res.status(404).json({ message: "Park not found" });
+
+    const image = park.images.id(imageId);
+    if (!image) return res.status(404).json({ message: "Image not found in this park" });
+
+    // Clear any existing isCategoryMain
+    park.images.forEach((img) => {
+      if (img.label === image.label) {
+        img.isCategoryMain = false;
+      }
+    });
+
+    // Set the new one
+    image.isCategoryMain = true;
+    await park.save();
+
+    res.json({ message: `Main image set for category '${image.label}'`, image });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // Delete a specific park by ID
 router.delete('/:id', auth, isAdmin, getPark, async (req, res) => {
   try {
