@@ -18,6 +18,7 @@ const userActivityRoutes = require("./api/userActivity");
 const appFeedbackRoutes = require("./api/appFeedback");
 const imageRoutes = require("./api/image");
 const uploadRoutes = require("./api/upload"); // ✅ Corrected path for the upload route
+const imageCategoryRoutes = require("./api/imageCategory");
 
 // Use the imported routes
 router.use("/api/amazon-affiliate-item", amazonAffiliateItemRoutes);
@@ -36,5 +37,6 @@ router.use("/api/user-activity", userActivityRoutes);
 router.use("/api/app-feedback", appFeedbackRoutes);
 router.use("/api/image", imageRoutes);
 router.use("/api/upload", uploadRoutes); // ✅ Correctly added upload route
+router.use("/image-category", imageCategoryRoutes);
 
 module.exports = router;
