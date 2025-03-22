@@ -19,7 +19,7 @@ cloudinary.config({
 
 router.post("/", authenticate, isAdmin, async (req, res) => {
   try {
-    const { parkId, categoryName, section } = req.body;
+    const { parkId, categoryName, section, isMainImage, isCategoryMain } = req.body;
 
     if (!req.files || !req.files.image) {
       return res.status(400).json({ message: "No image file uploaded" });
@@ -54,9 +54,25 @@ router.post("/", authenticate, isAdmin, async (req, res) => {
       section: section || "",
       uploadedBy: req.user.id,
       uploadedAt: new Date(),
-      status: "approved", // all admin uploads are auto-approved
+      status: "approved",
+      isCategoryMain: isCategoryMain === "true" // Cast from string (form-data comes as string)
     };
-
+    
+    // If it's the main park image, set it
+    if (isMainImage === "true") {
+      park.mainImageUrl = result.secure_url;
+    }
+    
+    // If it's the main image for the category, clear others
+    if (isCategoryMain === "true") {
+      park.images.forEach((img) => {
+        if (img.label === category.name) {
+          img.isCategoryMain = false;
+        }
+      });
+      newImage.isCategoryMain = true;
+    }
+    
     park.images.push(newImage);
     await park.save();
 

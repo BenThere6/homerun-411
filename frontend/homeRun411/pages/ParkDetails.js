@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, ScrollView, ImageBackground, TouchableOpacity, 
 export default function ParkDetails({ route }) {
   const { park = {} } = route.params || {};
   const defaultImage = 'https://images.unsplash.com/photo-1717886091076-56e54c2a360f?q=80&w=2967&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D';
-  const [imageUrl, setImageUrl] = useState(park.pictures?.mainImageUrl || defaultImage);
+  const [imageUrl, setImageUrl] = useState(park.mainImageUrl || defaultImage);
 
   const openMapsApp = () => {
     const lat = park.coordinates?.coordinates?.[1];

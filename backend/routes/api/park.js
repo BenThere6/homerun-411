@@ -172,7 +172,7 @@ router.get('/:parkId/weather', async (req, res) => {
 
 // Get a specific park by ID
 router.get('/:id', getPark, (req, res) => {
-  console.log("Fetched Park Data:", JSON.stringify(park, null, 2));
+  console.log("Fetched Park Data:", JSON.stringify(res.park, null, 2));
   res.json(res.park);
 });
 
