@@ -31,6 +31,10 @@ export default function ParkDetails({ route }) {
     );
   }
 
+  const concessionsMainImage = park.images?.find(
+    (img) => img.label?.toLowerCase() === 'concessions' && img.isCategoryMain
+  );
+
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollContainer} contentContainerStyle={{ paddingBottom: 60 }}>
@@ -149,6 +153,14 @@ export default function ParkDetails({ route }) {
 
           {/* Concessions */}
           <View style={styles.section}>
+            {concessionsMainImage && (
+              <ImageBackground
+                source={{ uri: concessionsMainImage.url }}
+                style={styles.categoryImage}
+                resizeMode="cover"
+              />
+            )}
+
             <Text style={styles.sectionTitle}>Concessions</Text>
             <Text style={styles.subtitle}>Available</Text>
             <Text style={styles.text}>{park.concessions?.available ? 'Yes' : 'No'}</Text>
@@ -170,6 +182,7 @@ export default function ParkDetails({ route }) {
             </Text>
           </View>
 
+
           {/* Fields */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Fields</Text>
@@ -184,7 +197,11 @@ export default function ParkDetails({ route }) {
                   <Text style={styles.text}>{field.location || 'No data available'}</Text>
 
                   <Text style={styles.subtitle}>Type</Text>
-                  <Text style={styles.text}>{field.fieldType || 'No data available'}</Text>
+                  <Text style={styles.text}>
+                    {field.fieldType
+                      ? field.fieldType.charAt(0).toUpperCase() + field.fieldType.slice(1).replace('-', '-B')
+                      : 'No data available'}
+                  </Text>
 
                   <Text style={styles.subtitle}>Fence Distance</Text>
                   <Text style={styles.text}>{field.fenceDistance ? `${field.fenceDistance} ft` : 'No data available'}</Text>
@@ -262,4 +279,11 @@ const styles = StyleSheet.create({
   fixedBottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'white', padding: 25 },
   customButton: { backgroundColor: '#007BFF', padding: 12, borderRadius: 8, alignItems: 'center' },
   buttonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+  categoryImage: {
+    width: '100%',
+    height: 150,
+    borderRadius: 8,
+    marginBottom: 10,
+    overflow: 'hidden',
+  },  
 });

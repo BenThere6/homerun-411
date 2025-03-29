@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const fs = require('fs');
 const csvParser = require('csv-parser');
 const axios = require('axios'); // For making API requests
-const Park = require('./models/Park');
+const Park = require('../../models/Park');
 require('dotenv').config();
 
 // Google Maps Geocoding API Key
@@ -100,7 +100,7 @@ async function importParks() {
         return;
       }
 
-      const validFieldTypes = ['baseball', 'softball', 'both'];
+      const validFieldTypes = ['baseball', 'softball', 'both', 't-ball'];
       const validOutfieldMaterials = ['grass', 'turf'];
       const validInfieldMaterials = ['grass', 'dirt'];
       const validMoundTypes = ['dirt', 'turf', 'portable'];

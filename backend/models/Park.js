@@ -5,7 +5,7 @@ const fieldSchema = new Schema({
   name: { type: String }, // Field Name
   location: { type: String }, // Field Location
   fenceDistance: { type: Number }, // Fence Distance (ft)
-  fieldType: { type: String, enum: ['baseball', 'softball', 'both'] }, // Baseball, Softball, Both
+  fieldType: { type: String, enum: ['baseball', 'softball', 'both', 't-ball'] }, // Baseball, Softball, Both
   outfieldMaterial: { type: String, enum: ['grass', 'turf'] }, // Grass, Turf
   infieldMaterial: { type: String, enum: ['grass', 'dirt'] }, // Grass, Dirt
   moundType: { type: String, enum: ['dirt', 'turf', 'portable'] }, // Dirt, Turf, Portable
