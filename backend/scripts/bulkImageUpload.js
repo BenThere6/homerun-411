@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const mongoose = require("mongoose");
 const cloudinary = require("cloudinary").v2;
+const stringSimilarity = require("string-similarity");
 const readline = require("readline-sync");
 require('dotenv').config({ path: '../.env' });
 
@@ -41,14 +42,39 @@ async function uploadImages() {
         const parkPath = path.join(rootFolder, parkFolderName);
         if (!fs.statSync(parkPath).isDirectory()) continue;
 
-        const park = parks.find(
+        let park = parks.find(
             (p) => p.name.trim().toLowerCase() === parkFolderName.trim().toLowerCase()
         );
 
         if (!park) {
-            console.error(`${RED}❌ Park not found in DB: ${parkFolderName}${RESET}`);
-            skippedParks.push({ parkName: parkFolderName, reason: "Name mismatch" });
-            continue;
+            console.log(`${RED}⚠️  Park "${parkFolderName}" not found in database.${RESET}`);
+
+            const parkNames = parks.map(p => p.name);
+            const matches = stringSimilarity.findBestMatch(parkFolderName, parkNames);
+
+            // Only show the top 5 best matches
+            const topMatches = matches.ratings
+                .filter(r => r.rating > 0.2) // optional threshold
+                .sort((a, b) => b.rating - a.rating)
+                .slice(0, 5)
+                .map(r => r.target);
+
+            const options = [...topMatches, "📜 See full list of parks"];
+            const selected = readline.keyInSelect(options, `${WHITE}Select a park for folder "${parkFolderName}":${RESET}`, { cancel: false });
+
+            if (options[selected] === "📜 See full list of parks") {
+                const fullOptions = parks.map(p => p.name);
+                const finalSelected = readline.keyInSelect(fullOptions, `${WHITE}Choose a park from the full list:${RESET}`, { cancel: false });
+                park = parks.find(p => p.name === fullOptions[finalSelected]);
+            } else {
+                park = parks.find(p => p.name === options[selected]);
+            }
+
+            if (!park) {
+                console.error(`${RED}❌ No park selected for: ${parkFolderName}${RESET}`);
+                skippedParks.push({ parkName: parkFolderName, reason: "User skipped or selection failed" });
+                continue;
+            }
         }
 
         const categoryFolders = fs.readdirSync(parkPath).filter((f) =>
