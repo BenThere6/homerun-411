@@ -6,6 +6,7 @@ import { useAuth } from '../AuthContext';
 import { Ionicons } from '@expo/vector-icons'; // Icon for checkbox
 import colors from '../assets/colors'; // Importing colors from your color file
 import { BACKEND_URL } from '@env'; // Import the BACKEND_URL from the .env file
+console.log(BACKEND_URL)
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');

@@ -1,10 +1,52 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import { useFocusEffect } from '@react-navigation/native';
+import { BACKEND_URL } from '@env';
 import { View, Text, StyleSheet, ScrollView, ImageBackground, TouchableOpacity, Platform, Linking } from 'react-native';
+
+console.log('BACKEND_URL:', BACKEND_URL);
 
 export default function ParkDetails({ route }) {
   const { park = {} } = route.params || {};
   const defaultImage = 'https://images.unsplash.com/photo-1717886091076-56e54c2a360f?q=80&w=2967&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D';
   const [imageUrl, setImageUrl] = useState(park.mainImageUrl || defaultImage);
+  const [isFavorited, setIsFavorited] = useState(false);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const recordRecentlyViewed = async () => {
+        try {
+          const token = await AsyncStorage.getItem('token');
+          if (!token || !park._id) return;
+  
+          await axios.post(`${BACKEND_URL}/api/user/recently-viewed/${park._id}`, {}, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        } catch (error) {
+          console.error('Failed to record recently viewed park:', error);
+        }
+      };
+  
+      recordRecentlyViewed();
+    }, [park._id])
+  );
+  
+  const toggleFavorite = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const endpoint = `${BACKEND_URL}/api/user/favorite-parks/${park._id}`;
+      if (isFavorited) {
+        await axios.delete(endpoint, { headers: { Authorization: `Bearer ${token}` } });
+      } else {
+        await axios.post(endpoint, {}, { headers: { Authorization: `Bearer ${token}` } });
+      }
+      setIsFavorited(!isFavorited);
+    } catch (err) {
+      console.error('Failed to toggle favorite:', err.message);
+    }
+  };
 
   const openMapsApp = () => {
     const lat = park.coordinates?.coordinates?.[1];
@@ -45,7 +87,19 @@ export default function ParkDetails({ route }) {
             style={styles.mainImage}
             resizeMode="cover"
             onError={() => setImageUrl(defaultImage)}
-          />
+          >
+            {/* Add favorite star */}
+            <TouchableOpacity
+              style={styles.favoriteIcon}
+              onPress={toggleFavorite}
+            >
+              <Ionicons
+                name={isFavorited ? 'star' : 'star-outline'}
+                size={24}
+                color={isFavorited ? '#FFD700' : '#fff'}
+              />
+            </TouchableOpacity>
+          </ImageBackground>
 
           {/* Overview */}
           <View style={styles.section}>
@@ -285,5 +339,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 10,
     overflow: 'hidden',
-  },  
+  },
+  favoriteIcon: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderRadius: 15,
+    padding: 6,
+    zIndex: 2,
+  },
 });

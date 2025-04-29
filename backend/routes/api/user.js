@@ -3,6 +3,8 @@ const router = express.Router();
 const User = require('../../models/User');
 const auth = require('../../middleware/auth');
 const isAdmin = require('../../middleware/isAdmin');
+const zipcodes = require('zipcodes');
+const Park = require('../../models/Park');
 
 // Middleware function to fetch a user by ID
 async function getUser(req, res, next) {
@@ -22,15 +24,29 @@ async function getUser(req, res, next) {
 
 // Create a new user
 router.post('/', async (req, res) => {
+  console.log('INSIDE /api/user POST / route');
   try {
-    const { email, passwordHash, role, location, zipCode } = req.body;
+    const { email, passwordHash, role, zipCode } = req.body;
+
+    const loc = zipcodes.lookup(zipCode);
+
+    console.log('LOOKUP RESULT:', loc);
+    console.log('LATITUDE:', loc?.latitude);
+    console.log('LONGITUDE:', loc?.longitude);
+
+    if (!loc || typeof loc.latitude !== 'number' || typeof loc.longitude !== 'number') {
+      return res.status(400).json({ message: 'Invalid zip code. Please enter a valid zip code.' });
+    }
 
     const newUser = new User({
       email,
       passwordHash,
       role,
-      location,
       zipCode,
+      location: {
+        type: 'Point',
+        coordinates: [loc.longitude, loc.latitude],
+      },
     });
 
     const savedUser = await newUser.save();
@@ -59,6 +75,51 @@ router.post('/favorite-parks/:parkId', auth, async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
+});
+
+// Return Favorite, Recently Viewed, and Nearby Parks
+router.get('/home-parks', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id)
+      .populate('favoriteParks')
+      .populate('recentlyViewedParks.park');
+
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Favorite Parks
+    const favoriteParks = user.favoriteParks;
+
+    // Recently Viewed Parks (sorted + limited)
+    const recentlyViewedParks = user.recentlyViewedParks
+      .sort((a, b) => new Date(b.viewedAt) - new Date(a.viewedAt))
+      .map(entry => entry.park)
+      .slice(0, 3);
+
+    // Nearby Parks (if user has location)
+    let nearbyParks = [];
+    if (user.location && user.location.coordinates.length === 2) {
+      nearbyParks = await Park.find({
+        coordinates: {
+          $near: {
+            $geometry: {
+              type: 'Point',
+              coordinates: user.location.coordinates,
+            },
+            $maxDistance: 10000, // 10 km or adjust as needed
+          },
+        },
+      }).limit(3);
+    }
+
+    res.json({
+      favorites: favoriteParks,
+      nearby: nearbyParks,
+      recent: recentlyViewedParks,
+    });
+  } catch (err) {
+    console.error('🔥 Error in /api/user/home-parks:', err); // <-- Add this
+    res.status(500).json({ message: err.message });
+  }  
 });
 
 // Get all users (admin only)
@@ -187,6 +248,38 @@ router.patch('/settings', auth, async (req, res) => {
     res.json(updatedUser);
   } catch (err) {
     res.status(400).json({ message: err.message });
+  }
+});
+
+// Record recently viewed park
+router.post('/recently-viewed/:parkId', auth, async (req, res) => {
+  try {
+    const { parkId } = req.params;
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Remove park if it already exists to move it to the front
+    user.recentlyViewedParks = user.recentlyViewedParks.filter(
+      entry => entry.park.toString() !== parkId
+    );
+
+    // Add to beginning of array
+    user.recentlyViewedParks.unshift({ park: parkId, viewedAt: new Date() });
+
+    // Optionally limit to last 5 parks
+    if (user.recentlyViewedParks.length > 5) {
+      user.recentlyViewedParks = user.recentlyViewedParks.slice(0, 5);
+    }
+
+    await user.save();
+
+    res.status(200).json({ message: 'Park recorded as recently viewed.' });
+  } catch (error) {
+    console.error('Failed to record recently viewed park:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

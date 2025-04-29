@@ -4,6 +4,9 @@ import { Ionicons } from '@expo/vector-icons'; // For icons
 import { useNavigation } from '@react-navigation/native'; // For navigation
 import Fuse from 'fuse.js'; // Import Fuse.js for fuzzy search
 import colors from '../assets/colors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import ParkCard from '../components/ParkCard';
 import { BACKEND_URL } from '@env';
 
 export default function SearchPage() {
@@ -13,16 +16,45 @@ export default function SearchPage() {
   const [searchResults, setSearchResults] = useState([]); // State to store search results
   const defaultImage = 'https://images.unsplash.com/photo-1717886091076-56e54c2a360f?q=80&w=2967&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'; // Default image URL
 
+  const [favoriteIds, setFavoriteIds] = useState([]);
+
+  const toggleFavorite = async (parkId) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const isFavorited = favoriteIds.includes(parkId);
+      const endpoint = `${BACKEND_URL}/api/user/favorite-parks/${parkId}`;
+
+      if (isFavorited) {
+        await axios.delete(endpoint, { headers: { Authorization: `Bearer ${token}` } });
+        setFavoriteIds(prev => prev.filter(id => id !== parkId));
+      } else {
+        await axios.post(endpoint, {}, { headers: { Authorization: `Bearer ${token}` } });
+        setFavoriteIds(prev => [...prev, parkId]);
+      }
+    } catch (err) {
+      console.error('Failed to toggle favorite:', err.message);
+    }
+  };
+
   useEffect(() => {
     const fetchParks = async () => {
       try {
+        const token = await AsyncStorage.getItem('token');
         const response = await fetch(`${BACKEND_URL}/api/park`);
-        const data = await response.json();
-        setParks(data.map(park => ({ ...park, imageError: false })));
+        const parksData = await response.json();
+        setParks(parksData.map(park => ({ ...park, imageError: false })));
+
+        // Fetch user's favorites
+        const res = await axios.get(`${BACKEND_URL}/api/user/home-parks`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const favorites = res.data.favorites.map(p => p._id);
+        setFavoriteIds(favorites);
       } catch (error) {
-        console.error('Error fetching parks:', error);
+        console.error('Error fetching parks or favorites:', error);
       }
     };
+
     fetchParks();
   }, []);
 
@@ -86,7 +118,12 @@ export default function SearchPage() {
               <Text style={styles.sectionTitle}>Featured Parks</Text>
               <View style={styles.featuredParksContainer}>
                 {parks.slice(0, 3).map((park, index) => (
-                  <ParkCard key={park._id} park={park} index={index} />
+                  <ParkCard
+                    key={park._id}
+                    park={park}
+                    isFavorited={favoriteIds.includes(park._id)}
+                    onToggleFavorite={() => toggleFavorite(park._id)}
+                  />
                 ))}
               </View>
 
@@ -99,7 +136,13 @@ export default function SearchPage() {
 
           <View style={styles.allParksContainer}>
             {displayParks.length > 0 ? (
-              displayParks.map((park, index) => <ParkCard key={park._id} park={park} index={index} />)
+              displayParks.map((park, index) => <ParkCard
+                key={park._id}
+                park={park}
+                isFavorited={favoriteIds.includes(park._id)}
+                onToggleFavorite={() => toggleFavorite(park._id)}
+              />
+              )
             ) : (
               <Text>No parks available</Text>
             )}
@@ -107,38 +150,6 @@ export default function SearchPage() {
         </ScrollView>
       </SafeAreaView>
     </TouchableWithoutFeedback>
-  );
-}
-
-// ParkCard component for displaying individual parks
-function ParkCard({ park, index }) {
-  const navigation = useNavigation();
-  const [imageError, setImageError] = useState(park.imageError);
-  const defaultImage = 'https://images.unsplash.com/photo-1717886091076-56e54c2a360f?q=80&w=2967&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D';
-
-  const handleImageError = () => {
-    setImageError(true);
-  };
-
-  return (
-    <View style={styles.parkContainer}>
-      <TouchableOpacity
-        style={styles.parkCard}
-        onPress={() => navigation.navigate('ParkDetails', { park })}
-      >
-        <ImageBackground
-          source={{ uri: imageError ? defaultImage : park.mainImageUrl || defaultImage }}
-          style={styles.parkImageBackground}
-          resizeMode="cover"
-          onError={handleImageError}
-        >
-          <View style={styles.parkContent}>
-            <Text style={styles.parkName}>{park.name}</Text>
-          </View>
-        </ImageBackground>
-      </TouchableOpacity>
-      <Text style={styles.parkDetail}>{`${park.city}, ${park.state}`}</Text>
-    </View>
   );
 }
 
@@ -188,24 +199,6 @@ const styles = StyleSheet.create({
   recentSearchIcon: { marginRight: 10 },
   searchText: { fontSize: 16, color: colors.primaryText },
   sectionTitle: { paddingTop: 20, paddingBottom: 15, paddingLeft: 20, fontSize: 16, fontWeight: 'bold', color: colors.primaryText },
-  parkContainer: { /* your styles here */ },
-  parkCard: {
-    width: '100%',
-    height: 200,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 10,
-    marginBottom: 10,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3.84,
-    overflow: 'hidden',
-  },
-  parkImageBackground: { flex: 1, width: '100%', height: '100%' },
-  parkContent: { backgroundColor: 'rgba(0, 0, 0, 0.4)', justifyContent: 'flex-end', padding: 10, height: '100%' },
-  parkName: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
-  parkDetail: { fontSize: 14, color: colors.secondaryText, marginLeft: 10, marginBottom: 20 },
   allParksContainer: { marginBottom: 20, paddingHorizontal: 20 },
   featuredParksContainer: { marginBottom: 0, paddingHorizontal: 20 },
 });

@@ -7,6 +7,7 @@ const User = require('./models/User');
 const bcrypt = require('bcrypt');
 const isAdmin = require('./middleware/isAdmin');
 const isTopAdmin = require('./middleware/isTopAdmin');
+const zipcodes = require('zipcodes');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -26,6 +27,12 @@ app.use(express.json());
 
 // Connect to MongoDB
 connectDB();
+
+// Add this at the top of your server.js
+app.use((req, res, next) => {
+  console.log(`🔥 Request received: ${req.method} ${req.originalUrl}`);
+  next();
+});
 
 // Routes
 const routes = require('./routes/index');
@@ -105,10 +112,16 @@ app.post('/api/auth/logout', authenticate, async (req, res) => {
 // User registration route
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { email, password, zipCode, firstName, lastName, adminLevel } = req.body; // Include adminLevel
+    const { email, password, zipCode, firstName, lastName, adminLevel } = req.body;
 
     if (!email || !password || !zipCode || !firstName || !lastName) {
       return res.status(400).json({ message: 'First name, last name, email, password, and zip code are required.' });
+    }
+
+    const loc = zipcodes.lookup(zipCode);
+
+    if (!loc || typeof loc.latitude !== 'number' || typeof loc.longitude !== 'number') {
+      return res.status(400).json({ message: 'Invalid zip code. Please enter a valid zip code.' });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -119,7 +132,11 @@ app.post('/api/auth/register', async (req, res) => {
       passwordHash: hashedPassword,
       zipCode,
       profile: { firstName, lastName },
-      adminLevel: adminLevel !== undefined ? adminLevel : 2, // Default to regular user (Level 2)
+      adminLevel: adminLevel !== undefined ? adminLevel : 2,
+      location: {
+        type: 'Point',
+        coordinates: [loc.longitude, loc.latitude],
+      },
     });
 
     const savedUser = await newUser.save();

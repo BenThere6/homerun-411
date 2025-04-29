@@ -2,11 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; // For icons
 import { useNavigation } from '@react-navigation/native'; // For navigation
-import AsyncStorage from '@react-native-async-storage/async-storage'; // To store and retrieve first name
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Header from '../components/Header'; // Importing the Header component
+import axios from 'axios';
 import colors from '../assets/colors'; // Importing the color variables
+import ParkCard from '../components/ParkCard';
+import { BACKEND_URL } from '@env';
+import { useFocusEffect } from '@react-navigation/native';
 
-// Mock quickLinks data (without Admin link)
 const quickLinks = [
   { id: '1', icon: 'location', label: 'Nearby Facilities', screen: 'Facilities' },
   { id: '2', icon: 'book', label: 'Baseball Etiquette', screen: 'Etiquette' },
@@ -16,26 +19,75 @@ const quickLinks = [
 export default function Homepage() {
   const [firstName, setFirstName] = useState(''); // State to store first name
   const [role, setRole] = useState('User'); // State to store role (default is 'User')
+  const [favoriteParks, setFavoriteParks] = useState([]);
+  const [nearbyParks, setNearbyParks] = useState([]);
+  const [recentlyViewedParks, setRecentlyViewedParks] = useState([]);
   const navigation = useNavigation(); // Hook for navigation
+  const [expandFavorites, setExpandFavorites] = useState(true);
+  const [expandNearby, setExpandNearby] = useState(true);
+  const [expandRecentlyViewed, setExpandRecentlyViewed] = useState(true);
+
+  const [favoriteIds, setFavoriteIds] = useState([]);
+
+  const toggleFavorite = async (parkId) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+
+      const isFavorited = favoriteIds.includes(parkId);
+      const endpoint = `${BACKEND_URL}/api/user/favorite-parks/${parkId}`;
+
+      if (isFavorited) {
+        await axios.delete(endpoint, { headers: { Authorization: `Bearer ${token}` } });
+        setFavoriteIds(prev => prev.filter(id => id !== parkId));
+      } else {
+        await axios.post(endpoint, {}, { headers: { Authorization: `Bearer ${token}` } });
+        setFavoriteIds(prev => [...prev, parkId]);
+      }
+    } catch (err) {
+      console.error('Failed to toggle favorite:', err.message);
+    }
+  };
 
   // Load first name and role from AsyncStorage when the component mounts
-  useEffect(() => {
-    const loadUserData = async () => {
-      const storedFirstName = await AsyncStorage.getItem('firstName');
-      const storedRole = await AsyncStorage.getItem('role'); // Fetch role
-      if (storedFirstName) {
-        setFirstName(storedFirstName); // Set the first name
-      }
-      if (storedRole) {
-        setRole(storedRole); // Set the role
-      }
-    };
-    loadUserData();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      const loadHomeParks = async () => {
+        try {
+          const token = await AsyncStorage.getItem('token');
+          const res = await axios.get(`${BACKEND_URL}/api/user/home-parks`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setFavoriteParks(res.data.favorites || []);
+          setNearbyParks(res.data.nearby || []);
+          setRecentlyViewedParks(res.data.recent || []);
+          const favorites = res.data.favorites.map(p => p._id);
+          setFavoriteIds(favorites);
+
+          const sectionsWithData = [
+            res.data.favorites.length > 0,
+            res.data.nearby.length > 0,
+            res.data.recent.length > 0,
+          ].filter(Boolean).length;
+
+          // If only 1 section has data, expand it automatically
+          const expandAll = sectionsWithData === 1;
+
+          setExpandFavorites(expandAll);
+          setExpandNearby(expandAll);
+          setExpandRecentlyViewed(expandAll);
+
+        } catch (error) {
+          console.error('Error fetching home parks:', error);
+        }
+      };
+
+      loadHomeParks();
+    }, [])
+  );
 
   // Conditionally add the admin link if the user is an admin
-  const updatedQuickLinks = role === 'Admin' 
-    ? [...quickLinks, { id: '4', icon: 'construct', label: 'Admin', screen: 'Admin' }] 
+  const updatedQuickLinks = role === 'Admin'
+    ? [...quickLinks, { id: '4', icon: 'construct', label: 'Admin', screen: 'Admin' }]
     : quickLinks;
 
   return (
@@ -75,32 +127,64 @@ export default function Homepage() {
           ))}
         </ScrollView>
 
-        {/* Favorite Parks */}
-        <Text style={styles.sectionTitle}>Favorite Parks</Text>
+        {favoriteParks.length > 0 && (
+          <View style={styles.sectionContainer}>
+            <TouchableOpacity onPress={() => setExpandFavorites(prev => !prev)}>
+              <Text style={styles.sectionTitle}>
+                Favorite Parks {expandFavorites ? '▲' : '▼'}
+              </Text>
+            </TouchableOpacity>
+            {expandFavorites && favoriteParks.map(park => (
+              <ParkCard
+                key={park._id}
+                park={park}
+                isFavorited={favoriteIds.includes(park._id)}
+                onToggleFavorite={() => toggleFavorite(park._id)}
+              />
+            ))}
+          </View>
+        )}
 
-        <View style={styles.featuredParksContainer}>
-          {/* Navigate to Park Details on click */}
-          <TouchableOpacity
-            style={styles.parkCard}
-            onPress={() => navigation.navigate('ParkDetails', { parkName: 'Park 1', location: 'City, State' })}>
-            <Text style={styles.parkName}>Park 1</Text>
-          </TouchableOpacity>
-          <Text style={styles.parkDetail}>Location: City, State</Text>
+        {nearbyParks.length > 0 && (
+          <View style={styles.sectionContainer}>
+            <TouchableOpacity onPress={() => setExpandNearby(prev => !prev)}>
+              <Text style={styles.sectionTitle}>
+                Nearby Parks {expandNearby ? '▲' : '▼'}
+              </Text>
+            </TouchableOpacity>
+            {expandNearby && nearbyParks.map(park => (
+              <ParkCard
+                key={park._id}
+                park={park}
+                isFavorited={favoriteIds.includes(park._id)}
+                onToggleFavorite={() => toggleFavorite(park._id)}
+              />
+            ))}
+          </View>
+        )}
 
-          <TouchableOpacity
-            style={styles.parkCard}
-            onPress={() => navigation.navigate('ParkDetails', { parkName: 'Park 2', location: 'City, State' })}>
-            <Text style={styles.parkName}>Park 2</Text>
-          </TouchableOpacity>
-          <Text style={styles.parkDetail}>Location: City, State</Text>
+        {recentlyViewedParks.length > 0 && (
+          <View style={styles.sectionContainer}>
+            <TouchableOpacity onPress={() => setExpandRecentlyViewed(prev => !prev)}>
+              <Text style={styles.sectionTitle}>
+                Recently Viewed Parks {expandRecentlyViewed ? '▲' : '▼'}
+              </Text>
+            </TouchableOpacity>
+            {expandRecentlyViewed && recentlyViewedParks.map(park => (
+              <ParkCard
+                key={park._id}
+                park={park}
+                isFavorited={favoriteIds.includes(park._id)}
+                onToggleFavorite={() => toggleFavorite(park._id)}
+              />
+            ))}
+          </View>
+        )}
 
-          <TouchableOpacity
-            style={styles.parkCard}
-            onPress={() => navigation.navigate('ParkDetails', { parkName: 'Park 3', location: 'City, State' })}>
-            <Text style={styles.parkName}>Park 3</Text>
-          </TouchableOpacity>
-          <Text style={styles.parkDetail}>Location: City, State</Text>
-        </View>
+        {favoriteParks.length === 0 && nearbyParks.length === 0 && recentlyViewedParks.length === 0 && (
+          <Text style={styles.noDataText}>No parks to show right now. Start exploring!</Text>
+        )}
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -203,6 +287,16 @@ const styles = StyleSheet.create({
     color: colors.secondaryText,
     marginLeft: 10,
     marginBottom: 20,
+  },
+  sectionContainer: {
+    marginBottom: 20,
+    paddingHorizontal: 20,
+  },
+  noDataText: {
+    textAlign: 'center',
+    color: colors.secondaryText,
+    padding: 20,
+    fontSize: 16,
   },
 
   /* Section Title */
