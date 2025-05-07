@@ -18,6 +18,8 @@ import RegisterPage from './pages/Register';
 import NewPostForm from './pages/NewPostForm'; // Import the NewPostForm component
 import colors from './assets/colors';
 import { AuthProvider, useAuth } from './AuthContext'; // Import the AuthProvider and useAuth hook
+import HomePlateIcon from './components/icons/HomePlateIcon';
+import HomePlateIcon_Selected from './components/icons/HomePlateIcon_Selected';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -28,16 +30,23 @@ function TabsNavigator() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
           if (route.name === 'Home') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'Search') {
+            return focused ? (
+              <HomePlateIcon_Selected color={color} size={size} />
+            ) : (
+              <HomePlateIcon color={color} size={size} />
+            );
+          }
+
+          let iconName;
+          if (route.name === 'Search') {
             iconName = focused ? 'search' : 'search-outline';
           } else if (route.name === 'Forum') {
             iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
           }
+
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: colors.thirty,
