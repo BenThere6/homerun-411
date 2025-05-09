@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, StyleSheet, ScrollView, TouchableOpacity, Keyboard, TouchableWithoutFeedback, SafeAreaView, ImageBackground } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; // For icons
 import { useNavigation } from '@react-navigation/native'; // For navigation
@@ -6,17 +6,35 @@ import Fuse from 'fuse.js'; // Import Fuse.js for fuzzy search
 import colors from '../assets/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { useRoute } from '@react-navigation/native';
 import ParkCard from '../components/ParkCard';
 import { BACKEND_URL } from '@env';
 
 export default function SearchPage() {
   const navigation = useNavigation();
+  const route = useRoute();
   const [parks, setParks] = useState([]); // State to store the fetched parks
+  const [recentSearches, setRecentSearches] = useState([]);
+  const [searchConfirmed, setSearchConfirmed] = useState(false);
   const [query, setQuery] = useState(''); // State to store the search query
   const [searchResults, setSearchResults] = useState([]); // State to store search results
   const defaultImage = 'https://images.unsplash.com/photo-1717886091076-56e54c2a360f?q=80&w=2967&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'; // Default image URL
 
   const [favoriteIds, setFavoriteIds] = useState([]);
+
+  const stateNameToAbbreviation = {
+    Alabama: 'AL', Alaska: 'AK', Arizona: 'AZ', Arkansas: 'AR', California: 'CA',
+    Colorado: 'CO', Connecticut: 'CT', Delaware: 'DE', Florida: 'FL', Georgia: 'GA',
+    Hawaii: 'HI', Idaho: 'ID', Illinois: 'IL', Indiana: 'IN', Iowa: 'IA',
+    Kansas: 'KS', Kentucky: 'KY', Louisiana: 'LA', Maine: 'ME', Maryland: 'MD',
+    Massachusetts: 'MA', Michigan: 'MI', Minnesota: 'MN', Mississippi: 'MS',
+    Missouri: 'MO', Montana: 'MT', Nebraska: 'NE', Nevada: 'NV', "New Hampshire": 'NH',
+    "New Jersey": 'NJ', "New Mexico": 'NM', "New York": 'NY', "North Carolina": 'NC',
+    "North Dakota": 'ND', Ohio: 'OH', Oklahoma: 'OK', Oregon: 'OR', Pennsylvania: 'PA',
+    "Rhode Island": 'RI', "South Carolina": 'SC', "South Dakota": 'SD', Tennessee: 'TN',
+    Texas: 'TX', Utah: 'UT', Vermont: 'VT', Virginia: 'VA', Washington: 'WA',
+    "West Virginia": 'WV', Wisconsin: 'WI', Wyoming: 'WY'
+  };
 
   const toggleFavorite = async (parkId) => {
     try {
@@ -58,6 +76,23 @@ export default function SearchPage() {
     fetchParks();
   }, []);
 
+  useEffect(() => {
+    const loadRecentSearches = async () => {
+      const stored = await AsyncStorage.getItem('recentSearches');
+      if (stored) setRecentSearches(JSON.parse(stored));
+    };
+    loadRecentSearches();
+  }, []);
+
+  useEffect(() => {
+    if (route.params?.query) {
+      handleSearch(route.params.query);
+      navigation.setParams({ query: undefined }); // one-time use
+    }
+  }, [route.params?.query]);
+
+  const scrollRef = useRef(null);
+
   // Configure Fuse.js for fuzzy searching
   const fuse = new Fuse(parks, {
     keys: ['name', 'city', 'state'], // Specify searchable fields
@@ -65,18 +100,47 @@ export default function SearchPage() {
   });
 
   // Handle search input
-  const handleSearch = (text) => {
+  const updateRecentSearches = async (newQuery) => {
+    if (!newQuery.trim()) return;
+
+    const normalized = newQuery.trim().toLowerCase();
+    const updated = [newQuery, ...recentSearches.filter(q => q.toLowerCase() !== normalized)].slice(0, 5);
+
+    setRecentSearches(updated);
+    await AsyncStorage.setItem('recentSearches', JSON.stringify(updated));
+  };
+
+  const handleSearch = async (text, saveToRecent = true) => {
+    if (!text.trim()) return;
+    const trimmed = text.trim();
+    const capitalized = trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+    const normalizedQuery = stateNameToAbbreviation[capitalized] || trimmed;
+    const results = fuse.search(normalizedQuery).map(result => result.item);
+    setSearchResults(results);
+    setSearchConfirmed(true);
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
     setQuery(text);
-    if (text) {
-      const results = fuse.search(text).map(result => result.item); // Map to get items only
-      setSearchResults(results);
-    } else {
-      setSearchResults([]); // Clear results when query is empty
+
+    if (saveToRecent) {
+      await updateRecentSearches(text);
     }
+
+  };
+
+  const clearSearch = () => {
+    setQuery('');
+    setSearchResults([]);
+    setSearchConfirmed(false);
+  };
+
+  const removeRecentSearch = async (index) => {
+    const updated = recentSearches.filter((_, i) => i !== index);
+    setRecentSearches(updated);
+    await AsyncStorage.setItem('recentSearches', JSON.stringify(updated));
   };
 
   // Display recent searches or search results based on query
-  const displayParks = query ? searchResults : parks;
+  const displayParks = searchConfirmed ? searchResults : parks;
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -86,12 +150,22 @@ export default function SearchPage() {
           <Ionicons name="search" size={20} color={colors.primaryText} style={styles.searchIcon} />
           <TextInput
             placeholder="Search"
+            autoFocus={true}
             placeholderTextColor={colors.secondaryText}
             style={styles.input}
-            onChangeText={handleSearch}
+            onChangeText={(text) => {
+              setQuery(text);
+              setSearchResults([]);
+            }}
+            onSubmitEditing={() => handleSearch(query)} // Confirms search only on enter
             value={query}
-            blurOnSubmit={true}
+            returnKeyType="search"
           />
+          {query.length > 0 && (
+            <TouchableOpacity onPress={clearSearch} style={{ marginLeft: 10, padding: 5 }}>
+              <Ionicons name="close-circle" size={20} color={colors.secondaryText} />
+            </TouchableOpacity>
+          )}
           <View style={styles.filterIconContainer}>
             <Ionicons name="options-outline" size={20} color={colors.primaryText} />
           </View>
@@ -100,20 +174,34 @@ export default function SearchPage() {
         <View style={styles.divider} />
 
         {/* Render search results or default sections */}
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          {query === '' ? (
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          ref={scrollRef}
+        >
+          {!searchConfirmed ? (
             <>
               {/* Recent Searches Section */}
-              <Text style={styles.sectionTitle}>Recent Searches</Text>
-              <View style={styles.recentSearchesContainer}>
-                {['Park 1', 'Park 2', 'Park 3'].map((recentSearch, index) => (
-                  <TouchableOpacity key={index} style={styles.searchItem} onPress={() => handleSearch(recentSearch)}>
-                    <Ionicons name="search" size={20} color={colors.secondaryText} style={styles.recentSearchIcon} />
-                    <Text style={styles.searchText}>{recentSearch}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
+              {recentSearches.length > 0 && (
+                <>
+                  <Text style={styles.sectionTitle}>Recent Searches</Text>
+                  <View style={styles.recentSearchesContainer}>
+                    {recentSearches.map((recentSearch, index) => (
+                      <View key={index} style={styles.searchItem}>
+                        <TouchableOpacity
+                          style={{ flexDirection: 'row', flex: 1, alignItems: 'center' }}
+                          onPress={() => handleSearch(recentSearch, false)}
+                        >
+                          <Ionicons name="search" size={20} color={colors.secondaryText} style={styles.recentSearchIcon} />
+                          <Text style={styles.searchText}>{recentSearch}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => removeRecentSearch(index)}>
+                          <Ionicons name="close-circle" size={20} color={colors.secondaryText} />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                </>
+              )}
               {/* Featured Parks Section */}
               <Text style={styles.sectionTitle}>Featured Parks</Text>
               <View style={styles.featuredParksContainer}>
@@ -144,7 +232,7 @@ export default function SearchPage() {
               />
               )
             ) : (
-              <Text>No parks available</Text>
+              <Text>No parks found matching your search.</Text>
             )}
           </View>
         </ScrollView>

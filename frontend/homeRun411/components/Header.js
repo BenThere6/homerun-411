@@ -3,9 +3,12 @@ import { View, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; // Icon library for icons
 import { useNavigation } from '@react-navigation/native'; // For navigation
 import colors from '../assets/colors'; // Importing the color variables
+import { useState } from 'react';
 
 export default function Header() {
   const navigation = useNavigation(); // Hook for navigation
+
+  const [query, setQuery] = useState('');
 
   return (
     <View style={styles.headerContainer}>
@@ -14,9 +17,19 @@ export default function Header() {
         <Ionicons name="search" size={20} color={colors.primaryText} style={styles.searchIcon} />
         <TextInput
           placeholder="Search"
-          placeholderTextColor={colors.secondaryText} // Use secondaryText color for placeholder
+          placeholderTextColor={colors.secondaryText}
           style={styles.input}
-          blurOnSubmit={true} // Closes the keyboard when submitted
+          value={query}
+          onChangeText={setQuery}
+          returnKeyType="search"
+          blurOnSubmit={true}
+          onSubmitEditing={() => {
+            const trimmed = query.trim();
+            if (trimmed) {
+              navigation.navigate('Search', { query: trimmed });
+              setQuery(''); // Clear after navigation
+            }
+          }}
         />
         <View style={styles.filterIconContainer}>
           <Ionicons name="options-outline" size={20} color={colors.primaryText} />
