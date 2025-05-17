@@ -96,6 +96,9 @@ router.get('/home-parks', auth, async (req, res) => {
       .slice(0, 3);
 
     // Nearby Parks (if user has location)
+    const miles = 30;
+    const maxDistance = miles * 1609.34;
+
     let nearbyParks = [];
     if (user.location && user.location.coordinates.length === 2) {
       nearbyParks = await Park.find({
@@ -105,7 +108,7 @@ router.get('/home-parks', auth, async (req, res) => {
               type: 'Point',
               coordinates: user.location.coordinates,
             },
-            $maxDistance: 10000, // 10 km or adjust as needed
+            $maxDistance: maxDistance,
           },
         },
       }).limit(3);
@@ -119,7 +122,7 @@ router.get('/home-parks', auth, async (req, res) => {
   } catch (err) {
     console.error('🔥 Error in /api/user/home-parks:', err); // <-- Add this
     res.status(500).json({ message: err.message });
-  }  
+  }
 });
 
 // Get all users (admin only)
