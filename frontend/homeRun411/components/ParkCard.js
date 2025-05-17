@@ -40,7 +40,9 @@ export default function ParkCard({ park, isFavorited, onToggleFavorite, distance
             </TouchableOpacity>
             <Text style={styles.parkDetail}>
                 {`${park.city}, ${park.state}`}
-                {typeof park.distanceInMiles === 'number' ? ` - ${park.distanceInMiles.toFixed(1)} mi` : ''}
+                {typeof (distance ?? park.distanceInMiles) === 'number'
+                    ? ` - ${(distance ?? park.distanceInMiles).toFixed(1)} mi`
+                    : ''}
             </Text>
         </View>
     );

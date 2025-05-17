@@ -152,7 +152,6 @@ export default function Homepage() {
                 park={park}
                 isFavorited={favoriteIds.includes(park._id)}
                 onToggleFavorite={() => toggleFavorite(park._id)}
-                distance={park.distanceInMiles}
               />
             ))}
           </View>

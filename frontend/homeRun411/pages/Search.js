@@ -203,6 +203,7 @@ export default function SearchPage() {
                       park={park}
                       isFavorited={favoriteIds.includes(park._id)}
                       onToggleFavorite={() => toggleFavorite(park._id)}
+                      distance={park.distanceInMiles}
                     />
                   ))}
                 </View>
@@ -221,6 +222,7 @@ export default function SearchPage() {
                     park={park}
                     isFavorited={favoriteIds.includes(park._id)}
                     onToggleFavorite={() => toggleFavorite(park._id)}
+                    distance={park.distanceInMiles}
                   />
                 ))
               ) : (

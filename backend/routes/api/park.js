@@ -3,6 +3,7 @@ const router = express.Router();
 const Park = require('../../models/Park');
 const auth = require('../../middleware/auth');
 const isAdmin = require('../../middleware/isAdmin');
+const User = require('../../models/User');
 
 // Middleware function to fetch a park by ID
 async function getPark(req, res, next) {
@@ -89,13 +90,78 @@ router.post('/', auth, isAdmin, async (req, res) => {
 });
 
 // Get all parks
-router.get('/', async (req, res) => {
+router.get('/', auth, async (req, res) => {
   try {
     const parks = await Park.find();
-    res.json(parks);
+    const user = await User.findById(req.user.id);
+
+    const toRad = angle => (angle * Math.PI) / 180;
+    const R = 3958.8;
+
+    const calculateDistance = (userCoords, parkCoords) => {
+      if (!userCoords || !parkCoords) return null;
+      const [lon1, lat1] = userCoords;
+      const [lon2, lat2] = parkCoords;
+
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return Math.round((R * c) * 10) / 10;
+    };
+
+    const enrichedParks = parks.map(park => {
+      const distanceInMiles = calculateDistance(
+        user.location?.coordinates,
+        park.coordinates?.coordinates
+      );
+      return {
+        ...park.toObject(),
+        distanceInMiles,
+      };
+    });
+
+    res.json(enrichedParks);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
+});
+
+// GET /api/park/searchByCityWithNearby?city=Bountiful&lat=40.9&lon=-111.88
+router.get('/searchByCityWithNearby', async (req, res) => {
+  const { city, lat, lon } = req.query;
+
+  if (!city || !lat || !lon) {
+    return res.status(400).json({ message: 'City, lat, and lon are required.' });
+  }
+
+  const userCoords = [parseFloat(lon), parseFloat(lat)];
+
+  const cityMatches = await Park.find({ city: { $regex: `^${city}$`, $options: 'i' } });
+
+  const nearbyParks = await Park.aggregate([
+    {
+      $geoNear: {
+        near: { type: 'Point', coordinates: userCoords },
+        distanceField: 'distanceInMeters',
+        spherical: true,
+        query: { city: { $not: { $regex: `^${city}$`, $options: 'i' } } },
+      },
+    },
+    {
+      $addFields: {
+        distanceInMiles: {
+          $round: [{ $divide: ['$distanceInMeters', 1609.34] }, 1],
+        },
+      },
+    },
+  ]);
+
+  res.json({ cityMatches, nearbyParks });
 });
 
 // Search parks by name
