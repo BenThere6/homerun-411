@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import colors from '../assets/colors';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function ParkCard({ park, isFavorited, onToggleFavorite }) {
+export default function ParkCard({ park, isFavorited, onToggleFavorite, distance }) {
     const navigation = useNavigation();
     const [imageError, setImageError] = useState(false);
     const defaultImage = 'https://images.unsplash.com/photo-1717886091076-56e54c2a360f?q=80&w=2967&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D';
@@ -38,7 +38,10 @@ export default function ParkCard({ park, isFavorited, onToggleFavorite }) {
                     </View>
                 </ImageBackground>
             </TouchableOpacity>
-            <Text style={styles.parkDetail}>{`${park.city}, ${park.state}`}</Text>
+            <Text style={styles.parkDetail}>
+                {`${park.city}, ${park.state}`}
+                {typeof park.distanceInMiles === 'number' ? ` - ${park.distanceInMiles.toFixed(1)} mi` : ''}
+            </Text>
         </View>
     );
 }

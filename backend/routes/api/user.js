@@ -78,6 +78,27 @@ router.post('/favorite-parks/:parkId', auth, async (req, res) => {
 });
 
 // Return Favorite, Recently Viewed, and Nearby Parks
+
+function calculateDistanceInMiles(userCoords, parkCoords) {
+  if (!parkCoords || parkCoords.length !== 2) return null;
+
+  const [lon1, lat1] = userCoords;
+  const [lon2, lat2] = parkCoords;
+
+  const toRad = angle => (angle * Math.PI) / 180;
+  const R = 3958.8; // Radius of Earth in miles
+
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round((R * c) * 10) / 10; // Rounded to 1 decimal
+}
+
 router.get('/home-parks', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id)
@@ -86,14 +107,31 @@ router.get('/home-parks', auth, async (req, res) => {
 
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Favorite Parks
-    const favoriteParks = user.favoriteParks;
+    const favoriteParks = user.favoriteParks.map(park => {
+      const distance = calculateDistanceInMiles(
+        user.location.coordinates,
+        park.coordinates?.coordinates
+      );
+      return {
+        ...park.toObject(),
+        distanceInMiles: distance,
+      };
+    });
 
-    // Recently Viewed Parks (sorted + limited)
     const recentlyViewedParks = user.recentlyViewedParks
       .sort((a, b) => new Date(b.viewedAt) - new Date(a.viewedAt))
-      .map(entry => entry.park)
-      .slice(0, 3);
+      .slice(0, 3)
+      .map(entry => {
+        const park = entry.park;
+        const distance = calculateDistanceInMiles(
+          user.location.coordinates,
+          park.coordinates?.coordinates
+        );
+        return {
+          ...park.toObject(),
+          distanceInMiles: distance,
+        };
+      });
 
     // Nearby Parks (if user has location)
     const miles = 30;
@@ -101,17 +139,27 @@ router.get('/home-parks', auth, async (req, res) => {
 
     let nearbyParks = [];
     if (user.location && user.location.coordinates.length === 2) {
-      nearbyParks = await Park.find({
-        coordinates: {
-          $near: {
-            $geometry: {
+      nearbyParks = await Park.aggregate([
+        {
+          $geoNear: {
+            near: {
               type: 'Point',
               coordinates: user.location.coordinates,
             },
-            $maxDistance: maxDistance,
+            distanceField: 'distanceInMeters',
+            spherical: true,
+            maxDistance,
           },
         },
-      }).limit(3);
+        {
+          $addFields: {
+            distanceInMiles: {
+              $round: [{ $divide: ['$distanceInMeters', 1609.34] }, 1],
+            },
+          },
+        },
+        { $limit: 3 },
+      ]);
     }
 
     res.json({
@@ -120,7 +168,7 @@ router.get('/home-parks', auth, async (req, res) => {
       recent: recentlyViewedParks,
     });
   } catch (err) {
-    console.error('🔥 Error in /api/user/home-parks:', err); // <-- Add this
+    console.error('🔥 Error in /api/user/home-parks:', err);
     res.status(500).json({ message: err.message });
   }
 });
