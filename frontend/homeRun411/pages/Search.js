@@ -15,9 +15,8 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import Fuse from 'fuse.js';
 import colors from '../assets/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import axios from '../utils/axiosInstance';
 import ParkCard from '../components/ParkCard';
-import { BACKEND_URL } from '@env';
 
 export default function SearchPage() {
   const navigation = useNavigation();
@@ -45,17 +44,31 @@ export default function SearchPage() {
     "West Virginia": 'WV', Wisconsin: 'WI', Wyoming: 'WY',
   };
 
+  const toggleFavorite = async (parkId) => {
+    try {
+      const isFavorited = favoriteIds.includes(parkId);
+      const endpoint = `/api/user/favorite-parks/${parkId}`;
+
+      if (isFavorited) {
+        await axios.delete(endpoint);
+        setFavoriteIds(prev => prev.filter(id => id !== parkId));
+      } else {
+        await axios.post(endpoint);
+        setFavoriteIds(prev => [...prev, parkId]);
+      }
+    } catch (err) {
+      console.error('Failed to toggle favorite:', err.message);
+    }
+  };
+
   useEffect(() => {
     const fetchParks = async () => {
       try {
-        const token = await AsyncStorage.getItem('token');
-        const res = await fetch(`${BACKEND_URL}/api/park`);
-        const parksData = await res.json();
+        const res = await axios.get('/api/park');
+        const parksData = res.data;
         setParks(parksData.map(park => ({ ...park, imageError: false })));
 
-        const favoritesRes = await axios.get(`${BACKEND_URL}/api/user/home-parks`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const favoritesRes = await axios.get('/api/user/home-parks');
         const favorites = favoritesRes.data.favorites.map(p => p._id);
         setFavoriteIds(favorites);
       } catch (err) {

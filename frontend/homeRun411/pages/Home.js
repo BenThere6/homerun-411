@@ -4,10 +4,9 @@ import { Ionicons } from '@expo/vector-icons'; // For icons
 import { useNavigation } from '@react-navigation/native'; // For navigation
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Header from '../components/Header'; // Importing the Header component
-import axios from 'axios';
+import axios from '../utils/axiosInstance';
 import colors from '../assets/colors'; // Importing the color variables
 import ParkCard from '../components/ParkCard';
-import { BACKEND_URL } from '@env';
 import { useFocusEffect } from '@react-navigation/native';
 
 const quickLinks = [
@@ -31,16 +30,14 @@ export default function Homepage() {
 
   const toggleFavorite = async (parkId) => {
     try {
-      const token = await AsyncStorage.getItem('token');
-
       const isFavorited = favoriteIds.includes(parkId);
-      const endpoint = `${BACKEND_URL}/api/user/favorite-parks/${parkId}`;
+      const endpoint = `/api/user/favorite-parks/${parkId}`;
 
       if (isFavorited) {
-        await axios.delete(endpoint, { headers: { Authorization: `Bearer ${token}` } });
+        await axios.delete(endpoint);
         setFavoriteIds(prev => prev.filter(id => id !== parkId));
       } else {
-        await axios.post(endpoint, {}, { headers: { Authorization: `Bearer ${token}` } });
+        await axios.post(endpoint);
         setFavoriteIds(prev => [...prev, parkId]);
       }
     } catch (err) {
@@ -53,10 +50,7 @@ export default function Homepage() {
     React.useCallback(() => {
       const loadHomeParks = async () => {
         try {
-          const token = await AsyncStorage.getItem('token');
-          const res = await axios.get(`${BACKEND_URL}/api/user/home-parks`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
+          const res = await axios.get('/api/user/home-parks');
           setFavoriteParks(res.data.favorites || []);
           setNearbyParks(res.data.nearby || []);
           setRecentlyViewedParks(res.data.recent || []);

@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import axios from '../utils/axiosInstance';
 import { useFocusEffect } from '@react-navigation/native';
-import { BACKEND_URL } from '@env';
 import { View, Text, StyleSheet, ScrollView, ImageBackground, TouchableOpacity, Platform, Linking } from 'react-native';
-
-console.log('BACKEND_URL:', BACKEND_URL);
 
 export default function ParkDetails({ route }) {
   const { park = {} } = route.params || {};
@@ -21,9 +18,9 @@ export default function ParkDetails({ route }) {
           const token = await AsyncStorage.getItem('token');
           if (!token || !park._id) return;
   
-          await axios.post(`${BACKEND_URL}/api/user/recently-viewed/${park._id}`, {}, {
+          await axios.post(`/api/user/recently-viewed/${park._id}`, {}, {
             headers: { Authorization: `Bearer ${token}` },
-          });
+          });                   
         } catch (error) {
           console.error('Failed to record recently viewed park:', error);
         }
@@ -36,7 +33,7 @@ export default function ParkDetails({ route }) {
   const toggleFavorite = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      const endpoint = `${BACKEND_URL}/api/user/favorite-parks/${park._id}`;
+      const endpoint = `/api/user/favorite-parks/${park._id}`;
       if (isFavorited) {
         await axios.delete(endpoint, { headers: { Authorization: `Bearer ${token}` } });
       } else {
