@@ -20,6 +20,7 @@ import colors from './assets/colors';
 import { AuthProvider, useAuth } from './AuthContext'; // Import the AuthProvider and useAuth hook
 import HomePlateIcon from './components/icons/HomePlateIcon';
 import HomePlateIcon_Selected from './components/icons/HomePlateIcon_Selected';
+import { initUserLocation } from './utils/initUserLocation';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -76,100 +77,48 @@ export default function App() {
 
 // Main stack of the application
 function MainStack() {
-  const { isLoggedIn, setIsLoggedIn } = useAuth(); // Access the auth state from the context
+  const { isLoggedIn, setIsLoggedIn } = useAuth();
   const [loading, setLoading] = useState(true);
 
-  // Function to check if token exists
   const checkToken = async () => {
     const token = await AsyncStorage.getItem('token');
-    if (token) {
-      setIsLoggedIn(true);
-    } else {
-      setIsLoggedIn(false);
-    }
-    setLoading(false);
+    setIsLoggedIn(!!token);
   };
 
-  // Check for token when app mounts
   useEffect(() => {
-    checkToken();
-  }, []);
+    const startApp = async () => {
+      const token = await AsyncStorage.getItem('token');
+      const loggedIn = !!token;
+      setIsLoggedIn(loggedIn);
+  
+      if (loggedIn) {
+        await initUserLocation(); // ✅ Only try fetching location if user is logged in
+      }
+  
+      setLoading(false);
+    };
+  
+    startApp();
+  }, []);  
 
-  if (loading) {
-    return null; // You can add a spinner or loading screen here
-  }
+  if (loading) return null;
 
   return (
     <Stack.Navigator>
       {!isLoggedIn ? (
         <>
-          <Stack.Screen
-            name="LoginPage"
-            component={LoginPage}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="RegisterPage"
-            component={RegisterPage}
-            options={{ headerShown: false }}
-          />
+          <Stack.Screen name="LoginPage" component={LoginPage} options={{ headerShown: false }} />
+          <Stack.Screen name="RegisterPage" component={RegisterPage} options={{ headerShown: false }} />
         </>
       ) : (
         <>
-          <Stack.Screen
-            name="Tabs"
-            component={TabsNavigator}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="ParkDetails"
-            component={ParkDetails}
-            options={({ route }) => ({
-              title: route.params.park.name,
-              headerBackTitle: 'Back',
-            })}
-          />
-          <Stack.Screen
-            name="Notifications"
-            component={NotificationsPage}
-            options={{
-              title: 'Notifications',
-              headerBackTitle: 'Back',
-            }}
-          />
-          <Stack.Screen
-            name="Etiquette"
-            component={EtiquettePage}
-            options={{
-              title: 'Baseball Etiquette',
-              headerBackTitle: 'Back',
-            }}
-          />
-          <Stack.Screen
-            name="Admin"
-            component={AdminPage}
-            options={{
-              title: 'Admin',
-              headerBackTitle: 'Back',
-            }}
-          />
-          <Stack.Screen
-            name="Settings"
-            component={SettingsPage}
-            options={{
-              title: 'Settings',
-              headerBackTitle: 'Back',
-            }}
-          />
-          {/* Add the NewPostForm screen */}
-          <Stack.Screen
-            name="NewPostForm"
-            component={NewPostForm}
-            options={{
-              title: 'Create a New Post',
-              headerBackTitle: 'Back',
-            }}
-          />
+          <Stack.Screen name="Tabs" component={TabsNavigator} options={{ headerShown: false }} />
+          <Stack.Screen name="ParkDetails" component={ParkDetails} />
+          <Stack.Screen name="Notifications" component={NotificationsPage} />
+          <Stack.Screen name="Etiquette" component={EtiquettePage} />
+          <Stack.Screen name="Admin" component={AdminPage} />
+          <Stack.Screen name="Settings" component={SettingsPage} />
+          <Stack.Screen name="NewPostForm" component={NewPostForm} />
         </>
       )}
     </Stack.Navigator>

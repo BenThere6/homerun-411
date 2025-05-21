@@ -195,11 +195,6 @@ router.get('/search', auth, isAdmin, async (req, res) => {
   }
 });
 
-// Get a specific user by ID
-router.get('/:id', auth, getUser, (req, res) => {
-  res.json(res.user);
-});
-
 // Get user profile
 router.get('/profile', auth, async (req, res) => {
   try {
@@ -208,10 +203,22 @@ router.get('/profile', auth, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    res.json(user.profile);
+    // ✅ Send full user object (or pick specific fields)
+    res.json({
+      profile: user.profile,
+      location: user.location,
+      email: user.email,
+      role: user.role,
+      zipCode: user.zipCode,
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
+});
+
+// Get a specific user by ID
+router.get('/:id', auth, getUser, (req, res) => {
+  res.json(res.user);
 });
 
 // Get user settings

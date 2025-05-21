@@ -27,7 +27,7 @@ export default function SearchPage() {
   const [recentSearches, setRecentSearches] = useState([]);
   const [searchConfirmed, setSearchConfirmed] = useState(false);
   const [query, setQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
+  const [searchResults, setSearchResults] = useState({ inCity: [], nearby: [] });
   const [favoriteIds, setFavoriteIds] = useState([]);
 
   const stateNameToAbbreviation = {
@@ -42,6 +42,15 @@ export default function SearchPage() {
     "Rhode Island": 'RI', "South Carolina": 'SC', "South Dakota": 'SD', Tennessee: 'TN',
     Texas: 'TX', Utah: 'UT', Vermont: 'VT', Virginia: 'VA', Washington: 'WA',
     "West Virginia": 'WV', Wisconsin: 'WI', Wyoming: 'WY',
+  };
+
+  const waitForLocation = async (retries = 3, delay = 300) => {
+    for (let i = 0; i < retries; i++) {
+      const userLocation = await AsyncStorage.getItem('userLocation');
+      if (userLocation) return JSON.parse(userLocation);
+      await new Promise(res => setTimeout(res, delay));
+    }
+    return {};
   };
 
   const toggleFavorite = async (parkId) => {
@@ -87,10 +96,21 @@ export default function SearchPage() {
   }, []);
 
   useEffect(() => {
-    if (route.params?.query) {
-      handleSearch(route.params.query);
+    if (!route.params?.query) return;
+
+    const runSearch = async () => {
+      const { latitude, longitude } = await waitForLocation();
+
+      if (!latitude || !longitude) {
+        console.warn('❌ Location not ready, delaying search');
+        return; // Exit early — don't search yet
+      }
+
+      await handleSearch(route.params.query);
       navigation.setParams({ query: undefined });
-    }
+    };
+
+    runSearch();
   }, [route.params?.query]);
 
   const fuse = new Fuse(parks, {
@@ -108,20 +128,47 @@ export default function SearchPage() {
 
   const handleSearch = async (text, saveToRecent = true) => {
     if (!text.trim()) return;
+  
     const trimmed = text.trim();
     const capitalized = trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
-    const normalizedQuery = stateNameToAbbreviation[capitalized] || trimmed;
-    const results = fuse.search(normalizedQuery).map(r => r.item);
-    setSearchResults(results);
+    const stateAbbr = stateNameToAbbreviation[capitalized];
+    const { latitude, longitude } = await waitForLocation();
+  
+    // Use state abbreviation if it's a known state, otherwise treat as city
+    const searchTerm = stateAbbr || capitalized;
+  
+    if (latitude && longitude) {
+      try {
+        const res = await axios.get('/api/park/searchByCityWithNearby', {
+          params: {
+            city: searchTerm,
+            lat: latitude,
+            lon: longitude,
+          },
+        });
+  
+        setSearchResults({
+          inCity: res.data.cityMatches,
+          nearby: res.data.nearbyParks,
+        });
+      } catch (err) {
+        console.error('Error in location-based search:', err);
+        setSearchResults({ inCity: [], nearby: [] });
+      }
+    } else {
+      const results = fuse.search(trimmed).map(r => r.item);
+      setSearchResults({ inCity: results, nearby: [] });
+    }
+  
     setSearchConfirmed(true);
     scrollRef.current?.scrollTo({ y: 0, animated: true });
     setQuery(text);
     if (saveToRecent) await updateRecentSearches(text);
   };
-
+  
   const clearSearch = () => {
     setQuery('');
-    setSearchResults([]);
+    setSearchResults({ inCity: [], nearby: [] });
     setSearchConfirmed(false);
   };
 
@@ -130,8 +177,6 @@ export default function SearchPage() {
     setRecentSearches(updated);
     await AsyncStorage.setItem('recentSearches', JSON.stringify(updated));
   };
-
-  const displayParks = searchConfirmed ? searchResults : parks;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -171,7 +216,41 @@ export default function SearchPage() {
             <View style={styles.divider} />
 
             {/* Render Content */}
-            {!searchConfirmed ? (
+            {searchConfirmed ? (
+              <View style={styles.allParksContainer}>
+                <Text style={styles.sectionTitle}>
+                  Parks in {query.charAt(0).toUpperCase() + query.slice(1)}
+                </Text>
+                {(searchResults.inCity?.length || 0) > 0 ? (
+                  searchResults.inCity.map((park) => (
+                    <ParkCard
+                      key={park._id}
+                      park={park}
+                      isFavorited={favoriteIds.includes(park._id)}
+                      onToggleFavorite={() => toggleFavorite(park._id)}
+                      distance={park.distanceInMiles}
+                    />
+                  ))
+                ) : (
+                  <Text style={styles.noDataText}>No parks found in {query}.</Text>
+                )}
+
+                <Text style={styles.sectionTitle}>Nearby Parks</Text>
+                {(searchResults.nearby?.length || 0) > 0 ? (
+                  searchResults.nearby.map((park) => (
+                    <ParkCard
+                      key={park._id}
+                      park={park}
+                      isFavorited={favoriteIds.includes(park._id)}
+                      onToggleFavorite={() => toggleFavorite(park._id)}
+                      distance={park.distanceInMiles}
+                    />
+                  ))
+                ) : (
+                  <Text style={styles.noDataText}>No nearby parks found.</Text>
+                )}
+              </View>
+            ) : (
               <>
                 {recentSearches.length > 0 && (
                   <>
@@ -209,26 +288,19 @@ export default function SearchPage() {
                 </View>
 
                 <Text style={styles.sectionTitle}>All Parks</Text>
+                <View style={styles.allParksContainer}>
+                  {parks.map((park) => (
+                    <ParkCard
+                      key={park._id}
+                      park={park}
+                      isFavorited={favoriteIds.includes(park._id)}
+                      onToggleFavorite={() => toggleFavorite(park._id)}
+                      distance={park.distanceInMiles}
+                    />
+                  ))}
+                </View>
               </>
-            ) : (
-              <Text style={styles.sectionTitle}>Search Results</Text>
             )}
-
-            <View style={styles.allParksContainer}>
-              {displayParks.length > 0 ? (
-                displayParks.map((park) => (
-                  <ParkCard
-                    key={park._id}
-                    park={park}
-                    isFavorited={favoriteIds.includes(park._id)}
-                    onToggleFavorite={() => toggleFavorite(park._id)}
-                    distance={park.distanceInMiles}
-                  />
-                ))
-              ) : (
-                <Text>No parks found matching your search.</Text>
-              )}
-            </View>
           </View>
         </TouchableWithoutFeedback>
       </ScrollView>
