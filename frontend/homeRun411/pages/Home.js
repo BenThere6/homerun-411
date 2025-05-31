@@ -11,6 +11,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import { getWeather } from '../utils/getWeather';
 import WeatherWidget from '../components/WeatherWidget';
+import zipcodes from 'zipcodes'; // You may need to `npm install zipcodes`
 
 const quickLinks = [
   { id: '1', icon: 'location', label: 'Nearby Facilities', screen: 'Facilities' },
@@ -50,7 +51,17 @@ export default function Homepage() {
   useEffect(() => {
     const fetchLocation = async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
+      if (status !== 'granted') {
+        // fallback to city from stored zip
+        const storedProfile = await axios.get('/api/user/profile');
+        const zip = storedProfile.data.zipCode;
+        const loc = zipcodes.lookup(zip);
+        if (loc?.city) {
+          const city = loc.city;
+          setCityName(city.charAt(0).toUpperCase() + city.slice(1).toLowerCase());
+        }
+        return;
+      }
 
       const loc = await Location.getCurrentPositionAsync({});
       setUserCoords({
@@ -63,7 +74,8 @@ export default function Homepage() {
 
       const geocode = await Location.reverseGeocodeAsync(loc.coords);
       if (geocode && geocode[0]?.city) {
-        setCityName(geocode[0].city);
+        const city = geocode[0].city;
+        setCityName(city.charAt(0).toUpperCase() + city.slice(1).toLowerCase());
       }
     };
 
