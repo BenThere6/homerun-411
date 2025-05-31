@@ -8,6 +8,9 @@ import axios from '../utils/axiosInstance';
 import colors from '../assets/colors'; // Importing the color variables
 import ParkCard from '../components/ParkCard';
 import { useFocusEffect } from '@react-navigation/native';
+import * as Location from 'expo-location';
+import { getWeather } from '../utils/getWeather';
+import WeatherWidget from '../components/WeatherWidget';
 
 const quickLinks = [
   { id: '1', icon: 'location', label: 'Nearby Facilities', screen: 'Facilities' },
@@ -25,8 +28,21 @@ export default function Homepage() {
   const [expandFavorites, setExpandFavorites] = useState(true);
   const [expandNearby, setExpandNearby] = useState(true);
   const [expandRecentlyViewed, setExpandRecentlyViewed] = useState(true);
-
   const [favoriteIds, setFavoriteIds] = useState([]);
+  const [weather, setWeather] = useState(null);
+
+  useEffect(() => {
+    const fetchHomeWeather = async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+  
+      const loc = await Location.getCurrentPositionAsync({});
+      const data = await getWeather(loc.coords.latitude, loc.coords.longitude);
+      if (data) setWeather(data);
+    };
+  
+    fetchHomeWeather();
+  }, []);  
 
   const toggleFavorite = async (parkId) => {
     try {
@@ -98,6 +114,8 @@ export default function Homepage() {
         <Text style={styles.welcomeMessage}>
           {firstName ? `Welcome back, ${firstName}!` : 'Welcome back!'}
         </Text>
+
+        <WeatherWidget weather={weather} />
 
         <Text style={styles.sectionTitle}>Quick Links</Text>
 

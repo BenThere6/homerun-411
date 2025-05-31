@@ -4,12 +4,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from '../utils/axiosInstance';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, StyleSheet, ScrollView, ImageBackground, TouchableOpacity, Platform, Linking } from 'react-native';
+import { getWeather } from '../utils/getWeather';
+import WeatherWidget from '../components/WeatherWidget';
 
 export default function ParkDetails({ route }) {
   const { park = {} } = route.params || {};
   const defaultImage = 'https://images.unsplash.com/photo-1717886091076-56e54c2a360f?q=80&w=2967&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D';
   const [imageUrl, setImageUrl] = useState(park.mainImageUrl || defaultImage);
   const [isFavorited, setIsFavorited] = useState(false);
+  const [weather, setWeather] = useState(null);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -17,19 +20,32 @@ export default function ParkDetails({ route }) {
         try {
           const token = await AsyncStorage.getItem('token');
           if (!token || !park._id) return;
-  
+
           await axios.post(`/api/user/recently-viewed/${park._id}`, {}, {
             headers: { Authorization: `Bearer ${token}` },
-          });                   
+          });
         } catch (error) {
           console.error('Failed to record recently viewed park:', error);
         }
       };
-  
+
       recordRecentlyViewed();
     }, [park._id])
   );
-  
+
+  useEffect(() => {
+    const fetchWeather = async () => {
+      const lat = park.coordinates?.coordinates?.[1];
+      const lon = park.coordinates?.coordinates?.[0];
+      if (!lat || !lon) return;
+
+      const data = await getWeather(lat, lon);
+      if (data) setWeather(data);
+    };
+
+    fetchWeather();
+  }, []);
+
   const toggleFavorite = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
@@ -97,6 +113,8 @@ export default function ParkDetails({ route }) {
               />
             </TouchableOpacity>
           </ImageBackground>
+
+          <WeatherWidget weather={weather} />
 
           {/* Overview */}
           <View style={styles.section}>
