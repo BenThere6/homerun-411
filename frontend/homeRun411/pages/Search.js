@@ -29,6 +29,7 @@ export default function SearchPage() {
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState({ inCity: [], nearby: [] });
   const [favoriteIds, setFavoriteIds] = useState([]);
+  const [displayedQuery, setDisplayedQuery] = useState('');
 
   const stateNameToAbbreviation = {
     Alabama: 'AL', Alaska: 'AK', Arizona: 'AZ', Arkansas: 'AR', California: 'CA',
@@ -128,15 +129,15 @@ export default function SearchPage() {
 
   const handleSearch = async (text, saveToRecent = true) => {
     if (!text.trim()) return;
-  
+
     const trimmed = text.trim();
     const capitalized = trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
     const stateAbbr = stateNameToAbbreviation[capitalized];
     const { latitude, longitude } = await waitForLocation();
-  
+
     // Use state abbreviation if it's a known state, otherwise treat as city
     const searchTerm = stateAbbr || capitalized;
-  
+
     if (latitude && longitude) {
       try {
         const res = await axios.get('/api/park/searchByCityWithNearby', {
@@ -146,7 +147,7 @@ export default function SearchPage() {
             lon: longitude,
           },
         });
-  
+
         setSearchResults({
           inCity: res.data.cityMatches,
           nearby: res.data.nearbyParks,
@@ -159,13 +160,14 @@ export default function SearchPage() {
       const results = fuse.search(trimmed).map(r => r.item);
       setSearchResults({ inCity: results, nearby: [] });
     }
-  
+
     setSearchConfirmed(true);
     scrollRef.current?.scrollTo({ y: 0, animated: true });
     setQuery(text);
+    setDisplayedQuery(text);
     if (saveToRecent) await updateRecentSearches(text);
   };
-  
+
   const clearSearch = () => {
     setQuery('');
     setSearchResults({ inCity: [], nearby: [] });
@@ -197,7 +199,6 @@ export default function SearchPage() {
                 style={styles.input}
                 onChangeText={(text) => {
                   setQuery(text);
-                  setSearchResults([]);
                 }}
                 onSubmitEditing={() => handleSearch(query)}
                 value={query}
@@ -219,7 +220,7 @@ export default function SearchPage() {
             {searchConfirmed ? (
               <View style={styles.allParksContainer}>
                 <Text style={styles.sectionTitle}>
-                  Parks in {query.charAt(0).toUpperCase() + query.slice(1)}
+                  Parks in {displayedQuery.charAt(0).toUpperCase() + displayedQuery.slice(1)}
                 </Text>
                 {(searchResults.inCity?.length || 0) > 0 ? (
                   searchResults.inCity.map((park) => (
@@ -232,7 +233,7 @@ export default function SearchPage() {
                     />
                   ))
                 ) : (
-                  <Text style={styles.noDataText}>No parks found in {query}.</Text>
+                  <Text style={styles.noDataText}>No parks found in {displayedQuery}.</Text>
                 )}
 
                 <Text style={styles.sectionTitle}>Nearby Parks</Text>
