@@ -30,19 +30,45 @@ export default function Homepage() {
   const [expandRecentlyViewed, setExpandRecentlyViewed] = useState(true);
   const [favoriteIds, setFavoriteIds] = useState([]);
   const [weather, setWeather] = useState(null);
+  const [cityName, setCityName] = useState(null);
 
   useEffect(() => {
     const fetchHomeWeather = async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') return;
-  
+
       const loc = await Location.getCurrentPositionAsync({});
       const data = await getWeather(loc.coords.latitude, loc.coords.longitude);
       if (data) setWeather(data);
     };
-  
+
     fetchHomeWeather();
-  }, []);  
+  }, []);
+
+  const [userCoords, setUserCoords] = useState(null);
+
+  useEffect(() => {
+    const fetchLocation = async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+
+      const loc = await Location.getCurrentPositionAsync({});
+      setUserCoords({
+        lat: loc.coords.latitude,
+        lon: loc.coords.longitude,
+      });
+
+      const data = await getWeather(loc.coords.latitude, loc.coords.longitude);
+      if (data) setWeather(data);
+
+      const geocode = await Location.reverseGeocodeAsync(loc.coords);
+      if (geocode && geocode[0]?.city) {
+        setCityName(geocode[0].city);
+      }
+    };
+
+    fetchLocation();
+  }, []);
 
   const toggleFavorite = async (parkId) => {
     try {
@@ -66,25 +92,29 @@ export default function Homepage() {
     React.useCallback(() => {
       const loadHomeParks = async () => {
         try {
-          const res = await axios.get('/api/user/home-parks');
+          let url = '/api/user/home-parks';
+          if (userCoords) {
+            url += `?lat=${userCoords.lat}&lon=${userCoords.lon}`;
+          }
+
+          const res = await axios.get(url);
           setFavoriteParks(res.data.favorites || []);
           setNearbyParks(res.data.nearby || []);
           setRecentlyViewedParks(res.data.recent || []);
           const favorites = res.data.favorites.map(p => p._id);
           setFavoriteIds(favorites);
 
-          const sectionsWithData = [
-            res.data.favorites.length > 0,
-            res.data.nearby.length > 0,
-            res.data.recent.length > 0,
-          ].filter(Boolean).length;
+          const sections = [
+            { name: 'favorites', data: res.data.favorites },
+            { name: 'nearby', data: res.data.nearby },
+            { name: 'recent', data: res.data.recent },
+          ];
 
-          // If only 1 section has data, expand it automatically
-          const expandAll = sectionsWithData === 1;
+          const firstWithData = sections.find(section => section.data.length > 0)?.name;
 
-          setExpandFavorites(expandAll);
-          setExpandNearby(expandAll);
-          setExpandRecentlyViewed(expandAll);
+          setExpandFavorites(firstWithData === 'favorites');
+          setExpandNearby(firstWithData === 'nearby');
+          setExpandRecentlyViewed(firstWithData === 'recent');
 
         } catch (error) {
           console.error('Error fetching home parks:', error);
@@ -92,7 +122,7 @@ export default function Homepage() {
       };
 
       loadHomeParks();
-    }, [])
+    }, [userCoords])
   );
 
   // Conditionally add the admin link if the user is an admin
@@ -143,7 +173,7 @@ export default function Homepage() {
           <View style={styles.sectionContainer}>
             <TouchableOpacity onPress={() => setExpandFavorites(prev => !prev)}>
               <Text style={styles.sectionTitle}>
-                Favorite Parks {expandFavorites ? '▲' : '▼'}
+                Favorite Parks {expandFavorites ? '▼' : '▲'}
               </Text>
             </TouchableOpacity>
             {expandFavorites && favoriteParks.map(park => (
@@ -161,7 +191,7 @@ export default function Homepage() {
           <View style={styles.sectionContainer}>
             <TouchableOpacity onPress={() => setExpandNearby(prev => !prev)}>
               <Text style={styles.sectionTitle}>
-                Nearby Parks {expandNearby ? '▲' : '▼'}
+                Parks near {cityName || 'you'} {expandNearby ? '▼' : '▲'}
               </Text>
             </TouchableOpacity>
             {expandNearby && nearbyParks.map(park => (
@@ -179,7 +209,7 @@ export default function Homepage() {
           <View style={styles.sectionContainer}>
             <TouchableOpacity onPress={() => setExpandRecentlyViewed(prev => !prev)}>
               <Text style={styles.sectionTitle}>
-                Recently Viewed Parks {expandRecentlyViewed ? '▲' : '▼'}
+                Recently Viewed Parks {expandRecentlyViewed ? '▼' : '▲'}
               </Text>
             </TouchableOpacity>
             {expandRecentlyViewed && recentlyViewedParks.map(park => (

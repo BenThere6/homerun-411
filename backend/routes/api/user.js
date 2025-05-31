@@ -105,11 +105,19 @@ router.get('/home-parks', auth, async (req, res) => {
       .populate('favoriteParks')
       .populate('recentlyViewedParks.park');
 
+    const overrideLat = parseFloat(req.query.lat);
+    const overrideLon = parseFloat(req.query.lon);
+    const userCoords = (overrideLat && overrideLon)
+      ? [overrideLon, overrideLat]  // [lon, lat]
+      : user.location?.coordinates;
+
+    console.log('📨 Received override coords:', overrideLat, overrideLon);
+
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     const favoriteParks = user.favoriteParks.map(park => {
       const distance = calculateDistanceInMiles(
-        user.location.coordinates,
+        userCoords,
         park.coordinates?.coordinates
       );
       return {
@@ -124,7 +132,7 @@ router.get('/home-parks', auth, async (req, res) => {
       .map(entry => {
         const park = entry.park;
         const distance = calculateDistanceInMiles(
-          user.location.coordinates,
+          userCoords,
           park.coordinates?.coordinates
         );
         return {
@@ -138,13 +146,13 @@ router.get('/home-parks', auth, async (req, res) => {
     const maxDistance = miles * 1609.34;
 
     let nearbyParks = [];
-    if (user.location && user.location.coordinates.length === 2) {
+    if (userCoords && userCoords.length === 2) {
       nearbyParks = await Park.aggregate([
         {
           $geoNear: {
             near: {
               type: 'Point',
-              coordinates: user.location.coordinates,
+              coordinates: userCoords,
             },
             distanceField: 'distanceInMeters',
             spherical: true,
