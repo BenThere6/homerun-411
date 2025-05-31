@@ -17,6 +17,7 @@ import colors from '../assets/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from '../utils/axiosInstance';
 import ParkCard from '../components/ParkCard';
+import { getCoordinatesFromZip } from '../utils/zipLookup';
 
 export default function SearchPage() {
   const navigation = useNavigation();
@@ -100,14 +101,24 @@ export default function SearchPage() {
     if (!route.params?.query) return;
 
     const runSearch = async () => {
-      const { latitude, longitude } = await waitForLocation();
+      const trimmed = route.params.query?.trim();
+      if (!trimmed) return;
 
-      if (!latitude || !longitude) {
-        console.warn('❌ Location not ready, delaying search');
-        return; // Exit early — don't search yet
+      let locationCoords;
+      const zipPattern = /^\d{5}$/;
+
+      if (zipPattern.test(trimmed)) {
+        locationCoords = await getCoordinatesFromZip(trimmed);
+        if (!locationCoords) {
+          console.warn('ZIP not found');
+          setSearchResults({ inCity: [], nearby: [] });
+          return;
+        }
+      } else {
+        locationCoords = await waitForLocation();
       }
 
-      await handleSearch(route.params.query);
+      await handleSearch(trimmed, true, locationCoords);
       navigation.setParams({ query: undefined });
     };
 
@@ -127,24 +138,28 @@ export default function SearchPage() {
     await AsyncStorage.setItem('recentSearches', JSON.stringify(updated));
   };
 
-  const handleSearch = async (text, saveToRecent = true) => {
+  const handleSearch = async (text, saveToRecent = true, locationCoords = null) => {
     if (!text.trim()) return;
 
     const trimmed = text.trim();
     const capitalized = trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
     const stateAbbr = stateNameToAbbreviation[capitalized];
-    const { latitude, longitude } = await waitForLocation();
+    let searchTerm;
+    if (locationCoords?.city) {
+      searchTerm = locationCoords.city;
+    } else {
+      searchTerm = stateAbbr || capitalized;
+    }
 
-    // Use state abbreviation if it's a known state, otherwise treat as city
-    const searchTerm = stateAbbr || capitalized;
+    const coords = locationCoords || await waitForLocation();
 
-    if (latitude && longitude) {
+    if (coords.latitude && coords.longitude) {
       try {
         const res = await axios.get('/api/park/searchByCityWithNearby', {
           params: {
             city: searchTerm,
-            lat: latitude,
-            lon: longitude,
+            lat: coords.latitude,
+            lon: coords.longitude,
           },
         });
 
@@ -164,7 +179,7 @@ export default function SearchPage() {
     setSearchConfirmed(true);
     scrollRef.current?.scrollTo({ y: 0, animated: true });
     setQuery(text);
-    setDisplayedQuery(text);
+    setDisplayedQuery(searchTerm);
     if (saveToRecent) await updateRecentSearches(text);
   };
 
@@ -200,7 +215,26 @@ export default function SearchPage() {
                 onChangeText={(text) => {
                   setQuery(text);
                 }}
-                onSubmitEditing={() => handleSearch(query)}
+                onSubmitEditing={async () => {
+                  const trimmed = query.trim();
+                  if (!trimmed) return;
+
+                  const zipPattern = /^\d{5}$/;
+                  let locationCoords;
+
+                  if (zipPattern.test(trimmed)) {
+                    locationCoords = await getCoordinatesFromZip(trimmed);
+                    if (!locationCoords) {
+                      console.warn('ZIP not found');
+                      setSearchResults({ inCity: [], nearby: [] });
+                      return;
+                    }
+                  } else {
+                    locationCoords = await waitForLocation();
+                  }
+
+                  await handleSearch(trimmed, true, locationCoords);
+                }}
                 value={query}
                 returnKeyType="search"
               />
@@ -236,7 +270,10 @@ export default function SearchPage() {
                   <Text style={styles.noDataText}>No parks found in {displayedQuery}.</Text>
                 )}
 
-                <Text style={styles.sectionTitle}>Nearby Parks</Text>
+                <Text style={styles.sectionTitle}>
+                  Parks near {displayedQuery.charAt(0).toUpperCase() + displayedQuery.slice(1)}
+                </Text>
+
                 {(searchResults.nearby?.length || 0) > 0 ? (
                   searchResults.nearby.map((park) => (
                     <ParkCard
