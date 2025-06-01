@@ -157,7 +157,16 @@ function MainStack() {
           />
           <Stack.Screen name="Admin" component={AdminPage} />
           <Stack.Screen name="Settings" component={SettingsPage} />
-          <Stack.Screen name="NewPostForm" component={NewPostForm} />
+          <Stack.Screen
+            name="NewPostForm"
+            component={NewPostForm}
+            options={{
+              title: 'New Post',
+              headerStyle: { backgroundColor: '#ffd699' },
+              headerTintColor: 'black',
+              headerTitleAlign: 'center',
+            }}
+          />
         </>
       )}
     </Stack.Navigator>
