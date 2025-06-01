@@ -12,6 +12,7 @@ import ParkDetails from './pages/ParkDetails';
 import NotificationsPage from './pages/Notifications';
 import EtiquettePage from './pages/Etiquette';
 import AdminPage from './pages/Admin';
+import GameDayPage from './pages/GameDay';
 import SettingsPage from './pages/Settings';
 import LoginPage from './pages/Login';
 import RegisterPage from './pages/Register';
@@ -135,6 +136,16 @@ function MainStack() {
               title: 'Baseball Etiquette',
               headerStyle: { backgroundColor: '#82d9a7' },  // Light-medium green
               headerTintColor: 'black',                     // Icon & text color
+              headerTitleAlign: 'center',
+            }}
+          />
+          <Stack.Screen
+            name="GameDay"
+            component={GameDayPage}
+            options={{
+              title: 'Game Day Necessities',
+              headerStyle: { backgroundColor: '#90cdf4' }, // darker blue
+              headerTintColor: 'black',
               headerTitleAlign: 'center',
             }}
           />
