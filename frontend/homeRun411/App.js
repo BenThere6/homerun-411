@@ -90,16 +90,16 @@ function MainStack() {
       const token = await AsyncStorage.getItem('token');
       const loggedIn = !!token;
       setIsLoggedIn(loggedIn);
-  
+
       if (loggedIn) {
         await initUserLocation(); // ✅ Only try fetching location if user is logged in
       }
-  
+
       setLoading(false);
     };
-  
+
     startApp();
-  }, []);  
+  }, []);
 
   if (loading) return null;
 
@@ -114,7 +114,16 @@ function MainStack() {
         <>
           <Stack.Screen name="Tabs" component={TabsNavigator} options={{ headerShown: false }} />
           <Stack.Screen name="ParkDetails" component={ParkDetails} />
-          <Stack.Screen name="Notifications" component={NotificationsPage} />
+          <Stack.Screen
+            name="Notifications"
+            component={NotificationsPage}
+            options={{
+              title: 'Notifications',
+              headerStyle: { backgroundColor: '#ffb6d9' },  // Light pink
+              headerTintColor: 'black',                     // Icon & text color
+              headerTitleAlign: 'center',
+            }}
+          />
           <Stack.Screen name="Etiquette" component={EtiquettePage} />
           <Stack.Screen name="Admin" component={AdminPage} />
           <Stack.Screen name="Settings" component={SettingsPage} />
