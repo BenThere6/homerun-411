@@ -16,9 +16,9 @@ import GameDayPage from './pages/GameDay';
 import SettingsPage from './pages/Settings';
 import LoginPage from './pages/Login';
 import RegisterPage from './pages/Register';
-import NewPostForm from './pages/NewPostForm'; // Import the NewPostForm component
+import NewPostForm from './pages/NewPostForm';
 import colors from './assets/colors';
-import { AuthProvider, useAuth } from './AuthContext'; // Import the AuthProvider and useAuth hook
+import { AuthProvider, useAuth } from './AuthContext';
 import HomePlateIcon from './components/icons/HomePlateIcon';
 import HomePlateIcon_Selected from './components/icons/HomePlateIcon_Selected';
 import { initUserLocation } from './utils/initUserLocation';
@@ -59,7 +59,13 @@ function TabsNavigator() {
     >
       <Tab.Screen name="Home" component={Home} />
       <Tab.Screen name="Search" component={SearchPage} />
-      <Tab.Screen name="Forum" component={ForumPage} />
+      <Tab.Screen
+        name="Forum"
+        component={ForumPage}
+        options={{
+          headerShown: true,
+        }}
+      />
       <Tab.Screen name="Profile" component={ProfilePage} />
     </Tab.Navigator>
   );
@@ -93,7 +99,7 @@ function MainStack() {
       setIsLoggedIn(loggedIn);
 
       if (loggedIn) {
-        await initUserLocation(); // ✅ Only try fetching location if user is logged in
+        await initUserLocation();
       }
 
       setLoading(false);
@@ -116,7 +122,7 @@ function MainStack() {
           <Stack.Screen
             name="Tabs"
             component={TabsNavigator}
-            options={{ headerShown: false, title: 'Home' }} // ✅ sets back button title
+            options={{ headerShown: false, title: 'Home' }}
           />
           <Stack.Screen name="ParkDetails" component={ParkDetails} />
           <Stack.Screen
@@ -124,8 +130,8 @@ function MainStack() {
             component={NotificationsPage}
             options={{
               title: 'Notifications',
-              headerStyle: { backgroundColor: '#ffb6d9' },  // Light pink
-              headerTintColor: 'black',                     // Icon & text color
+              headerStyle: { backgroundColor: '#ffb6d9' },
+              headerTintColor: 'black',
               headerTitleAlign: 'center',
             }}
           />
@@ -134,8 +140,8 @@ function MainStack() {
             component={EtiquettePage}
             options={{
               title: 'Baseball Etiquette',
-              headerStyle: { backgroundColor: '#82d9a7' },  // Light-medium green
-              headerTintColor: 'black',                     // Icon & text color
+              headerStyle: { backgroundColor: '#82d9a7' },
+              headerTintColor: 'black',
               headerTitleAlign: 'center',
             }}
           />
@@ -144,7 +150,7 @@ function MainStack() {
             component={GameDayPage}
             options={{
               title: 'Game Day Necessities',
-              headerStyle: { backgroundColor: '#90cdf4' }, // darker blue
+              headerStyle: { backgroundColor: '#90cdf4' },
               headerTintColor: 'black',
               headerTitleAlign: 'center',
             }}
