@@ -112,7 +112,11 @@ function MainStack() {
         </>
       ) : (
         <>
-          <Stack.Screen name="Tabs" component={TabsNavigator} options={{ headerShown: false }} />
+          <Stack.Screen
+            name="Tabs"
+            component={TabsNavigator}
+            options={{ headerShown: false, title: 'Home' }} // ✅ sets back button title
+          />
           <Stack.Screen name="ParkDetails" component={ParkDetails} />
           <Stack.Screen
             name="Notifications"
@@ -124,7 +128,16 @@ function MainStack() {
               headerTitleAlign: 'center',
             }}
           />
-          <Stack.Screen name="Etiquette" component={EtiquettePage} />
+          <Stack.Screen
+            name="Etiquette"
+            component={EtiquettePage}
+            options={{
+              title: 'Baseball Etiquette',
+              headerStyle: { backgroundColor: '#82d9a7' },  // Light-medium green
+              headerTintColor: 'black',                     // Icon & text color
+              headerTitleAlign: 'center',
+            }}
+          />
           <Stack.Screen name="Admin" component={AdminPage} />
           <Stack.Screen name="Settings" component={SettingsPage} />
           <Stack.Screen name="NewPostForm" component={NewPostForm} />
