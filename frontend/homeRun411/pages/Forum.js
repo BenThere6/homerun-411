@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Image,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../assets/colors';
@@ -16,9 +17,9 @@ import { BACKEND_URL } from '@env';
 export default function ForumPage({ navigation }) {
   const [forumPosts, setForumPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchPosts = async () => {
-    setLoading(true);
     try {
       const response = await fetch(`${BACKEND_URL}/api/post`);
       const data = await response.json();
@@ -27,6 +28,7 @@ export default function ForumPage({ navigation }) {
       console.error('Error fetching posts:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -41,11 +43,6 @@ export default function ForumPage({ navigation }) {
         backgroundColor: '#ffd699',
       },
       headerTitleAlign: 'center',
-      headerLeft: () => (
-        <TouchableOpacity onPress={fetchPosts} style={{ marginLeft: 16 }}>
-          <Ionicons name="refresh-outline" size={24} color="black" />
-        </TouchableOpacity>
-      ),
       headerRight: () => (
         <TouchableOpacity onPress={() => navigation.navigate('NewPostForm')} style={{ marginRight: 16 }}>
           <Ionicons name="add-circle-outline" size={24} color="black" />
@@ -99,6 +96,16 @@ export default function ForumPage({ navigation }) {
           renderItem={renderPost}
           keyExtractor={(item) => item._id}
           contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => {
+                setRefreshing(true);
+                fetchPosts();
+              }}
+              progressViewOffset={60}
+            />
+          }
         />
       )}
     </SafeAreaView>
