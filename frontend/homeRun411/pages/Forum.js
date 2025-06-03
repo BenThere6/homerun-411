@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../assets/colors';
 import { BACKEND_URL } from '@env';
+import { LayoutAnimation, Platform, UIManager } from 'react-native';
 
 export default function ForumPage({ navigation }) {
     const [forumPosts, setForumPosts] = useState([]);
@@ -21,8 +22,15 @@ export default function ForumPage({ navigation }) {
 
     const fetchPosts = async () => {
         try {
+            if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+                UIManager.setLayoutAnimationEnabledExperimental(true);
+            }
+
             const response = await fetch(`${BACKEND_URL}/api/post`);
             const data = await response.json();
+
+            // Animate layout change before setting new data
+            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
             setForumPosts(data);
         } catch (error) {
             console.error('Error fetching posts:', error);
