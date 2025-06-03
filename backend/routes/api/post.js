@@ -69,7 +69,10 @@ router.post('/:postId/comments', auth, async (req, res) => {
 // Get all posts
 router.get('/', async (req, res) => {
   try {
-    const posts = await Post.find();
+    const posts = await Post.find()
+      .sort({ createdAt: -1 })
+      .populate('author', 'profile')
+      .populate('referencedPark', 'name city state');
     res.json(posts);
   } catch (err) {
     res.status(500).json({ message: err.message });
