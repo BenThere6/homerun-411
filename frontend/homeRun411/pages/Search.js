@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   View,
   Text,
@@ -18,8 +19,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from '../utils/axiosInstance';
 import ParkCard from '../components/ParkCard';
 import { getCoordinatesFromZip } from '../utils/zipLookup';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function SearchPage() {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const route = useRoute();
   const scrollRef = useRef(null);
@@ -195,60 +199,79 @@ export default function SearchPage() {
     await AsyncStorage.setItem('recentSearches', JSON.stringify(updated));
   };
 
+  const [dividerOpacity, setDividerOpacity] = useState(1);
+
+  const handleScroll = (event) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    setDividerOpacity(offsetY > 5 ? 0 : 1);  // fades out once you scroll down
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        ref={scrollRef}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.scrollContainer}
-      >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View>
-            {/* Search Bar */}
-            <View style={styles.searchBar}>
-              <Ionicons name="search" size={20} color={colors.primaryText} style={styles.searchIcon} />
-              <TextInput
-                placeholder="Search"
-                autoFocus={true}
-                placeholderTextColor={colors.secondaryText}
-                style={styles.input}
-                onChangeText={(text) => {
-                  setQuery(text);
-                }}
-                onSubmitEditing={async () => {
-                  const trimmed = query.trim();
-                  if (!trimmed) return;
+    <View style={styles.fullScreen}>
 
-                  const zipPattern = /^\d{5}$/;
-                  let locationCoords;
+      {/* Blur + Gradient OUTSIDE SafeAreaView */}
+      {/* <BlurView intensity={100} tint="light" style={styles.blurBackground} />
+      <LinearGradient
+        colors={['rgba(255,255,255,0.6)', 'rgba(255,255,255,0.4)', 'rgba(255,255,255,0)']}
+        locations={[0, 0.6, 1]}
+        style={styles.blurFade}
+      /> */}
 
-                  if (zipPattern.test(trimmed)) {
-                    locationCoords = await getCoordinatesFromZip(trimmed);
-                    if (!locationCoords) {
-                      console.warn('ZIP not found');
-                      setSearchResults({ inCity: [], nearby: [] });
-                      return;
-                    }
-                  } else {
-                    locationCoords = await waitForLocation();
-                  }
+      <View style={[styles.searchHeader, { paddingTop: insets.top }]}>
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={20} color={colors.primaryText} style={styles.searchIcon} />
+          <TextInput
+            placeholder="Search"
+            placeholderTextColor={colors.secondaryText}
+            style={styles.input}
+            value={query}
+            onChangeText={setQuery}
+            returnKeyType="search"
+            blurOnSubmit={true}
+            onSubmitEditing={async () => {
+              const trimmed = query.trim();
+              if (!trimmed) return;
+              const zipPattern = /^\d{5}$/;
+              let locationCoords;
+              if (zipPattern.test(trimmed)) {
+                locationCoords = await getCoordinatesFromZip(trimmed);
+                if (!locationCoords) {
+                  console.warn('ZIP not found');
+                  setSearchResults({ inCity: [], nearby: [] });
+                  return;
+                }
+              } else {
+                locationCoords = await waitForLocation();
+              }
+              await handleSearch(trimmed, true, locationCoords);
+            }}
+          />
+          {query.length > 0 && (
+            <TouchableOpacity onPress={clearSearch} style={{ marginLeft: 10, padding: 5 }}>
+              <Ionicons name="close-circle" size={20} color={colors.secondaryText} />
+            </TouchableOpacity>
+          )}
+          <View style={styles.filterIconContainer}>
+            <Ionicons name="options-outline" size={20} color={colors.primaryText} />
+          </View>
+        </View>
+      </View>
 
-                  await handleSearch(trimmed, true, locationCoords);
-                }}
-                value={query}
-                returnKeyType="search"
-              />
-              {query.length > 0 && (
-                <TouchableOpacity onPress={clearSearch} style={{ marginLeft: 10, padding: 5 }}>
-                  <Ionicons name="close-circle" size={20} color={colors.secondaryText} />
-                </TouchableOpacity>
-              )}
-              <View style={styles.filterIconContainer}>
-                <Ionicons name="options-outline" size={20} color={colors.primaryText} />
-              </View>
-            </View>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={{ flex: 1 }}>
+          {/* Search Bar */}
 
-            <View style={styles.divider} />
+
+
+          {/* Scrollable Content Below */}
+          <ScrollView
+            ref={scrollRef}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.scrollContainer}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+          >
+            {/* everything currently under the search bar */}
 
             {/* Render Content */}
             {searchConfirmed ? (
@@ -339,10 +362,11 @@ export default function SearchPage() {
                 </View>
               </>
             )}
-          </View>
-        </TouchableWithoutFeedback>
-      </ScrollView>
-    </SafeAreaView>
+          </ScrollView>
+        </View>
+      </TouchableWithoutFeedback>
+
+    </View>
   );
 }
 
@@ -355,9 +379,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     paddingVertical: 10,
     paddingHorizontal: 15,
-    marginLeft: 20,
-    marginRight: 20,
-    marginTop: 5,
+    width: '87%',
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -378,7 +400,11 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   divider: { height: 1, backgroundColor: '#e0e0e0', marginTop: 16 },
-  scrollContainer: { flexGrow: 1, paddingBottom: 60 },
+  scrollContainer: {
+    flexGrow: 1,
+    paddingBottom: 60,
+    paddingTop: 80, // adjust based on search bar height
+  },  
   recentSearchesContainer: { marginBottom: 20, paddingHorizontal: 20 },
   searchItem: {
     flexDirection: 'row',
@@ -394,4 +420,47 @@ const styles = StyleSheet.create({
   sectionTitle: { paddingTop: 20, paddingBottom: 15, paddingLeft: 20, fontSize: 16, fontWeight: 'bold', color: colors.primaryText },
   allParksContainer: { paddingHorizontal: 20 },
   featuredParksContainer: { paddingHorizontal: 20 },
+  stickyHeader: {
+    // position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    paddingTop: 10,
+    paddingBottom: 0,
+    backgroundColor: 'transparent',
+  },
+  fullScreen: {
+    flex: 1,
+    backgroundColor: colors.sixty,
+  },
+  blurFade: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 120, // adjust to cover status + header area
+    zIndex: -2,
+  },
+  blurBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 120, // same height
+    zIndex: -3,
+  },
+  safeArea: {
+    backgroundColor: colors.sixty,
+  },
+  searchHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    backgroundColor: colors.sixty,
+    alignItems: 'center',
+    paddingBottom: 10,
+  },  
 });

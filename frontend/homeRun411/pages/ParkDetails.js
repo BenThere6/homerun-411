@@ -90,6 +90,14 @@ export default function ParkDetails({ route }) {
     (img) => img.label?.toLowerCase() === 'concessions' && img.isCategoryMain
   );
 
+  const [showFields, setShowFields] = useState(true);
+  const [showRestrooms, setShowRestrooms] = useState(true);
+
+  const toggleSection = (section) => {
+    if (section === 'fields') setShowFields(!showFields);
+    if (section === 'restrooms') setShowRestrooms(!showRestrooms);
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollContainer} contentContainerStyle={{ paddingBottom: 60 }}>
@@ -186,35 +194,29 @@ export default function ParkDetails({ route }) {
           {/* Restrooms */}
           {park.restrooms?.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Restrooms</Text>
-              {park.restrooms.map((restroom, idx) => (
+              <TouchableOpacity onPress={() => toggleSection('restrooms')}>
+                <Text style={styles.sectionTitle}>🚻 Restrooms {showRestrooms ? '▲' : '▼'}</Text>
+              </TouchableOpacity>
+              {showRestrooms && park.restrooms.map((restroom, idx) => (
                 <View key={idx} style={{ marginBottom: 10 }}>
-                  <Text style={styles.subtitle}>Restroom Location</Text>
+                  <Text style={styles.subtitle}>📍 Location</Text>
                   <Text style={styles.text}>{restroom.location || 'No data available'}</Text>
 
-                  <Text style={styles.subtitle}>Running Water</Text>
+                  <Text style={styles.subtitle}>🚿 Running Water</Text>
                   <Text style={styles.text}>{restroom.runningWater ? 'Yes' : 'No'}</Text>
 
-                  <Text style={styles.subtitle}>Changing Table</Text>
+                  <Text style={styles.subtitle}>🧷 Changing Table</Text>
                   <Text style={styles.text}>
                     {typeof restroom.changingTable === 'boolean'
                       ? restroom.changingTable ? 'Yes' : 'No'
                       : restroom.changingTable || 'No data available'}
                   </Text>
 
-                  <Text style={styles.subtitle}>Women's Stalls</Text>
-                  <Text style={styles.text}>
-                    {restroom.womensStalls !== null && restroom.womensStalls !== undefined
-                      ? restroom.womensStalls
-                      : 'No data available'}
-                  </Text>
+                  <Text style={styles.subtitle}>🚺 Women's Stalls</Text>
+                  <Text style={styles.text}>{restroom.womensStalls ?? 'No data available'}</Text>
 
-                  <Text style={styles.subtitle}>Men's Stalls/Urinals</Text>
-                  <Text style={styles.text}>
-                    {restroom.mensStalls !== null && restroom.mensStalls !== undefined
-                      ? restroom.mensStalls
-                      : 'No data available'}
-                  </Text>
+                  <Text style={styles.subtitle}>🚹 Men's Stalls/Urinals</Text>
+                  <Text style={styles.text}>{restroom.mensStalls ?? 'No data available'}</Text>
                 </View>
               ))}
             </View>
@@ -253,73 +255,42 @@ export default function ParkDetails({ route }) {
 
 
           {/* Fields */}
+
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Fields</Text>
-            {park.fields?.length > 0 ? (
-              park.fields.map((field, index) => (
-                <View key={index} style={styles.fieldCard}>
-                  <Text style={styles.subtitle}>
-                    Field {index + 1}: {field.name || 'Unnamed Field'}
-                  </Text>
-
-                  <Text style={styles.subtitle}>Field Location</Text>
-                  <Text style={styles.text}>{field.location || 'No data available'}</Text>
-
-                  <Text style={styles.subtitle}>Type</Text>
-                  <Text style={styles.text}>
-                    {field.fieldType
-                      ? field.fieldType.charAt(0).toUpperCase() + field.fieldType.slice(1).replace('-', '-B')
-                      : 'No data available'}
-                  </Text>
-
-                  <Text style={styles.subtitle}>Fence Distance</Text>
-                  <Text style={styles.text}>{field.fenceDistance ? `${field.fenceDistance} ft` : 'No data available'}</Text>
-
-                  <Text style={styles.subtitle}>Fence Height</Text>
-                  <Text style={styles.text}>{field.fenceHeight ? `${field.fenceHeight} ft` : 'No data available'}</Text>
-
-                  <Text style={styles.subtitle}>Outfield Material</Text>
-                  <Text style={styles.text}>{field.outfieldMaterial || 'No data available'}</Text>
-
-                  <Text style={styles.subtitle}>Infield Material</Text>
-                  <Text style={styles.text}>{field.infieldMaterial || 'No data available'}</Text>
-
-                  <Text style={styles.subtitle}>Mound Type</Text>
-                  <Text style={styles.text}>{field.moundType || 'No data available'}</Text>
-
-                  <Text style={styles.subtitle}>Field Shade Description</Text>
-                  <Text style={styles.text}>{field.fieldShadeDescription || 'No data available'}</Text>
-
-                  <Text style={styles.subtitle}>Parking Distance</Text>
-                  <Text style={styles.text}>{field.parkingDistanceToField || 'No data available'}</Text>
-
-                  <Text style={styles.subtitle}>Bleachers Available</Text>
-                  <Text style={styles.text}>{field.bleachersAvailable ? 'Yes' : 'No'}</Text>
-
-                  <Text style={styles.subtitle}>Bleachers Description</Text>
-                  <Text style={styles.text}>{field.bleachersDescription || 'No data available'}</Text>
-
-                  <Text style={styles.subtitle}>Backstop Material</Text>
-                  <Text style={styles.text}>{field.backstopMaterial || 'No data available'}</Text>
-
-                  <Text style={styles.subtitle}>Backstop Distance</Text>
-                  <Text style={styles.text}>{field.backstopDistance ? `${field.backstopDistance} ft` : 'No data available'}</Text>
-
-                  <Text style={styles.subtitle}>Dugouts Covered</Text>
-                  <Text style={styles.text}>{field.dugoutsCovered ? 'Yes' : 'No'}</Text>
-
-                  <Text style={styles.subtitle}>Dugouts Material</Text>
-                  <Text style={styles.text}>{field.dugoutsMaterial || 'No data available'}</Text>
-
-                  <Text style={styles.subtitle}>Batting Cages</Text>
-                  <Text style={styles.text}>{field.battingCages ? 'Yes' : 'No'}</Text>
-
-                  <Text style={styles.subtitle}>Warning Track</Text>
-                  <Text style={styles.text}>{field.warningTrack ? 'Yes' : 'No'}</Text>
-                </View>
-              ))
-            ) : (
-              <Text style={styles.text}>No fields available</Text>
+            <TouchableOpacity onPress={() => toggleSection('fields')}>
+              <Text style={styles.sectionTitle}>⚾ Fields {showFields ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
+            {showFields && (
+              <>
+                {Object.entries(
+                  park.fields?.reduce((acc, field) => {
+                    const name = field.name || 'Unnamed Field';
+                    acc[name] = acc[name] || [];
+                    acc[name].push(field);
+                    return acc;
+                  }, {})
+                ).map(([name, fields]) => (
+                  <View key={name} style={styles.fieldCard}>
+                    <Text style={styles.subtitle}>{name} ({fields.length})</Text>
+                    {fields.map((field, idx) => (
+                      <View key={idx} style={{ marginBottom: 10 }}>
+                        <Text style={styles.subtitle}>📍 Location</Text>
+                        <Text style={styles.text}>{field.location || 'No data available'}</Text>
+                        <Text style={styles.subtitle}>📏 Fence Distance</Text>
+                        <Text style={styles.text}>{field.fenceDistance ? `${field.fenceDistance} ft` : 'No data available'}</Text>
+                        <Text style={styles.subtitle}>🧱 Fence Height</Text>
+                        <Text style={styles.text}>{field.fenceHeight ? `${field.fenceHeight} ft` : 'No data available'}</Text>
+                        <Text style={styles.subtitle}>🌱 Outfield</Text>
+                        <Text style={styles.text}>{field.outfieldMaterial || 'No data available'}</Text>
+                        <Text style={styles.subtitle}>🏔 Infield</Text>
+                        <Text style={styles.text}>{field.infieldMaterial || 'No data available'}</Text>
+                        <Text style={styles.subtitle}>🧱 Backstop</Text>
+                        <Text style={styles.text}>{field.backstopMaterial || 'No data available'}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ))}
+              </>
             )}
           </View>
         </View>
@@ -336,17 +307,47 @@ export default function ParkDetails({ route }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'white' },
   scrollContainer: { flex: 1 },
   contentContainer: { padding: 8 },
   mainImage: { width: '100%', height: 200, justifyContent: 'center', alignItems: 'center' },
-  section: { marginBottom: 20, padding: 10, backgroundColor: '#f9f9f9', borderRadius: 10 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: '#333' },
-  subtitle: { fontSize: 16, fontWeight: '600', color: 'gray', marginTop: 5 },
-  text: { fontSize: 14, color: 'black' },
-  fieldCard: { padding: 10, backgroundColor: '#eef', borderRadius: 8, marginBottom: 10 },
+  container: { flex: 1, backgroundColor: '#f4fff7' }, // spring green background
+  sectionTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 10, color: '#2e7d32' }, // dark green
+  subtitle: { fontSize: 16, fontWeight: '600', color: '#388e3c', marginTop: 6 },
+  text: { fontSize: 14, color: '#2f2f2f', marginBottom: 4 },
   fixedBottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'white', padding: 25 },
-  customButton: { backgroundColor: '#007BFF', padding: 12, borderRadius: 8, alignItems: 'center' },
+  section: {
+    marginBottom: 20,
+    padding: 12,
+    backgroundColor: '#e8f5e9', // light spring green
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  fieldCard: {
+    padding: 12,
+    backgroundColor: '#f1fdf5', // lighter green card
+    borderRadius: 10,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  customButton: {
+    backgroundColor: '#66bb6a', // green button
+    padding: 14,
+    borderRadius: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 2,
+  },
   buttonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
   categoryImage: {
     width: '100%',
