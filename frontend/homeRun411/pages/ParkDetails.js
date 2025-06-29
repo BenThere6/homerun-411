@@ -6,13 +6,29 @@ import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, StyleSheet, ScrollView, ImageBackground, TouchableOpacity, Platform, Linking } from 'react-native';
 import { getWeather } from '../utils/getWeather';
 import WeatherWidget from '../components/WeatherWidget';
+import { useLayoutEffect } from 'react';
 
-export default function ParkDetails({ route }) {
+export default function ParkDetails({ route, navigation }) {
   const { park = {} } = route.params || {};
   const defaultImage = 'https://images.unsplash.com/photo-1717886091076-56e54c2a360f?q=80&w=2967&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D';
   const [imageUrl, setImageUrl] = useState(park.mainImageUrl || defaultImage);
   const [isFavorited, setIsFavorited] = useState(false);
   const [weather, setWeather] = useState(null);
+
+  useLayoutEffect(() => {
+    if (park.name) {
+      navigation.setOptions({
+        title: park.name,
+        headerStyle: {
+          backgroundColor: '#f4fff7', // Match screen background
+        },
+        headerTitleStyle: {
+          color: '#2e7d32', // Optional: green text
+        },
+        headerTintColor: '#2e7d32', // Back arrow color
+      });
+    }
+  }, [navigation, park.name]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -122,25 +138,21 @@ export default function ParkDetails({ route }) {
             </TouchableOpacity>
           </ImageBackground>
 
-          <WeatherWidget weather={weather} />
-
           {/* Overview */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Park Overview</Text>
-            <Text style={styles.subtitle}>Name</Text>
-            <Text style={styles.text}>{park.name}</Text>
-            <Text style={styles.subtitle}>Location</Text>
-            <Text style={styles.text}>
-              {park.city || 'No city available'}, {park.state || 'No state available'}
-            </Text>
-            {park.address && (
-              <>
-                <Text style={styles.subtitle}>Address</Text>
-                <Text style={styles.text}>{park.address}</Text>
-              </>
-            )}
-            <Text style={styles.subtitle}>Number of Fields</Text>
-            <Text style={styles.text}>{park.numberOfFields || 'No data available'}</Text>
+            <View style={styles.overviewRow}>
+              {/* Column 1 - Address info */}
+              <View style={styles.overviewColumn}>
+                <Text style={styles.locationText}>{park.address}</Text>
+                <Text style={styles.locationText}>{park.city}, {park.state}</Text>
+                <Text style={styles.fieldsText}>{park.numberOfFields} fields</Text>
+              </View>
+
+              {/* Column 2 - Weather */}
+              <View style={styles.weatherWrapper}>
+                <WeatherWidget weather={weather} />
+              </View>
+            </View>
           </View>
 
           {/* Amenities & Features */}
@@ -271,7 +283,7 @@ export default function ParkDetails({ route }) {
                   }, {})
                 ).map(([name, fields]) => (
                   <View key={name} style={styles.fieldCard}>
-                    <Text style={styles.subtitle}>{name} ({fields.length})</Text>
+                    <Text style={styles.subtitle}>{name}</Text>
                     {fields.map((field, idx) => (
                       <View key={idx} style={{ marginBottom: 10 }}>
                         <Text style={styles.subtitle}>📍 Location</Text>
@@ -309,7 +321,15 @@ export default function ParkDetails({ route }) {
 const styles = StyleSheet.create({
   scrollContainer: { flex: 1 },
   contentContainer: { padding: 8 },
-  mainImage: { width: '100%', height: 200, justifyContent: 'center', alignItems: 'center' },
+  mainImage: {
+    width: '100%',
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginTop: 8,
+  },
   container: { flex: 1, backgroundColor: '#f4fff7' }, // spring green background
   sectionTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 10, color: '#2e7d32' }, // dark green
   subtitle: { fontSize: 16, fontWeight: '600', color: '#388e3c', marginTop: 6 },
@@ -364,5 +384,55 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     padding: 6,
     zIndex: 2,
+  },
+  centeredSection: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  centeredText: {
+    fontSize: 16,
+    fontWeight: '600', // or 'bold' for even more pop
+    color: '#1b5e20',  // deeper green for visual contrast
+    // marginBottom: 4,
+    textAlign: 'center',
+  },
+  locationText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1b5e20',
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  fieldsText: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: '#4e684e',
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  weatherSection: {
+    // backgroundColor: '#fff3cd',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    marginBottom: 20, // same as .section
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  overviewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },  
+  overviewColumn: {
+    flex: 0.35, // around 35% width
+    justifyContent: 'center',
+  },
+  weatherWrapper: {
+    flex: 0.65, // remaining 65%
+    alignItems: 'flex-end',
   },
 });
