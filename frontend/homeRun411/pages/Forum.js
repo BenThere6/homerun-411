@@ -19,6 +19,8 @@ export default function ForumPage({ navigation }) {
     const [forumPosts, setForumPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [expandedPosts, setExpandedPosts] = useState([]);
+    const [sortOption, setSortOption] = useState('date');
 
     const fetchPosts = async () => {
         try {
@@ -29,9 +31,15 @@ export default function ForumPage({ navigation }) {
             const response = await fetch(`${BACKEND_URL}/api/post`);
             const data = await response.json();
 
-            // Animate layout change before setting new data
+            let sortedData = [...data];
+            if (sortOption === 'mostReplies') {
+                sortedData.sort((a, b) => (b.comments || 0) - (a.comments || 0));
+            } else {
+                sortedData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            }
+
             LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-            setForumPosts(data);
+            setForumPosts(sortedData); // ✅ this is correct
         } catch (error) {
             console.error('Error fetching posts:', error);
         } finally {
@@ -89,7 +97,25 @@ export default function ForumPage({ navigation }) {
                 </View>
             )}
 
-            <Text style={styles.cardContent}>{item.content}</Text>
+            <Text style={styles.cardContent}>
+                {expandedPosts.includes(item._id)
+                    ? item.content
+                    : item.content.slice(0, 160) + (item.content.length > 160 ? '...' : '')}
+            </Text>
+
+            {item.content.length > 160 && (
+                <TouchableOpacity onPress={() => {
+                    setExpandedPosts(prev =>
+                        prev.includes(item._id)
+                            ? prev.filter(id => id !== item._id)
+                            : [...prev, item._id]
+                    );
+                }}>
+                    <Text style={styles.readMoreText}>
+                        {expandedPosts.includes(item._id) ? 'Show Less ▲' : 'Read More ▼'}
+                    </Text>
+                </TouchableOpacity>
+            )}
 
             {item.referencedPark && (
                 <View style={styles.parkTagBox}>
@@ -129,6 +155,38 @@ export default function ForumPage({ navigation }) {
                             progressViewOffset={60}
                         />
                     }
+                    ListHeaderComponent={() => (
+                        <View style={styles.sortBar}>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setSortOption('date');
+                                    fetchPosts();
+                                }}
+                                style={[
+                                    styles.sortOption,
+                                    sortOption === 'date' && styles.selectedSortOption,
+                                ]}
+                            >
+                                <Text style={sortOption === 'date' ? styles.selectedSortText : styles.sortText}>
+                                    🕒 Newest
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setSortOption('mostReplies');
+                                    fetchPosts();
+                                }}
+                                style={[
+                                    styles.sortOption,
+                                    sortOption === 'mostReplies' && styles.selectedSortOption,
+                                ]}
+                            >
+                                <Text style={sortOption === 'mostReplies' ? styles.selectedSortText : styles.sortText}>
+                                    💬 Most Relevant
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
                 />
             )}
             <TouchableOpacity
@@ -251,5 +309,52 @@ const styles = StyleSheet.create({
         color: '#888',
         fontSize: 12,
         marginTop: 2,
+    },
+    readMoreText: {
+        fontSize: 13,
+        color: '#f28b02',
+        fontWeight: '600',
+        marginBottom: 6,
+    },
+    sortOption: {
+        marginHorizontal: 10,
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        borderRadius: 8,
+        backgroundColor: '#fff3e0',
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#f28b02',
+    },
+    selectedSort: {
+        backgroundColor: '#f28b02',
+        color: 'white',
+    },
+    sortBar: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 12,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        backgroundColor: '#fffaf0',
+    },
+    sortOption: {
+        backgroundColor: '#fff3e0',
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 20,
+    },
+    selectedSortOption: {
+        backgroundColor: '#f28b02',
+    },
+    sortText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#f28b02',
+    },
+    selectedSortText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#fff',
     },
 });
