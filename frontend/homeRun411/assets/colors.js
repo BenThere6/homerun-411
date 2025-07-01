@@ -5,4 +5,5 @@ export default {
     primaryText: 'black',
     secondaryText: 'gray',
     oppText: 'white',
+    lightBlue: '#f0f8ff', // pastel / baby blue
 };

@@ -1,254 +1,244 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons'; // For the combined button icon
-import { useNavigation } from '@react-navigation/native'; // For navigation
-import AsyncStorage from '@react-native-async-storage/async-storage'; // For storing/retrieving user data
-import colors from '../assets/colors'; // Importing the color variables
+import {
+  View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, SafeAreaView, FlatList
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
+import axios from '../utils/axiosInstance';
+import ParkCard from '../components/ParkCard';
+import colors from '../assets/colors';
 
 export default function ProfilePage() {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [createdAt, setCreatedAt] = useState(''); // To store account creation date
+  const navigation = useNavigation();
+  const [profile, setProfile] = useState({});
+  const [createdAt, setCreatedAt] = useState('');
+  const [profileImage, setProfileImage] = useState(null);
+  const [activity, setActivity] = useState({ posts: [], comments: [], likes: [] });
+  const [favoriteParks, setFavoriteParks] = useState([]);
 
-  const navigation = useNavigation(); // Hook for navigation
+  const fetchProfile = async () => {
+    const token = await AsyncStorage.getItem('token');
+    const res = await axios.get('/api/user/profile', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    setProfile(res.data.profile);
+    setCreatedAt(res.data.createdAt); // ✅
+  };
+
+  const fetchActivity = async () => {
+    const res = await axios.get('/api/user/activity');
+    setActivity({
+      posts: res.data.posts || [],
+      comments: res.data.comments || [],
+      likes: res.data.likes || [],
+    });
+  };
+
+  const fetchFavorites = async () => {
+    const token = await AsyncStorage.getItem('token');
+    const res = await axios.get('/api/user/home-parks', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    setFavoriteParks(res.data.favorites || []);
+  };
 
   useEffect(() => {
-    // Fetch the user's data from AsyncStorage or API
-    const fetchUserData = async () => {
-      try {
-        const storedFirstName = await AsyncStorage.getItem('firstName');
-        const storedLastName = await AsyncStorage.getItem('lastName');
-        const storedEmail = await AsyncStorage.getItem('email');
-        const storedCreatedAt = await AsyncStorage.getItem('createdAt'); // Ensure this is stored when user logs in
-
-        if (storedFirstName) setFirstName(storedFirstName);
-        if (storedLastName) setLastName(storedLastName);
-        if (storedEmail) setEmail(storedEmail);
-        if (storedCreatedAt) setCreatedAt(storedCreatedAt);
-      } catch (error) {
-        console.error('Error fetching user data: ', error);
-      }
-    };
-
-    fetchUserData();
+    fetchProfile();
+    fetchActivity();
+    fetchFavorites();
   }, []);
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+
+    if (!result.cancelled) {
+      const token = await AsyncStorage.getItem('token');
+      setProfileImage(result.uri);
+      await axios.patch('/api/user/profile', { avatarUrl: result.uri }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.pageContainer}>
-        
-        {/* Scrollable Content */}
-        <ScrollView contentContainerStyle={styles.scrollContainer} style={styles.scrollView}>
-          
-          {/* Profile Card */}
-          <View style={styles.profileCard}>
-            <View style={styles.headerContainer}>
-              {/* Placeholder Image */}
-              <Image 
-                source={{ uri: 'https://via.placeholder.com/120' }} // Placeholder image for now
-                style={styles.profileImage} 
-              />
-              {/* Displaying real user data */}
-              <Text style={styles.username}>{`${firstName} ${lastName}`}</Text>
-              <Text style={styles.email}>{email} email???</Text>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.card}>
+          <TouchableOpacity onPress={pickImage}>
+            <Image
+              source={{ uri: profileImage || profile.avatarUrl || 'https://cdn-icons-png.flaticon.com/512/149/149071.png' }}
+              style={styles.profileImage}
+            />
+          </TouchableOpacity>
+          <Text style={styles.name}>{profile.firstName} {profile.lastName}</Text>
+          {createdAt && (
+            <Text style={styles.dateText}>
+              Member Since: {new Date(createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+            </Text>
+          )}
+        </View>
 
-              {/* Combined Button for Edit Profile and Settings */}
-              <TouchableOpacity 
-                style={styles.manageAccountButton} 
-                onPress={() => navigation.navigate('Settings')} // Navigate to a combined screen
-              >
-                <Ionicons name="settings-outline" size={24} color={colors.primaryText} />
-                <Text style={styles.manageAccountText}>Manage Account</Text>
-              </TouchableOpacity>
+        <TouchableOpacity style={styles.manageButton} onPress={() => navigation.navigate('Settings')}>
+          <Ionicons name="settings-outline" size={18} color={colors.primaryText} />
+          <Text style={styles.manageButtonText}>Manage Account</Text>
+        </TouchableOpacity>
 
-              {/* Account Created Date */}
-              <View style={styles.infoContainer}>
-                <Text style={styles.infoText}>Account Created: {new Date(createdAt).toLocaleDateString()}</Text>
-              </View>
-            </View>
-          </View>
+        {/* Favorite Parks */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Favorite Parks</Text>
+          {favoriteParks.length > 0 ? (
+            <FlatList
+              data={favoriteParks}
+              horizontal
+              keyExtractor={item => item._id}
+              renderItem={({ item }) => (
+                <View style={{ width: 250, marginRight: 12 }}>
+                  <ParkCard park={item} isFavorited={true} />
+                </View>
+              )}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingLeft: 10 }}
+            />
+          ) : (
+            <Text style={styles.emptyText}>No favorite parks yet.</Text>
+          )}
+        </View>
 
-          {/* Statistics */}
-          <View style={styles.statisticsContainer}>
-            <Text style={styles.sectionTitle}>Statistics</Text>
-            <View style={styles.statsRow}>
-              <View style={styles.statBox}>
-                <Text style={styles.statNumber}>10</Text>
-                <Text style={styles.statLabel}>Parks Visited</Text>
-              </View>
+        {/* Recent Activity */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Recent Activity</Text>
 
-              <View style={styles.statBox}>
-                <Text style={styles.statNumber}>7</Text>
-                <Text style={styles.statLabel}>Check-ins</Text>
-              </View>
-            </View>
-          </View>
+          {/* Posts */}
+          {activity.posts.length > 0 && (
+            <>
+              <Text style={styles.activityType}>Posts</Text>
+              {activity.posts.map(post => (
+                <View key={`post-${post._id}`} style={styles.activityCard}>
+                  <Text style={styles.activityText}>{post.title}</Text>
+                  <Text style={styles.activityDate}>{new Date(post.createdAt).toLocaleDateString()}</Text>
+                </View>
+              ))}
+            </>
+          )}
 
-          {/* Activity Feed */}
-          <View style={styles.activityContainer}>
-            <Text style={styles.sectionTitle}>Recent Activity</Text>
-            <View style={styles.activityTable}>
-              <View style={styles.activityRow}>
-                <Text style={styles.activityEvent}>Commented on Park 1</Text>
-                <Text style={styles.activityDate}>Sept 10, 2024</Text>
-              </View>
-              <View style={styles.activityRow}>
-                <Text style={styles.activityEvent}>Liked a post in Park 2</Text>
-                <Text style={styles.activityDate}>Sept 9, 2024</Text>
-              </View>
-            </View>
-          </View>
-        </ScrollView>
-      </View>
+          {/* Comments */}
+          {activity.comments.length > 0 && (
+            <>
+              <Text style={styles.activityType}>Comments</Text>
+              {activity.comments.map(comment => (
+                <View key={`comment-${comment._id}`} style={styles.activityCard}>
+                  <Text style={styles.activityText}>{comment.content}</Text>
+                  <Text style={styles.activityDate}>
+                    on "{comment.post?.title || 'a post'}" — {new Date(comment.createdAt).toLocaleDateString()}
+                  </Text>
+                </View>
+              ))}
+            </>
+          )}
+
+          {/* Likes */}
+          {activity.likes.length > 0 && (
+            <>
+              <Text style={styles.activityType}>Liked Posts</Text>
+              {activity.likes.map(post => (
+                <View key={`like-${post._id}`} style={styles.activityCard}>
+                  <Text style={styles.activityText}>❤️ {post.title}</Text>
+                  <Text style={styles.activityDate}>{new Date(post.updatedAt).toLocaleDateString()}</Text>
+                </View>
+              ))}
+            </>
+          )}
+
+          {/* Fallback if nothing */}
+          {activity.posts.length === 0 &&
+            activity.comments.length === 0 &&
+            activity.likes.length === 0 && (
+              <Text style={styles.emptyText}>No recent activity yet.</Text>
+            )}
+        </View>
+
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.sixty, // White background (60%)
-  },
-  pageContainer: {
-    flex: 1,
-    position: 'relative', // Important for absolute positioning of the icon
-  },
-  scrollView: {
-    paddingHorizontal: 20, // Ensure padding for the ScrollView
-  },
-  scrollContainer: {
-    paddingBottom: 10,
-    width: '100%',
-  },
-  
-  /* Profile Card */
-  profileCard: {
-    backgroundColor: colors.sixty, // White background for the card (60%)
-    padding: 20, // Padding inside the card
-    borderRadius: 15, // Rounded corners
-    elevation: 5, // Shadow for Android
-    shadowColor: '#000', // Shadow for iOS
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3.84,
-    marginBottom: 20,
-    marginTop: 20,
-    position: 'relative',
-  },
-  
-  headerContainer: {
+  safeArea: { flex: 1, backgroundColor: colors.sixty },
+  scrollContainer: { paddingBottom: 30 },
+  card: {
+    backgroundColor: colors.lightBlue,
+    margin: 16,
+    padding: 20,
+    borderRadius: 14,
     alignItems: 'center',
-    marginBottom: 10, // Space between profile info and the rest
   },
   profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60, // Round image
+    width: 120, height: 120, borderRadius: 60,
+    backgroundColor: '#e0e0e0', marginBottom: 12,
+  },
+  name: { fontSize: 22, fontWeight: 'bold', color: colors.primaryText },
+  dateText: { fontSize: 14, color: colors.secondaryText, marginTop: 6 },
+  manageButton: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'lightgray',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 24,
+    marginTop: 10,
     marginBottom: 10,
   },
-  username: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.primaryText, // Black color for the username
-  },
-  email: {
-    fontSize: 16,
-    color: colors.secondaryText, // Gray color for the email
-    marginBottom: 10,
-  },
-  
-  /* Combined Manage Account Button */
-  manageAccountButton: {
-    backgroundColor: '#f0f0f0', // Light background for the button
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 5,
-    flexDirection: 'row', // Icon and text side by side
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  manageAccountText: {
-    fontSize: 16,
-    color: colors.primaryText, // Black text for the button
-    marginLeft: 10, // Add space between icon and text
-  },
-
-  infoContainer: {
-    marginTop: 10,
-    alignItems: 'center',
-  },
-  infoText: {
-    fontSize: 16,
-    color: colors.secondaryText, // Gray text for account creation info
-  },
-
-  /* Statistics Section */
-  statisticsContainer: {
-    marginTop: 30,
-    paddingHorizontal: 20,
-    alignItems: 'center',
+  manageButtonText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: colors.black,
+    fontWeight: '400',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: colors.primaryText, // Black text for section title
+    color: colors.primaryText,
     marginBottom: 10,
+    paddingHorizontal: 10,
   },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-    marginBottom: 15, // Add spacing between rows
-  },
-  statBox: {
-    alignItems: 'center',
-    padding: 15,
-    backgroundColor: '#f9f9f9', // Light background for the stat boxes
-    borderRadius: 10,
-    width: '45%',
-    elevation: 2, // Shadow for Android
-    shadowColor: '#000', // Shadow for iOS
-    shadowOffset: { width: 0, height: 2 }, // Shadow offset
-    shadowOpacity: 0.2,
-    shadowRadius: 3.84,
-  },
-  statNumber: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.primaryText, // Black text for the statistic number
-  },
-  statLabel: {
+  emptyText: {
+    color: colors.secondaryText,
+    fontStyle: 'italic',
     fontSize: 14,
-    color: colors.secondaryText, // Gray text for the statistic label
-    marginTop: 5,
-  },
-
-  /* Activity Section */
-  activityContainer: {
-    marginTop: 30,
+    marginTop: 4,
     paddingHorizontal: 20,
-    alignItems: 'center',
   },
-  activityTable: {
-    width: '100%',
-  },
-  activityRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
+  activityCard: {
+    paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#eee',
   },
-  activityEvent: {
-    fontSize: 16,
-    color: colors.primaryText, // Black text for the activity event
-    flex: 2, // Takes more space
+  activityText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: colors.primaryText,
   },
   activityDate: {
-    fontSize: 10,
-    color: colors.secondaryText, // Gray text for the activity date
-    flex: 1, // Takes less space
-    textAlign: 'right', // Aligns the date to the right
+    fontSize: 12,
+    color: colors.secondaryText,
+  },
+  activityType: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.primaryText,
+    marginTop: 14,
+    marginBottom: 6,
+  },
+  section: {
+    marginTop: 30,
+    marginBottom: 20,
+    paddingHorizontal: 0,
   },
 });

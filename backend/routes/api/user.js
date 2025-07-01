@@ -5,6 +5,8 @@ const auth = require('../../middleware/auth');
 const isAdmin = require('../../middleware/isAdmin');
 const zipcodes = require('zipcodes');
 const Park = require('../../models/Park');
+const Post = require('../../models/Post');
+const Comment = require('../../models/Comment');
 
 // Middleware function to fetch a user by ID
 async function getUser(req, res, next) {
@@ -214,6 +216,7 @@ router.get('/profile', auth, async (req, res) => {
     // ✅ Send full user object (or pick specific fields)
     res.json({
       profile: user.profile,
+      createdAt: user.createdAt,
       location: user.location,
       email: user.email,
       role: user.role,
@@ -385,6 +388,35 @@ router.delete('/favorite-parks/:parkId', auth, async (req, res) => {
   } catch (err) {
     // Handle any errors that occur during the process
     res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/user/activity
+router.get('/activity', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const posts = await Post.find({ author: userId })
+      .sort({ createdAt: -1 })
+      .limit(5);
+
+    const comments = await Comment.find({ author: userId })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('post');
+
+    const likes = await Post.find({ likedBy: userId })
+      .sort({ updatedAt: -1 })
+      .limit(5);
+
+    res.json({ posts, comments, likes });
+
+    console.log('🔍 USER ID:', userId);
+    console.log('📝 Posts found:', posts.length);
+
+  } catch (err) {
+    console.error('Error fetching activity:', err);
+    res.status(500).json({ message: 'Failed to load user activity.' });
   }
 });
 
