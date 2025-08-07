@@ -52,7 +52,7 @@ export default function ParkDetails({ route, navigation }) {
   useEffect(() => {
     const fetchData = async () => {
       await checkIfFavorited(); // 👈 this is what was missing
-  
+
       const lat = park.coordinates?.coordinates?.[1];
       const lon = park.coordinates?.coordinates?.[0];
       if (lat && lon) {
@@ -60,9 +60,9 @@ export default function ParkDetails({ route, navigation }) {
         if (data) setWeather(data);
       }
     };
-  
+
     fetchData();
-  }, []);  
+  }, []);
 
   const toggleFavorite = async () => {
     try {
@@ -83,17 +83,18 @@ export default function ParkDetails({ route, navigation }) {
     try {
       const token = await AsyncStorage.getItem('token');
       if (!token || !park._id) return;
-  
+
       const res = await axios.get('/api/user/home-parks', {
         headers: { Authorization: `Bearer ${token}` }
       });
-  
-      const favoriteIds = res.data.favorites.map(p => p._id);
+
+      const favoriteIds = (res.data?.favorites ?? []).map(p => p._id);
+
       setIsFavorited(favoriteIds.includes(park._id));
     } catch (err) {
       console.error('Failed to check favorite status:', err.message);
     }
-  };  
+  };
 
   const openMapsApp = () => {
     const lat = park.coordinates?.coordinates?.[1];
@@ -290,39 +291,58 @@ export default function ParkDetails({ route, navigation }) {
             <TouchableOpacity onPress={() => toggleSection('fields')}>
               <Text style={styles.sectionTitle}>⚾ Fields {showFields ? '▲' : '▼'}</Text>
             </TouchableOpacity>
+
             {showFields && (
               <>
-                {Object.entries(
-                  park.fields?.reduce((acc, field) => {
-                    const name = field.name || 'Unnamed Field';
-                    acc[name] = acc[name] || [];
-                    acc[name].push(field);
+                {(() => {
+                  // ✅ Safely handle missing/undefined fields
+                  const grouped = (park.fields ?? []).reduce((acc, field) => {
+                    const name = field?.name || 'Unnamed Field';
+                    (acc[name] = acc[name] || []).push(field);
                     return acc;
-                  }, {})
-                ).map(([name, fields]) => (
-                  <View key={name} style={styles.fieldCard}>
-                    <Text style={styles.subtitle}>{name}</Text>
-                    {fields.map((field, idx) => (
-                      <View key={idx} style={{ marginBottom: 10 }}>
-                        <Text style={styles.subtitle}>📍 Location</Text>
-                        <Text style={styles.text}>{field.location || 'No data available'}</Text>
-                        <Text style={styles.subtitle}>📏 Fence Distance</Text>
-                        <Text style={styles.text}>{field.fenceDistance ? `${field.fenceDistance} ft` : 'No data available'}</Text>
-                        <Text style={styles.subtitle}>🧱 Fence Height</Text>
-                        <Text style={styles.text}>{field.fenceHeight ? `${field.fenceHeight} ft` : 'No data available'}</Text>
-                        <Text style={styles.subtitle}>🌱 Outfield</Text>
-                        <Text style={styles.text}>{field.outfieldMaterial || 'No data available'}</Text>
-                        <Text style={styles.subtitle}>🏔 Infield</Text>
-                        <Text style={styles.text}>{field.infieldMaterial || 'No data available'}</Text>
-                        <Text style={styles.subtitle}>🧱 Backstop</Text>
-                        <Text style={styles.text}>{field.backstopMaterial || 'No data available'}</Text>
-                      </View>
-                    ))}
-                  </View>
-                ))}
+                  }, {});
+
+                  const groups = Object.entries(grouped);
+
+                  if (groups.length === 0) {
+                    return <Text style={styles.text}>No field data</Text>;
+                  }
+
+                  return groups.map(([name, fields]) => (
+                    <View key={name} style={styles.fieldCard}>
+                      <Text style={styles.subtitle}>{name}</Text>
+                      {fields.map((field, idx) => (
+                        <View key={idx} style={{ marginBottom: 10 }}>
+                          <Text style={styles.subtitle}>📍 Location</Text>
+                          <Text style={styles.text}>{field?.location || 'No data available'}</Text>
+
+                          <Text style={styles.subtitle}>📏 Fence Distance</Text>
+                          <Text style={styles.text}>
+                            {field?.fenceDistance ? `${field.fenceDistance} ft` : 'No data available'}
+                          </Text>
+
+                          <Text style={styles.subtitle}>🧱 Fence Height</Text>
+                          <Text style={styles.text}>
+                            {field?.fenceHeight ? `${field.fenceHeight} ft` : 'No data available'}
+                          </Text>
+
+                          <Text style={styles.subtitle}>🌱 Outfield</Text>
+                          <Text style={styles.text}>{field?.outfieldMaterial || 'No data available'}</Text>
+
+                          <Text style={styles.subtitle}>🏔 Infield</Text>
+                          <Text style={styles.text}>{field?.infieldMaterial || 'No data available'}</Text>
+
+                          <Text style={styles.subtitle}>🧱 Backstop</Text>
+                          <Text style={styles.text}>{field?.backstopMaterial || 'No data available'}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ));
+                })()}
               </>
             )}
           </View>
+
         </View>
       </ScrollView>
 
@@ -444,7 +464,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-  },  
+  },
   overviewColumn: {
     flex: 0.35, // around 35% width
     justifyContent: 'center',

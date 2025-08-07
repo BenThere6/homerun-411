@@ -170,6 +170,16 @@ export default function ForumPage({ navigation }) {
         }
     };
 
+    // Open the real ParkDetails (it's in the root stack)
+    const goToRealParkDetails = (park) => {
+        // Send BOTH id variants + the whole object so ParkDetails can use whatever it needs
+        navigation.navigate('ParkDetails', {
+            parkId: park?._id ?? park?.id ?? null,
+            id: park?._id ?? park?.id ?? null,
+            park,                               
+        });
+    };
+
     const renderPost = ({ item }) => (
         <TouchableOpacity onPress={() => setSelectedPost(item)}>
             <View style={styles.card}>
@@ -213,12 +223,24 @@ export default function ForumPage({ navigation }) {
                 </Text>
 
                 {item.referencedPark && (
-                    <View style={styles.parkTagBox}>
-                        <Text style={styles.parkTagLabel}>🏞️ {item.referencedPark.name}</Text>
-                        <Text style={styles.parkTagLocation}>
-                            {item.referencedPark.city}, {item.referencedPark.state}
-                        </Text>
-                    </View>
+                    <TouchableOpacity
+                        onPress={() => goToRealParkDetails(item.referencedPark)}
+                        style={styles.parkChip}
+                        activeOpacity={0.7}
+                    >
+                        <View style={styles.parkChipLeft}>
+                            <Ionicons name="location-outline" size={16} color="#f28b02" />
+                            <View style={{ marginLeft: 8, flex: 1 }}>
+                                <Text numberOfLines={1} style={styles.parkChipName}>
+                                    {item.referencedPark.name}
+                                </Text>
+                                <Text numberOfLines={1} style={styles.parkChipSub}>
+                                    {item.referencedPark.city}, {item.referencedPark.state}
+                                </Text>
+                            </View>
+                        </View>
+                        <Ionicons name="chevron-forward" size={16} color="#bbb" />
+                    </TouchableOpacity>
                 )}
 
                 <View style={styles.cardMeta}>
@@ -269,12 +291,24 @@ export default function ForumPage({ navigation }) {
                             <Text style={styles.modalText}>{selectedPost.content}</Text>
 
                             {selectedPost.referencedPark && (
-                                <View style={[styles.parkTagBox, { marginTop: 16 }]}>
-                                    <Text style={styles.parkTagLabel}>🏞️ {selectedPost.referencedPark.name}</Text>
-                                    <Text style={styles.parkTagLocation}>
-                                        {selectedPost.referencedPark.city}, {selectedPost.referencedPark.state}
-                                    </Text>
-                                </View>
+                                <TouchableOpacity
+                                    onPress={() => goToRealParkDetails(selectedPost.referencedPark)}
+                                    style={[styles.parkChip, { marginTop: 16 }]}
+                                    activeOpacity={0.7}
+                                >
+                                    <View style={styles.parkChipLeft}>
+                                        <Ionicons name="location-outline" size={16} color="#f28b02" />
+                                        <View style={{ marginLeft: 8, flex: 1 }}>
+                                            <Text numberOfLines={1} style={styles.parkChipName}>
+                                                {selectedPost.referencedPark.name}
+                                            </Text>
+                                            <Text numberOfLines={1} style={styles.parkChipSub}>
+                                                {selectedPost.referencedPark.city}, {selectedPost.referencedPark.state}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                    <Ionicons name="chevron-forward" size={16} color="#bbb" />
+                                </TouchableOpacity>
                             )}
 
                             {/* Like + comments count row */}
@@ -600,5 +634,33 @@ const styles = StyleSheet.create({
         marginBottom: 0,
         alignSelf: 'stretch',
         borderRadius: 1,
+    },
+    parkChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        backgroundColor: '#fff8ee',
+        borderRadius: 10,
+        marginTop: 8,
+        marginBottom: 10,
+        borderWidth: 1,
+        borderColor: '#ffe0bf',
+    },
+    parkChipLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    parkChipName: {
+        fontWeight: '700',
+        color: '#333',
+        fontSize: 14,
+    },
+    parkChipSub: {
+        color: '#8a8a8a',
+        fontSize: 12,
+        marginTop: 2,
     },
 });
