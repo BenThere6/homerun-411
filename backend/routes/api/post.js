@@ -41,26 +41,72 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-// Add a comment to a post
+// Get all comments for a specific post (sorted + author name)
+router.get('/:postId/comments', async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const comments = await Comment.find({ referencedPost: postId })
+      .sort({ createdAt: 1 })
+      .populate('author', 'profile.firstName profile.lastName');
+    res.json(comments);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Add a comment to a post (return populated author)
 router.post('/:postId/comments', auth, async (req, res) => {
   try {
-    const postId = req.params.postId;
+    const { postId } = req.params;
     const { content } = req.body;
 
-    // Assuming authentication middleware sets req.user with the logged-in user's data
     const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const comment = new Comment({
+    const comment = await Comment.create({
       referencedPost: postId,
       content,
       author: req.user.id,
     });
 
-    await comment.save();
-    res.status(201).json(comment);
+    const populated = await comment.populate('author', 'profile.firstName profile.lastName');
+    res.status(201).json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Toggle like/unlike a post
+router.post('/:postId/like', auth, async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const userId = req.user.id;
+
+    const post = await Post.findById(postId).select('likes');
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+
+    const already = post.likes.some(id => id.equals(userId));
+    if (already) post.likes.pull(userId);
+    else post.likes.push(userId);
+
+    await post.save();
+    res.json({ liked: !already, likesCount: post.likes.length });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Check if current user liked this post
+router.get('/:postId/liked', auth, async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const userId = req.user.id;
+
+    const post = await Post.findById(postId).select('likes');
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+
+    const liked = post.likes.some(id => id.equals(userId));
+    res.json({ liked, likesCount: post.likes.length });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -72,7 +118,14 @@ router.get('/', async (req, res) => {
     const posts = await Post.find()
       .sort({ createdAt: -1 })
       .populate('author', 'profile')
-      .populate('referencedPark', 'name city state');
+      .populate('referencedPark', 'name city state')
+      .lean();
+
+    for (let post of posts) {
+      post.likesCount = post.likes?.length || 0;
+      post.commentsCount = await Comment.countDocuments({ referencedPost: post._id });
+    }
+
     res.json(posts);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -103,17 +156,6 @@ router.get('/search', async (req, res) => {
 // Get post by ID
 router.get('/:id', getPost, (req, res) => {
   res.json(res.post);
-});
-
-// Get all comments for a specific post
-router.get('/:postId/comments', async (req, res) => {
-  try {
-    const { postId } = req.params;
-    const comments = await Comment.find({ referencedPost: postId });
-    res.json(comments);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
 });
 
 // Update post by ID

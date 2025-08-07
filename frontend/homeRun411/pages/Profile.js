@@ -150,10 +150,15 @@ export default function ProfilePage() {
             <>
               <Text style={styles.activityType}>Posts</Text>
               {activity.posts.map(post => (
-                <View key={`post-${post._id}`} style={styles.activityCard}>
-                  <Text style={styles.activityText}>{post.title}</Text>
-                  <Text style={styles.activityDate}>{new Date(post.createdAt).toLocaleDateString()}</Text>
-                </View>
+                <TouchableOpacity
+                  key={`post-${post._id}`}
+                  onPress={() => navigation.navigate('Forum', { openPostId: post._id })}
+                >
+                  <View style={styles.activityCard}>
+                    <Text style={styles.activityText}>{post.title}</Text>
+                    <Text style={styles.activityDate}>{new Date(post.createdAt).toLocaleDateString()}</Text>
+                  </View>
+                </TouchableOpacity>
               ))}
             </>
           )}
