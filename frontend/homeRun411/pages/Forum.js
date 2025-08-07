@@ -20,11 +20,20 @@ import { useFocusEffect } from '@react-navigation/native';
 import axios from '../utils/axiosInstance';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// full date like "Tuesday, June 11, 2025"
+const formatFullDate = (d) =>
+    new Date(d).toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+    });
+
 export default function ForumPage({ navigation }) {
     const [forumPosts, setForumPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [sortOption, setSortOption] = useState('date');
+    // const [sortOption, setSortOption] = useState('date');
     const [selectedPost, setSelectedPost] = useState(null);
     const [comments, setComments] = useState([]);
     const [commentText, setCommentText] = useState('');
@@ -41,15 +50,13 @@ export default function ForumPage({ navigation }) {
             const response = await fetch(`${BACKEND_URL}/api/post`);
             const data = await response.json();
 
-            let sortedData = [...data];
-            if (sortOption === 'mostReplies') {
-                sortedData.sort((a, b) => (b.comments || 0) - (a.comments || 0));
-            } else {
-                sortedData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-            }
-
+            // Always newest first (also matches backend default, but this is a safe fallback)
+            const sortedData = [...data].sort(
+                (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+            );
             LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-            setForumPosts(sortedData); // ✅ this is correct
+            setForumPosts(sortedData);
+
         } catch (error) {
             console.error('Error fetching posts:', error);
         } finally {
@@ -185,7 +192,7 @@ export default function ForumPage({ navigation }) {
                                     ? `${item.author.profile.firstName}${item.author.profile.lastName ? ' ' + item.author.profile.lastName : ''}`
                                     : 'Anonymous'}
                             </Text>
-                            <Text style={styles.cardDate}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+                            <Text style={styles.cardDate}>{formatFullDate(item.createdAt)}</Text>
                         </View>
                         <Text style={styles.cardTitle}>{item.title}</Text>
                     </View>
@@ -244,38 +251,7 @@ export default function ForumPage({ navigation }) {
                             progressViewOffset={60}
                         />
                     }
-                    ListHeaderComponent={() => (
-                        <View style={styles.sortBar}>
-                            <TouchableOpacity
-                                onPress={() => {
-                                    setSortOption('date');
-                                    fetchPosts();
-                                }}
-                                style={[
-                                    styles.sortOption,
-                                    sortOption === 'date' && styles.selectedSortOption,
-                                ]}
-                            >
-                                <Text style={sortOption === 'date' ? styles.selectedSortText : styles.sortText}>
-                                    🕒 Newest
-                                </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                onPress={() => {
-                                    setSortOption('mostReplies');
-                                    fetchPosts();
-                                }}
-                                style={[
-                                    styles.sortOption,
-                                    sortOption === 'mostReplies' && styles.selectedSortOption,
-                                ]}
-                            >
-                                <Text style={sortOption === 'mostReplies' ? styles.selectedSortText : styles.sortText}>
-                                    💬 Most Relevant
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-                    )}
+
                 />
             )}
 
@@ -407,7 +383,7 @@ const styles = StyleSheet.create({
     cardHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
+        alignItems: 'flex-start',
     },
     authorName: {
         fontSize: 14,
@@ -419,6 +395,10 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#999',
         marginLeft: 10,
+        textAlign: 'right',
+        maxWidth: 150,    // tune if you want
+        lineHeight: 14,
+        flexShrink: 1,    // allow wrapping instead of overflow
     },
     cardTitle: {
         fontSize: 15,
@@ -485,46 +465,15 @@ const styles = StyleSheet.create({
         fontSize: 12,
         marginTop: 2,
     },
-    sortOption: {
-        marginHorizontal: 10,
-        paddingVertical: 6,
-        paddingHorizontal: 10,
-        borderRadius: 8,
-        backgroundColor: '#fff3e0',
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#f28b02',
-    },
     selectedSort: {
         backgroundColor: '#f28b02',
         color: 'white',
-    },
-    sortBar: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        gap: 12,
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        backgroundColor: '#fffaf0',
     },
     sortOption: {
         backgroundColor: '#fff3e0',
         paddingVertical: 6,
         paddingHorizontal: 12,
         borderRadius: 20,
-    },
-    selectedSortOption: {
-        backgroundColor: '#f28b02',
-    },
-    sortText: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#f28b02',
-    },
-    selectedSortText: {
-        fontSize: 13,
-        fontWeight: '600',
-        color: '#fff',
     },
     modalOverlay: {
         position: 'absolute',
