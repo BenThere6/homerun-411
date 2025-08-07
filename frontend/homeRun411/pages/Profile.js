@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, SafeAreaView, FlatList
+  View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, SafeAreaView, FlatList, RefreshControl
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -17,6 +17,7 @@ export default function ProfilePage() {
   const [profileImage, setProfileImage] = useState(null);
   const [activity, setActivity] = useState({ posts: [], comments: [], likes: [] });
   const [favoriteParks, setFavoriteParks] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchProfile = async () => {
     const token = await AsyncStorage.getItem('token');
@@ -28,12 +29,20 @@ export default function ProfilePage() {
   };
 
   const fetchActivity = async () => {
-    const res = await axios.get('/api/user/activity');
-    setActivity({
-      posts: res.data.posts || [],
-      comments: res.data.comments || [],
-      likes: res.data.likes || [],
-    });
+    console.log('📡 Fetching activity...');
+
+    try {
+      const res = await axios.get('/api/user/activity');
+      console.log('✅ Activity response:', res.data);
+
+      setActivity({
+        posts: res.data.posts || [],
+        comments: res.data.comments || [],
+        likes: res.data.likes || [],
+      });
+    } catch (error) {
+      console.error('❌ Error fetching activity:', error.response?.data || error.message);
+    }
   };
 
   const fetchFavorites = async () => {
@@ -49,6 +58,15 @@ export default function ProfilePage() {
     fetchActivity();
     fetchFavorites();
   }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([
+      fetchFavorites(),
+      fetchActivity()
+    ]);
+    setRefreshing(false);
+  };
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -68,7 +86,15 @@ export default function ProfilePage() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <ScrollView contentContainerStyle={styles.scrollContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            progressViewOffset={50}
+          />
+        }
+      >
         <View style={styles.card}>
           <TouchableOpacity onPress={pickImage}>
             <Image
@@ -99,7 +125,12 @@ export default function ProfilePage() {
               keyExtractor={item => item._id}
               renderItem={({ item }) => (
                 <View style={{ width: 250, marginRight: 12 }}>
-                  <ParkCard park={item} isFavorited={true} />
+                  <ParkCard
+                    park={item}
+                    isFavorited={true}
+                    disableFavoriteToggle={true} // 👈 This tells ParkCard to make the star non-interactive
+                    onPress={() => navigation.navigate('ParkDetails', { park: item })}
+                  />
                 </View>
               )}
               showsHorizontalScrollIndicator={false}
@@ -185,21 +216,21 @@ const styles = StyleSheet.create({
   name: { fontSize: 22, fontWeight: 'bold', color: colors.primaryText },
   dateText: { fontSize: 14, color: colors.secondaryText, marginTop: 6 },
   manageButton: {
+    marginTop: 16,
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'lightgray',
-    paddingHorizontal: 20,
+    backgroundColor: '#ddd',
+    paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 24,
-    marginTop: 10,
+    borderRadius: 10,
     marginBottom: 10,
   },
   manageButtonText: {
     marginLeft: 8,
     fontSize: 14,
-    color: colors.black,
-    fontWeight: '400',
+    fontWeight: '500',
+    color: colors.primaryText,
   },
   sectionTitle: {
     fontSize: 18,
@@ -216,9 +247,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   activityCard: {
-    paddingVertical: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
+    backgroundColor: '#fafafa',
+    borderRadius: 6,
+    marginBottom: 6,
   },
   activityText: {
     fontSize: 15,
@@ -237,8 +272,8 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   section: {
-    marginTop: 30,
-    marginBottom: 20,
-    paddingHorizontal: 0,
+    marginTop: 24,
+    paddingHorizontal: 16,
+    paddingBottom: 10,
   },
 });

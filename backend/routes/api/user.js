@@ -205,6 +205,38 @@ router.get('/search', auth, isAdmin, async (req, res) => {
   }
 });
 
+// GET /api/user/activity
+router.get('/activity', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const posts = await Post.find({ author: userId })
+      .sort({ createdAt: -1 })
+      .limit(5);
+
+    const comments = await Comment.find({ author: userId })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('post');
+
+    const likes = await Post.find({ likedBy: userId })
+      .sort({ updatedAt: -1 })
+      .limit(5);
+
+    res.json({ posts, comments, likes });
+
+    console.log('🔍 USER ID:', userId);
+    console.log('📝 Posts found:', posts.length);
+
+    const firstPost = await Post.findOne({});
+    console.log('🧪 Sample Post:', firstPost);
+
+  } catch (err) {
+    console.error('Error fetching activity:', err);
+    res.status(500).json({ message: 'Failed to load user activity.' });
+  }
+});
+
 // Get user profile
 router.get('/profile', auth, async (req, res) => {
   try {
@@ -388,35 +420,6 @@ router.delete('/favorite-parks/:parkId', auth, async (req, res) => {
   } catch (err) {
     // Handle any errors that occur during the process
     res.status(500).json({ message: err.message });
-  }
-});
-
-// GET /api/user/activity
-router.get('/activity', auth, async (req, res) => {
-  try {
-    const userId = req.user.id;
-
-    const posts = await Post.find({ author: userId })
-      .sort({ createdAt: -1 })
-      .limit(5);
-
-    const comments = await Comment.find({ author: userId })
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .populate('post');
-
-    const likes = await Post.find({ likedBy: userId })
-      .sort({ updatedAt: -1 })
-      .limit(5);
-
-    res.json({ posts, comments, likes });
-
-    console.log('🔍 USER ID:', userId);
-    console.log('📝 Posts found:', posts.length);
-
-  } catch (err) {
-    console.error('Error fetching activity:', err);
-    res.status(500).json({ message: 'Failed to load user activity.' });
   }
 });
 

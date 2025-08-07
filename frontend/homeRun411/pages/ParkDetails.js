@@ -50,17 +50,19 @@ export default function ParkDetails({ route, navigation }) {
   );
 
   useEffect(() => {
-    const fetchWeather = async () => {
+    const fetchData = async () => {
+      await checkIfFavorited(); // 👈 this is what was missing
+  
       const lat = park.coordinates?.coordinates?.[1];
       const lon = park.coordinates?.coordinates?.[0];
-      if (!lat || !lon) return;
-
-      const data = await getWeather(lat, lon);
-      if (data) setWeather(data);
+      if (lat && lon) {
+        const data = await getWeather(lat, lon);
+        if (data) setWeather(data);
+      }
     };
-
-    fetchWeather();
-  }, []);
+  
+    fetchData();
+  }, []);  
 
   const toggleFavorite = async () => {
     try {
@@ -76,6 +78,22 @@ export default function ParkDetails({ route, navigation }) {
       console.error('Failed to toggle favorite:', err.message);
     }
   };
+
+  const checkIfFavorited = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token || !park._id) return;
+  
+      const res = await axios.get('/api/user/home-parks', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+  
+      const favoriteIds = res.data.favorites.map(p => p._id);
+      setIsFavorited(favoriteIds.includes(park._id));
+    } catch (err) {
+      console.error('Failed to check favorite status:', err.message);
+    }
+  };  
 
   const openMapsApp = () => {
     const lat = park.coordinates?.coordinates?.[1];
