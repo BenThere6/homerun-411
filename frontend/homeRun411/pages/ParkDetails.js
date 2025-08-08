@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
   },
   weatherStandalone: {
     marginTop: 12,
-    marginHorizontal: 8,
+    marginHorizontal: -10,
     marginBottom: 15,
   },
   copyToast: {
