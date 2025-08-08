@@ -147,7 +147,7 @@ export default function NewPostForm() {
 
                 <TextInput
                     style={styles.input}
-                    placeholder="Title"
+                    placeholder="Subject (e.g. Concessions, Bathrooms)"
                     value={title}
                     onChangeText={setTitle}
                 />
