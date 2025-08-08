@@ -17,24 +17,23 @@ export default function WeatherWidget({ weather }) {
 
   return (
     <View style={[styles.card, { backgroundColor }]}>
-      {/* Left stack: icon with description UNDER it */}
-      <View style={styles.left}>
-        <IconComponent width={50} height={50} fill={iconColor} />
-        <Text style={[styles.condition, { color: textColor }]} numberOfLines={1}>
-          {weather.description}
-        </Text>
-      </View>
-
-      {/* Right block: temp only */}
-      <View style={styles.right}>
-        <View style={styles.tempRow}>
-          <Text style={[styles.tempNumber, { color: textColor }]}>
-            {Math.round(weather.temperature)}
+      <View style={styles.centerer}>
+        <View style={styles.left}>
+          <IconComponent width={50} height={50} fill={iconColor} />
+          <Text style={[styles.condition, { color: textColor }]} numberOfLines={1}>
+            {weather.description}
           </Text>
-          <Text style={[styles.tempUnit, { color: textColor }]}>°F</Text>
+        </View>
+
+        <View style={styles.right}>
+          <View style={styles.tempRow}>
+            <Text style={[styles.tempNumber, { color: textColor }]}>
+              {Math.round(weather.temperature)}
+            </Text>
+            <Text style={[styles.tempUnit, { color: textColor }]}>°F</Text>
+          </View>
         </View>
       </View>
-
     </View>
   );
 }
@@ -97,12 +96,14 @@ const getCardStyle = (condition, description) => {
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
+    // keep both centers for safety
     alignItems: 'center',
-    justifyContent: 'center',   // keep centered
+    justifyContent: 'center',
     marginHorizontal: 20,
     marginTop: 15,
     marginBottom: 10,
-    padding: 15,
+    paddingHorizontal: 16,
+    paddingVertical: 12,   // symmetric vertical padding
     borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
@@ -110,13 +111,19 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
+  centerer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    minHeight: 64,         // gives a stable box to vertically center within
+  },
   left: {
-    alignItems: 'center',       // center icon + description
+    alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
   },
   right: {
-    flex: 0,                    // don’t stretch
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -127,27 +134,25 @@ const styles = StyleSheet.create({
   tempRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    transform: [{ translateY: -3 }], // nudge up; tweak -2 to -5 if needed
   },
   tempNumber: {
     fontSize: 45,
-    lineHeight: 45,           // keep the number tight
+    lineHeight: 45,
     textAlign: 'center',
     fontWeight: '400',
+    marginBottom: -15,
   },
   tempUnit: {
     fontSize: 20,
     lineHeight: 20,
-    marginLeft: 0,
-    transform: [{ translateY: 0 }],  // <-- raise the °F
-    // If you want it higher/lower, tweak -6
+    marginLeft: 2,
   },
   condition: {
     fontSize: 14,
+    lineHeight: 18,
     textTransform: 'capitalize',
     textAlign: 'center',
-    marginTop: 0, // small gap instead of overlap
-  },  
+  },
   loadingCard: {
     backgroundColor: '#f0f0f0',
     justifyContent: 'center',
