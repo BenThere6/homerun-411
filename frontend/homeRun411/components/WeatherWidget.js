@@ -141,6 +141,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '400',
     marginBottom: -15,
+    marginLeft: 25,
   },
   tempUnit: {
     fontSize: 20,
