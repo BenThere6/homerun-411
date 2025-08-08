@@ -20,12 +20,12 @@ export default function ParkDetails({ route, navigation }) {
       navigation.setOptions({
         title: park.name,
         headerStyle: {
-          backgroundColor: '#f4fff7', // Match screen background
+          backgroundColor: '#ffffff',
         },
         headerTitleStyle: {
-          color: '#2e7d32', // Optional: green text
+          color: '#111111',
         },
-        headerTintColor: '#2e7d32', // Back arrow color
+        headerTintColor: '#111111',
       });
     }
   }, [navigation, park.name]);
@@ -155,22 +155,22 @@ export default function ParkDetails({ route, navigation }) {
                 color={isFavorited ? '#FFD700' : '#fff'}
               />
             </TouchableOpacity>
+
+            {/* Address pill */}
+            {(park.address || park.city || park.state) && (
+              <View style={styles.addressPill}>
+                {!!park.address && <Text style={styles.addressLine}>{park.address}</Text>}
+                <Text style={styles.addressSub}>
+                  {park.city}{park.city && park.state ? ', ' : ''}{park.state}
+                </Text>
+              </View>
+            )}
           </ImageBackground>
 
-          {/* Overview */}
+          {/* Overview – weather only, full width */}
           <View style={styles.section}>
-            <View style={styles.overviewRow}>
-              {/* Column 1 - Address info */}
-              <View style={styles.overviewColumn}>
-                <Text style={styles.locationText}>{park.address}</Text>
-                <Text style={styles.locationText}>{park.city}, {park.state}</Text>
-                <Text style={styles.fieldsText}>{park.numberOfFields} fields</Text>
-              </View>
-
-              {/* Column 2 - Weather */}
-              <View style={styles.weatherWrapper}>
-                <WeatherWidget weather={weather} />
-              </View>
+            <View style={styles.weatherFullWidth}>
+              <WeatherWidget weather={weather} />
             </View>
           </View>
 
@@ -368,35 +368,35 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginTop: 8,
   },
-  container: { flex: 1, backgroundColor: '#f4fff7' }, // spring green background
-  sectionTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 10, color: '#2e7d32' }, // dark green
-  subtitle: { fontSize: 16, fontWeight: '600', color: '#388e3c', marginTop: 6 },
-  text: { fontSize: 14, color: '#2f2f2f', marginBottom: 4 },
+  container: { flex: 1, backgroundColor: '#f7f7f7' },
+  sectionTitle: { fontSize: 20, fontWeight: '700', marginBottom: 10, color: '#111111' },
+  subtitle: { fontSize: 16, fontWeight: '600', color: '#333333', marginTop: 6 },
+  text: { fontSize: 14, color: '#444444', marginBottom: 4 },
   fixedBottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'white', padding: 25 },
   section: {
     marginBottom: 20,
     padding: 12,
-    backgroundColor: '#e8f5e9', // light spring green
+    backgroundColor: '#ffffff', // white card
     borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.06,
     shadowRadius: 3,
-    elevation: 2,
+    elevation: 1,
   },
   fieldCard: {
     padding: 12,
-    backgroundColor: '#f1fdf5', // lighter green card
+    backgroundColor: '#fafafa', // light gray card
     borderRadius: 10,
     marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.06,
     shadowRadius: 3,
     elevation: 1,
   },
   customButton: {
-    backgroundColor: '#66bb6a', // green button
+    backgroundColor: '#7BAAF7',
     padding: 14,
     borderRadius: 20,
     alignItems: 'center',
@@ -472,5 +472,27 @@ const styles = StyleSheet.create({
   weatherWrapper: {
     flex: 0.65, // remaining 65%
     alignItems: 'flex-end',
+  },
+  addressPill: {
+    position: 'absolute',
+    left: 10,
+    bottom: 10,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  addressLine: {
+    color: '#111111',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  addressSub: {
+    color: '#555555',
+    fontSize: 12,
+    marginTop: 1,
+  },
+  weatherFullWidth: {
+    width: '100%',
   },
 });
