@@ -7,6 +7,7 @@ import { View, Text, StyleSheet, ScrollView, ImageBackground, TouchableOpacity, 
 import { getWeather } from '../utils/getWeather';
 import WeatherWidget from '../components/WeatherWidget';
 import { useLayoutEffect } from 'react';
+import * as Clipboard from 'expo-clipboard';
 
 export default function ParkDetails({ route, navigation }) {
   const { park = {} } = route.params || {};
@@ -14,6 +15,16 @@ export default function ParkDetails({ route, navigation }) {
   const [imageUrl, setImageUrl] = useState(park.mainImageUrl || defaultImage);
   const [isFavorited, setIsFavorited] = useState(false);
   const [weather, setWeather] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  const copyAddress = async () => {
+    const line1 = park.address || '';
+    const line2 = [park.city, park.state].filter(Boolean).join(', ');
+    const text = [line1, line2].filter(Boolean).join('\n');
+    await Clipboard.setStringAsync(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000); // hide after 2s
+  };
 
   useLayoutEffect(() => {
     if (park.name) {
@@ -158,20 +169,27 @@ export default function ParkDetails({ route, navigation }) {
 
             {/* Address pill */}
             {(park.address || park.city || park.state) && (
-              <View style={styles.addressPill}>
-                {!!park.address && <Text style={styles.addressLine}>{park.address}</Text>}
-                <Text style={styles.addressSub}>
-                  {park.city}{park.city && park.state ? ', ' : ''}{park.state}
-                </Text>
-              </View>
+              <>
+                <TouchableOpacity style={styles.addressPill} activeOpacity={0.85} onPress={copyAddress}>
+                  {!!park.address && <Text style={styles.addressLine}>{park.address}</Text>}
+                  <Text style={styles.addressSub}>
+                    {park.city}{park.city && park.state ? ', ' : ''}{park.state}
+                  </Text>
+                </TouchableOpacity>
+
+                {copied && (
+                  <View style={styles.copyToast}>
+                    <Text style={styles.copyToastText}>Address copied!</Text>
+                  </View>
+                )}
+              </>
             )}
+
           </ImageBackground>
 
-          {/* Overview – weather only, full width */}
-          <View style={styles.section}>
-            <View style={styles.weatherFullWidth}>
-              <WeatherWidget weather={weather} />
-            </View>
+          {/* Weather – full-width, no parent white card */}
+          <View style={styles.weatherStandalone}>
+            <WeatherWidget weather={weather} />
           </View>
 
           {/* Amenities & Features */}
@@ -492,7 +510,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 1,
   },
-  weatherFullWidth: {
-    width: '100%',
+  weatherStandalone: {
+    marginTop: 12,
+    marginHorizontal: 8,
+    marginBottom: 15,
+  },
+  copyToast: {
+    position: 'absolute',
+    left: 10,
+    bottom: 58,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+  },
+  copyToastText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });
