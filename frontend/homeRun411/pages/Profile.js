@@ -30,18 +30,19 @@ export default function ProfilePage() {
 
   const fetchActivity = async () => {
     console.log('📡 Fetching activity...');
-
     try {
-      const res = await axios.get('/api/user/activity');
+      const token = await AsyncStorage.getItem('token');
+      const res = await axios.get('/api/user/activity', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       console.log('✅ Activity response:', res.data);
 
-      setActivity({
-        posts: res.data.posts || [],
-        comments: res.data.comments || [],
-        likes: res.data.likes || [],
-      });
+      const { posts = [], comments = [], likes = [] } = res.data || {};
+      setActivity({ posts, comments, likes });
     } catch (error) {
-      console.error('❌ Error fetching activity:', error.response?.data || error.message);
+      const status = error.response?.status;
+      const msg = error.response?.data?.message || error.message;
+      console.error('❌ Error fetching activity:', status, msg);
     }
   };
 
@@ -171,7 +172,7 @@ export default function ProfilePage() {
                 <View key={`comment-${comment._id}`} style={styles.activityCard}>
                   <Text style={styles.activityText}>{comment.content}</Text>
                   <Text style={styles.activityDate}>
-                    on "{comment.post?.title || 'a post'}" — {new Date(comment.createdAt).toLocaleDateString()}
+                    on "{comment.referencedPost?.title || 'a post'}" — {new Date(comment.createdAt).toLocaleDateString()}
                   </Text>
                 </View>
               ))}
@@ -184,7 +185,7 @@ export default function ProfilePage() {
               <Text style={styles.activityType}>Liked Posts</Text>
               {activity.likes.map(post => (
                 <View key={`like-${post._id}`} style={styles.activityCard}>
-                  <Text style={styles.activityText}>❤️ {post.title}</Text>
+                  <Text style={styles.activityText}>{post.title}</Text>
                   <Text style={styles.activityDate}>{new Date(post.updatedAt).toLocaleDateString()}</Text>
                 </View>
               ))}

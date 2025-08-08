@@ -207,33 +207,37 @@ router.get('/search', auth, isAdmin, async (req, res) => {
 
 // GET /api/user/activity
 router.get('/activity', auth, async (req, res) => {
+  const userId = req.user?.id || req.user?._id;
+  if (!userId) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
   try {
-    const userId = req.user.id;
+    const [posts, comments, likes] = await Promise.all([
+      // Posts authored by user
+      Post.find({ author: userId })
+        .select('title createdAt')
+        .sort({ createdAt: -1 })
+        .limit(5),
 
-    const posts = await Post.find({ author: userId })
-      .sort({ createdAt: -1 })
-      .limit(5);
+      // Comments authored by user
+      Comment.find({ author: userId })
+        .select('content createdAt referencedPost')
+        .populate({ path: 'referencedPost', select: 'title' })
+        .sort({ createdAt: -1 })
+        .limit(5),
 
-    const comments = await Comment.find({ author: userId })
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .populate('post');
+      // Posts liked by user
+      Post.find({ likes: userId })
+        .select('title updatedAt')
+        .sort({ updatedAt: -1 })
+        .limit(5),
+    ]);
 
-    const likes = await Post.find({ likedBy: userId })
-      .sort({ updatedAt: -1 })
-      .limit(5);
-
-    res.json({ posts, comments, likes });
-
-    console.log('🔍 USER ID:', userId);
-    console.log('📝 Posts found:', posts.length);
-
-    const firstPost = await Post.findOne({});
-    console.log('🧪 Sample Post:', firstPost);
-
+    return res.json({ posts, comments, likes });
   } catch (err) {
     console.error('Error fetching activity:', err);
-    res.status(500).json({ message: 'Failed to load user activity.' });
+    return res.status(500).json({ message: 'Failed to load user activity.' });
   }
 });
 
