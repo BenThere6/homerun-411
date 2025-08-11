@@ -1,14 +1,13 @@
 // components/WeatherWidget.js
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import iconMap from '../utils/weatherIconMap';
 
-const TEMP_SIZE = 64;
-const UNIT_OFFSET = Math.round(TEMP_SIZE * 0.18);
 const CARD_HEIGHT = 112;
-const TEMP_NUDGE = Math.round(TEMP_SIZE * 0.06); // ~4px @ 64
 
 export default function WeatherWidget({ weather, locationLabel }) {
+  const [cardSize, setCardSize] = useState({ w: 0, h: CARD_HEIGHT });
+
   if (!weather) {
     return (
       <View style={[styles.card, styles.loadingCard]}>
@@ -24,54 +23,48 @@ export default function WeatherWidget({ weather, locationLabel }) {
   const label =
     (weather?.city || weather?.name || weather?.locationName || locationLabel || '').trim();
 
-  return (
-    <View style={[styles.card, { backgroundColor }]}>
-      <View style={styles.centerer}>
-        <View style={styles.iconWrap}>
-          <IconComponent width={TEMP_SIZE} height={TEMP_SIZE} fill={iconColor} />
-        </View>
+  // sizes scale with the card height
+  const h = Math.max(cardSize.h || CARD_HEIGHT, 80);
+  const tempSize = Math.round(h * 0.58);   // big number
+  const unitSize = Math.round(tempSize * 0.34); // °F
+  const iconSize = Math.round(h * 0.58);
+  const gap = Math.round(h * 0.12);
 
-        <View>
-          <View style={styles.tempRow}>
+  return (
+    <View
+      style={[styles.card, { backgroundColor }]}
+      onLayout={(e) => setCardSize(e.nativeEvent.layout)}
+    >
+      <View style={styles.centerRow}>
+        <IconComponent width={iconSize} height={iconSize} fill={iconColor} />
+        <View style={{ marginLeft: gap }}>
+          <Text
+            allowFontScaling={false}
+            style={[styles.tempNumber, { color: textColor, fontSize: tempSize, lineHeight: tempSize }]}
+          >
+            {Math.round(weather.temperature)}
             <Text
-              style={[
-                styles.tempNumber,
-                {
-                  color: textColor,
-                  fontSize: TEMP_SIZE,
-                  lineHeight: TEMP_SIZE,
-                  transform: [{ translateY: -TEMP_NUDGE }],
-                },
-              ]}
-            >
-              {Math.round(weather.temperature)}
-            </Text>
-            <Text
-              style={[
-                styles.tempUnit,
-                {
-                  color: textColor,
-                  marginTop: UNIT_OFFSET - TEMP_NUDGE,
-                  alignSelf: 'flex-start',
-                },
-              ]}
+              allowFontScaling={false}
+              style={[styles.tempUnit, { color: textColor, fontSize: unitSize, lineHeight: unitSize }]}
             >
               °F
             </Text>
-          </View>
+          </Text>
         </View>
       </View>
 
       {!!label && (
         <View style={styles.labelPill}>
-          <Text style={styles.labelText} numberOfLines={1}>{label}</Text>
+          <Text allowFontScaling={false} style={styles.labelText} numberOfLines={1}>
+            {label}
+          </Text>
         </View>
       )}
     </View>
   );
 }
 
-/* --- colors & helpers unchanged --- */
+/* --- colors & helpers (unchanged) --- */
 const WEATHER_COLORS = {
   Clear: '#A7D8F5',
   'Few Clouds': '#CDE5F7',
@@ -128,68 +121,40 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     paddingHorizontal: 16,
     borderRadius: 12,
-    overflow: 'hidden',   // keeps the label pill glow tidy
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 3,
   },
-  centerer: {
-    position: 'absolute',
-    top: 0, bottom: 0, left: 0, right: 0,
+  centerRow: {
+    flex: 1,
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,           // a bit tighter spacing
-  },
-  iconWrap: { justifyContent: 'center' },
-
-  tempRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'center',     // vertical center
+    justifyContent: 'center', // horizontal center
   },
   tempNumber: {
     fontWeight: '400',
-    marginBottom: -18,
+    includeFontPadding: false,     // Android: tighter baseline
+    textAlignVertical: 'center',   // Android
   },
   tempUnit: {
-    fontSize: 20,
-    lineHeight: 20,
-    marginLeft: 2,
+    fontWeight: '400',
+    includeFontPadding: false,
   },
 
-  // location pill overlay (doesn't change height)
   labelPill: {
     position: 'absolute',
     left: 12,
     bottom: 3,
-    // backgroundColor: 'rgba(255,255,255,0.85)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
     maxWidth: '80%',
   },
-  labelText: {
-    color: 'gray',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  left: { justifyContent: 'center' },
-  right: { justifyContent: 'center' },
-  loadingCard: {
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  labelText: { color: 'gray', fontSize: 12, fontWeight: '600' },
+
+  loadingCard: { backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center' },
   loadingText: { fontSize: 14, color: 'gray' },
-  labelRow: {
-    marginTop: 8,
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.85)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    maxWidth: '80%',
-  },
 });
