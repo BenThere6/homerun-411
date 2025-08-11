@@ -4,8 +4,7 @@ const fs = require('fs');
 const csvParser = require('csv-parser');
 const axios = require('axios');
 const mongoose = require('mongoose');
-require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
-
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 const Park = require('../models/Park');
 
 const MONGO_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/yourDatabaseName';
