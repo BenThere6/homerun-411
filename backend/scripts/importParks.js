@@ -6,7 +6,7 @@ const axios = require('axios');
 const mongoose = require('mongoose');
 require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 
-const Park = require('../../models/Park');
+const Park = require('../models/Park');
 
 const MONGO_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/yourDatabaseName';
 const GEOCODING_API_KEY = process.env.GEOCODING_API_KEY;
@@ -193,7 +193,7 @@ async function run() {
   await mongoose.connect(MONGO_URI);
   console.log('✅ Connected to MongoDB');
 
-  const csvPath = path.resolve(__dirname, '../../parks.csv');
+  const csvPath = path.resolve(__dirname, '../parks.csv');
   const rows = [];
 
   await new Promise((resolve, reject) => {
