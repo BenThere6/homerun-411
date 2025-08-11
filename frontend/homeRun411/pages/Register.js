@@ -19,6 +19,8 @@ export default function RegisterPage() {
   const [adminExists, setAdminExists] = useState(true); // To track if any admin exists
   const navigation = useNavigation();
   const { setIsLoggedIn } = useAuth();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Refs to control input focus
   const lastNameInputRef = useRef(null);
@@ -58,7 +60,14 @@ export default function RegisterPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password, zipCode, firstName, lastName, role: isAdmin ? 'Admin' : 'User' }),
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+          zipCode: zipCode.trim(),
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          adminLevel: isAdmin ? 1 : 2
+        }),
       });
 
       const registerData = await registerResponse.json();
@@ -69,7 +78,7 @@ export default function RegisterPage() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ email: email.trim(), password }),
         });
 
         const loginData = await loginResponse.json();
@@ -129,35 +138,67 @@ export default function RegisterPage() {
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          textContentType="emailAddress"
+          autoComplete="email"
           ref={emailInputRef}
           returnKeyType="next"
           onSubmitEditing={() => passwordInputRef.current.focus()}
           blurOnSubmit={false}
         />
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          placeholderTextColor={colors.secondaryText}
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          ref={passwordInputRef}
-          returnKeyType="next"
-          onSubmitEditing={() => confirmPasswordInputRef.current.focus()}
-          blurOnSubmit={false}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Confirm Password"
-          placeholderTextColor={colors.secondaryText}
-          secureTextEntry
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          ref={confirmPasswordInputRef}
-          returnKeyType="next"
-          onSubmitEditing={() => zipCodeInputRef.current.focus()}
-          blurOnSubmit={false}
-        />
+        <View style={styles.inputWrapper}>
+          <TextInput
+            style={[styles.input, styles.inputNoMargin, styles.inputWithIcon]}
+            placeholder="Password"
+            placeholderTextColor={colors.secondaryText}
+            secureTextEntry={!showPassword}
+            value={password}
+            onChangeText={setPassword}
+            autoCapitalize="none"
+            autoCorrect={false}
+            ref={passwordInputRef}
+            returnKeyType="next"
+            onSubmitEditing={() => confirmPasswordInputRef.current.focus()}
+            blurOnSubmit={false}
+            textContentType="newPassword"
+            autoComplete="password-new"
+          />
+          <TouchableOpacity
+            onPress={() => setShowPassword(s => !s)}
+            style={styles.eyeButton}
+            accessible
+            accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+          >
+            <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={20} color={colors.secondaryText} />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.inputWrapper}>
+          <TextInput
+            style={[styles.input, styles.inputNoMargin, styles.inputWithIcon]}
+            placeholder="Confirm Password"
+            placeholderTextColor={colors.secondaryText}
+            secureTextEntry={!showConfirmPassword}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            autoCapitalize="none"
+            autoCorrect={false}
+            ref={confirmPasswordInputRef}
+            returnKeyType="next"
+            onSubmitEditing={() => zipCodeInputRef.current.focus()}
+            blurOnSubmit={false}
+            textContentType="newPassword"
+            autoComplete="password-new"
+          />
+          <TouchableOpacity
+            onPress={() => setShowConfirmPassword(s => !s)}
+            style={styles.eyeButton}
+            accessible
+            accessibilityLabel={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+          >
+            <Ionicons name={showConfirmPassword ? 'eye-off' : 'eye'} size={20} color={colors.secondaryText} />
+          </TouchableOpacity>
+        </View>
         <TextInput
           style={styles.input}
           placeholder="Zip Code"
@@ -165,7 +206,14 @@ export default function RegisterPage() {
           value={zipCode}
           onChangeText={setZipCode}
           ref={zipCodeInputRef}
-          returnKeyType="done" // Use 'done' here to avoid showing 'Go'
+          returnKeyType="done"
+          keyboardType="number-pad"
+          inputMode="numeric"
+          autoCapitalize="none"
+          autoCorrect={false}
+          textContentType="postalCode"
+          autoComplete="postal-code"
+          maxLength={5}
         />
 
         {/* Show admin checkbox if no admin exists */}
@@ -252,4 +300,21 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     color: colors.primaryText,
   },
+  inputWrapper: {
+    width: '100%',
+    position: 'relative',
+    marginBottom: 20,
+  },
+  inputWithIcon: {
+    paddingRight: 44, // room for the eye icon
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: 12,
+    top: 0,
+    height: 50,             // same as .input height
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  inputNoMargin: { marginBottom: 0 },
 });

@@ -1,18 +1,19 @@
 // utils/axiosInstance.js
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { BACKEND_URL } from '@env'; // Keep this if @env is correctly configured
+import { BACKEND_URL } from '@env';
 
-// Fallback if BACKEND_URL is undefined
+// Fallback: if BACKEND_URL isn't set, keep it local in dev.
+// (On device this won't work unless you use a tunnel, so prefer setting BACKEND_URL.)
 const baseURL = BACKEND_URL || 'http://localhost:5001';
 
-const instance = axios.create({
+const api = axios.create({
   baseURL,
-  timeout: 10000,
+  timeout: 15000,
 });
 
-// Add a request interceptor to attach token
-instance.interceptors.request.use(
+// Attach token on every request
+api.interceptors.request.use(
   async (config) => {
     try {
       const token = await AsyncStorage.getItem('token');
@@ -25,7 +26,28 @@ instance.interceptors.request.use(
       return config;
     }
   },
-  error => Promise.reject(error)
+  (error) => Promise.reject(error)
 );
 
-export default instance;
+// ---- 401 auto-logout support ----
+let unauthorizedHandler = null;
+export const setUnauthorizedHandler = (fn) => {
+  unauthorizedHandler = fn;
+};
+
+api.interceptors.response.use(
+  (res) => res,
+  async (error) => {
+    if (error?.response?.status === 401) {
+      try {
+        await AsyncStorage.removeItem('token');
+      } catch {}
+      if (typeof unauthorizedHandler === 'function') {
+        unauthorizedHandler();
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default api;

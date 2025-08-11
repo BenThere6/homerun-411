@@ -19,6 +19,7 @@ import RegisterPage from './pages/Register';
 import NewPostForm from './pages/NewPostForm';
 import colors from './assets/colors';
 import { AuthProvider, useAuth } from './AuthContext';
+import api, { setUnauthorizedHandler } from './utils/axiosInstance';
 import HomePlateIcon from './components/icons/HomePlateIcon';
 import HomePlateIcon_Selected from './components/icons/HomePlateIcon_Selected';
 import { initUserLocation } from './utils/initUserLocation';
@@ -94,28 +95,57 @@ function MainStack() {
 
   useEffect(() => {
     const startApp = async () => {
-      const token = await AsyncStorage.getItem('token');
-      const loggedIn = !!token;
-      setIsLoggedIn(loggedIn);
+      try {
+        const token = await AsyncStorage.getItem('token');
 
-      if (loggedIn) {
+        if (!token) {
+          setIsLoggedIn(false);
+          setLoading(false);
+          return;
+        }
+
+        // ✅ Validate token against the backend
+        await api.get('/api/auth/profile');
+
+        // Token is valid
+        setIsLoggedIn(true);
         await initUserLocation();
+      } catch (e) {
+        // Token is missing/invalid/expired → force logout
+        await AsyncStorage.removeItem('token');
+        setIsLoggedIn(false);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     };
 
     startApp();
   }, []);
 
+  useEffect(() => {
+    // If any request gets 401, clear token and flip to Login
+    setUnauthorizedHandler(async () => {
+      await AsyncStorage.removeItem('token');
+      setIsLoggedIn(false);
+    });
+  }, [setIsLoggedIn]);
+
   if (loading) return null;
 
   return (
-    <Stack.Navigator>
+    <Stack.Navigator key={isLoggedIn ? 'auth' : 'guest'}>
       {!isLoggedIn ? (
         <>
-          <Stack.Screen name="LoginPage" component={LoginPage} options={{ headerShown: false }} />
-          <Stack.Screen name="RegisterPage" component={RegisterPage} options={{ headerShown: false }} />
+          <Stack.Screen
+            name="LoginPage"
+            component={LoginPage}
+            options={{ headerShown: false, gestureEnabled: false }}
+          />
+          <Stack.Screen
+            name="RegisterPage"
+            component={RegisterPage}
+            options={{ headerShown: false, gestureEnabled: false }}
+          />
         </>
       ) : (
         <>
