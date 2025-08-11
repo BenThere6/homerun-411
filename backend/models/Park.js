@@ -131,6 +131,11 @@ function safeParseInt(value) {
 }
 
 parkSchema.index({ coordinates: '2dsphere' });
-parkSchema.index({ name: 1, city: 1 });
+
+// Prevent duplicates by name+address+city+state (case-insensitive)
+parkSchema.index(
+  { name: 1, address: 1, city: 1, state: 1 },
+  { unique: true, collation: { locale: 'en', strength: 2 } }
+);
 
 module.exports = mongoose.model('Park', parkSchema);
