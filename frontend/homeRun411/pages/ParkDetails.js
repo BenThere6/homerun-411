@@ -237,10 +237,10 @@ export default function ParkDetails({ route, navigation }) {
 
           </ImageBackground>
 
-          {/* Weather – full-width, no parent white card */}
-          <View style={styles.weatherStandalone}>
-            <WeatherWidget weather={weather} />
-          </View>
+          <WeatherWidget
+            weather={weather}
+            locationLabel={`${[park.city, park.state].filter(Boolean).join(', ')} • Park`.trim()}
+          />
 
           {/* Amenities & Features */}
           <View style={styles.section}>

@@ -33,54 +33,51 @@ export default function Homepage() {
   const [favoriteIds, setFavoriteIds] = useState([]);
   const [weather, setWeather] = useState(null);
   const [cityName, setCityName] = useState(null);
-
-  useEffect(() => {
-    const fetchHomeWeather = async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
-
-      const loc = await Location.getCurrentPositionAsync({});
-      const data = await getWeather(loc.coords.latitude, loc.coords.longitude);
-      if (data) setWeather(data);
-    };
-
-    fetchHomeWeather();
-  }, []);
-
+  const [weatherLabel, setWeatherLabel] = useState('');
   const [userCoords, setUserCoords] = useState(null);
 
   useEffect(() => {
-    const fetchLocation = async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        // fallback to city from stored zip
-        const storedProfile = await axios.get('/api/user/profile');
-        const zip = storedProfile.data.zipCode;
-        const loc = zipcodes.lookup(zip);
-        if (loc?.city) {
-          const city = loc.city;
-          setCityName(city.charAt(0).toUpperCase() + city.slice(1).toLowerCase());
+    const fetchLocationAndWeather = async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+
+        if (status === 'granted') {
+          const loc = await Location.getCurrentPositionAsync({});
+          const { latitude, longitude } = loc.coords;
+
+          // coords for nearby parks query
+          setUserCoords({ lat: latitude, lon: longitude });
+
+          // weather
+          const w = await getWeather(latitude, longitude);
+          if (w) setWeather(w);
+
+          // city/state label
+          const [place] = await Location.reverseGeocodeAsync({ latitude, longitude });
+          const city = place?.city || place?.district || '';
+          const region = place?.region || place?.regionCode || place?.subregion || place?.administrativeArea || '';
+
+          if (city) setCityName(city.charAt(0).toUpperCase() + city.slice(1).toLowerCase());
+
+          const composed = [city, region].filter(Boolean).join(', ');
+          setWeatherLabel(composed ? `${composed} • Current` : 'Current location');
+          return;
         }
-        return;
-      }
 
-      const loc = await Location.getCurrentPositionAsync({});
-      setUserCoords({
-        lat: loc.coords.latitude,
-        lon: loc.coords.longitude,
-      });
-
-      const data = await getWeather(loc.coords.latitude, loc.coords.longitude);
-      if (data) setWeather(data);
-
-      const geocode = await Location.reverseGeocodeAsync(loc.coords);
-      if (geocode && geocode[0]?.city) {
-        const city = geocode[0].city;
-        setCityName(city.charAt(0).toUpperCase() + city.slice(1).toLowerCase());
+        // Permission denied → try saved ZIP fallback (if you store it)
+        const savedZip = (await AsyncStorage.getItem('zipCode')) || '';
+        const info = savedZip.trim() && zipcodes.lookup(savedZip.trim());
+        if (info?.city) {
+          setWeatherLabel(`${info.city}, ${info.state} • ZIP`);
+        } else {
+          setWeatherLabel('Your area');
+        }
+      } catch (e) {
+        console.log('Location/weather error', e);
       }
     };
 
-    fetchLocation();
+    fetchLocationAndWeather();
   }, []);
 
   const toggleFavorite = async (parkId) => {
@@ -158,7 +155,7 @@ export default function Homepage() {
           {firstName ? `Welcome back, ${firstName}!` : 'Welcome back!'}
         </Text>
 
-        <WeatherWidget weather={weather} />
+        <WeatherWidget weather={weather} locationLabel={weatherLabel} />
 
         <Text style={styles.sectionTitle}>Quick Links</Text>
 
