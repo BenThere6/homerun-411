@@ -10,9 +10,19 @@ import { useLayoutEffect } from 'react';
 import * as Clipboard from 'expo-clipboard';
 
 export default function ParkDetails({ route, navigation }) {
-  const { park = {} } = route.params || {};
+  // Pull in whatever was passed, but manage our own park state
+  const incomingPark = (route.params && route.params.park) || {};
+  const incomingId = route.params?.parkId || route.params?.id || incomingPark?._id || null;
+
   const defaultImage = 'https://images.unsplash.com/photo-1717886091076-56e54c2a360f?q=80&w=2967&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D';
-  const [imageUrl, setImageUrl] = useState(park.mainImageUrl || defaultImage);
+
+  // Our source of truth for the park on this screen
+  const [park, setPark] = useState(incomingPark);
+
+  // Be tolerant to either pictures.mainImageUrl or mainImageUrl
+  const initialImg = incomingPark?.pictures?.mainImageUrl || incomingPark?.mainImageUrl || defaultImage;
+  const [imageUrl, setImageUrl] = useState(initialImg);
+
   const [isFavorited, setIsFavorited] = useState(false);
   const [weather, setWeather] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -41,6 +51,45 @@ export default function ParkDetails({ route, navigation }) {
     }
   }, [navigation, park.name]);
 
+  // If we only received a skinny park from Forum, fetch the full record by id.
+  useEffect(() => {
+    const loadFullParkIfNeeded = async () => {
+      if (!incomingId) return;
+
+      // Heuristic: if we already have some richer fields, skip the fetch
+      const hasDetails =
+        (park?.fields && park.fields.length > 0) ||
+        (park?.restrooms && park.restrooms.length > 0) ||
+        park?.coordinates ||
+        park?.battingCages ||
+        park?.concessions;
+
+      if (hasDetails) return;
+
+      try {
+        const { data } = await axios.get(`/api/park/${incomingId}`);
+        setPark(data);
+
+        const newImg = data?.pictures?.mainImageUrl || data?.mainImageUrl || defaultImage;
+        setImageUrl(newImg);
+
+        // Also refresh weather now that we have solid coords
+        const lat = data?.coordinates?.coordinates?.[1];
+        const lon = data?.coordinates?.coordinates?.[0];
+        if (lat && lon) {
+          const w = await getWeather(lat, lon);
+          if (w) setWeather(w);
+        }
+      } catch (err) {
+        console.log('Failed to load full park', err?.response?.data || err.message);
+      }
+    };
+
+    loadFullParkIfNeeded();
+    // Only re-run if the id changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incomingId]);
+
   useFocusEffect(
     React.useCallback(() => {
       const recordRecentlyViewed = async () => {
@@ -60,20 +109,21 @@ export default function ParkDetails({ route, navigation }) {
     }, [park._id])
   );
 
+  // Run once we have a real park id (works whether it came from params or the fetch above)
   useEffect(() => {
-    const fetchData = async () => {
-      await checkIfFavorited(); // 👈 this is what was missing
+    const run = async () => {
+      await checkIfFavorited();
 
-      const lat = park.coordinates?.coordinates?.[1];
-      const lon = park.coordinates?.coordinates?.[0];
+      const lat = park?.coordinates?.coordinates?.[1];
+      const lon = park?.coordinates?.coordinates?.[0];
       if (lat && lon) {
-        const data = await getWeather(lat, lon);
-        if (data) setWeather(data);
+        const w = await getWeather(lat, lon);
+        if (w) setWeather(w);
       }
     };
 
-    fetchData();
-  }, []);
+    if (park?._id) run();
+  }, [park?._id]);
 
   const toggleFavorite = async () => {
     try {

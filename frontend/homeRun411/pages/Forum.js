@@ -176,7 +176,7 @@ export default function ForumPage({ navigation }) {
         navigation.navigate('ParkDetails', {
             parkId: park?._id ?? park?.id ?? null,
             id: park?._id ?? park?.id ?? null,
-            park,                               
+            park,
         });
     };
 
@@ -281,8 +281,14 @@ export default function ForumPage({ navigation }) {
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalBackdrop} />
 
+                    {/* Keep the sheet */}
                     <View style={styles.modalSheet}>
-                        <ScrollView style={styles.modalScroll} contentContainerStyle={{ padding: 20 }}>
+                        {/* BODY (scrolls) */}
+                        <ScrollView
+                            style={styles.modalScroll}
+                            contentContainerStyle={{ padding: 20, paddingBottom: 100 }} // leave room for footer
+                            showsVerticalScrollIndicator={false}
+                        >
                             <Text style={styles.modalTitle}>{selectedPost.title}</Text>
                             <Text style={styles.modalAuthor}>
                                 by {selectedPost.author?.profile?.firstName || 'Anonymous'}
@@ -363,13 +369,14 @@ export default function ForumPage({ navigation }) {
                                     <Ionicons name="send" size={18} color="#fff" />
                                 </TouchableOpacity>
                             </View>
+                        </ScrollView>
 
-                            {/* Close */}
+                        {/* FOOTER (fixed) */}
+                        <View style={styles.modalFooter}>
                             <TouchableOpacity onPress={() => setSelectedPost(null)} style={styles.closeButton}>
                                 <Text style={styles.closeButtonText}>Close</Text>
                             </TouchableOpacity>
-                        </ScrollView>
-
+                        </View>
                     </View>
                 </View>
             )}
@@ -662,5 +669,31 @@ const styles = StyleSheet.create({
         color: '#8a8a8a',
         fontSize: 12,
         marginTop: 2,
+    },
+    modalSheet: {
+        width: '95%',
+        maxHeight: '100%',
+        backgroundColor: 'white',
+        borderRadius: 15,
+        overflow: 'hidden',
+        alignSelf: 'center',
+        position: 'relative', // important for absolute footer
+    },
+    modalFooter: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        padding: 12,
+        backgroundColor: '#fff',
+        borderTopWidth: 1,
+        borderTopColor: '#eee',
+    },
+    closeButton: {
+        alignSelf: 'center',
+        backgroundColor: '#f28b02',
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 20,
     },
 });
