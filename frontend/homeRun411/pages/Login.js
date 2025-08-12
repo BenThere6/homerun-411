@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Keyboard, TouchableWithoutFeedback, Alert } from 'react-native';
-import { useNavigation } from '@react-navigation/native'; 
+import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../assets/colors';
 import { useAuth } from '../AuthContext'; // Import the useAuth hook
@@ -21,12 +21,12 @@ export default function LoginPage() {
     }
 
     try {
-      const response = await fetch(`${BACKEND_URL}/api/auth/login`, { // Use the environment variable for the backend URL
+      const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: email.toLowerCase(), password }),
       });
 
       const data = await response.json();
@@ -60,9 +60,10 @@ export default function LoginPage() {
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
-          returnKeyType="next" // This shows the "Next" button on the keyboard
-          onSubmitEditing={() => passwordInputRef.current.focus()} // Move focus to password input
-          blurOnSubmit={false} // Prevent the keyboard from dismissing on submit
+          returnKeyType="next"
+          onSubmitEditing={() => passwordInputRef.current.focus()}
+          blurOnSubmit={false}
+          autoCapitalize="none"
         />
         <TextInput
           style={styles.input}

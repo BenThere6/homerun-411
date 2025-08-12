@@ -61,7 +61,7 @@ export default function RegisterPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: email.trim(),
+          email: email.trim().toLowerCase(),
           password,
           zipCode: zipCode.trim(),
           firstName: firstName.trim(),
@@ -78,7 +78,7 @@ export default function RegisterPage() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ email: email.trim(), password }),
+          body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
         });
 
         const loginData = await loginResponse.json();
@@ -136,7 +136,7 @@ export default function RegisterPage() {
           placeholder="Email"
           placeholderTextColor={colors.secondaryText}
           value={email}
-          onChangeText={setEmail}
+          onChangeText={(t) => setEmail(t.toLowerCase())}
           keyboardType="email-address"
           autoCapitalize="none"
           autoCorrect={false}
