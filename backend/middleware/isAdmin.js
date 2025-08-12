@@ -1,17 +1,24 @@
-const isAdmin = (req, res, next) => {
-    // Check if environment is development
-    if (process.env.NODE_ENV === 'development') {
-        // Allow all requests in development mode
-        return next();
-    }
+// middleware/isAdmin.js
+const User = require('../models/User');
 
-    // Check if the user has admin privileges (adminLevel 0 or 1)
-    if (req.user.adminLevel === undefined || req.user.adminLevel > 1) {
-        return res.status(403).json({ message: 'Access denied. Admin authorization required.' });
-    }
+module.exports = async function isAdmin(req, res, next) {
+    try {
+        if (process.env.NODE_ENV === 'development') return next();
 
-    // Allow the request to proceed
-    next();
+        let level = req.user?.adminLevel;
+        if (level === undefined) {
+            const u = await User.findById(req.user.id).select('adminLevel');
+            level = u?.adminLevel;
+        }
+
+        level = Number(level);
+        if (Number.isNaN(level) || level > 1) {
+            return res.status(403).json({ message: 'Access denied. Admin authorization required.' });
+        }
+
+        req.user.adminLevel = level;
+        next();
+    } catch (e) {
+        next(e);
+    }
 };
-
-module.exports = isAdmin;
