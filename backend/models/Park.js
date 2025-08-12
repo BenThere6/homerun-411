@@ -89,10 +89,7 @@ const parkSchema = new Schema({
   gateEntranceFee: { type: Boolean, default: null }, // Gate Entrance Fee?
   playground: playgroundSchema, // Playground Schema
   spectatorConditions: {
-    locationTypes: {
-      type: [String],
-      enum: ['grass', 'cement', 'gravel', 'dirt'], // Spectator Location Types
-    },
+    notes: { type: String }, // Free text description of spectator locations/quality
   },
   coordinates: {
     type: { type: String, default: 'Point' },

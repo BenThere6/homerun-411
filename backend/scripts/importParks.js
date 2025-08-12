@@ -143,7 +143,7 @@ async function buildParkFromRow(row) {
     const f = {
       name: row[`Field ${i} Name`] || null,
       location: row[`Field ${i} Location`] || null,
-      fenceDistance: safeInt(row[`Field ${i} Fence Distance`]),
+      fenceDistance: safeInt(row[`Field ${i} CF Fence Distance`]),
       fenceHeight: safeInt(row[`Field ${i} Fence Height`]),
       fieldType: enumOrNull(row[`Field ${i} Type`], validFieldTypes),
       outfieldMaterial: enumOrNull(row[`Field ${i} Outfield Material`], validOutfieldMaterials),
@@ -174,14 +174,10 @@ async function buildParkFromRow(row) {
   if (!coords) return null;
   park.coordinates = { type: 'Point', coordinates: coords };
 
-  // Spectator surfaces
+  // Spectator notes (free text)
   if (row['Spectator Location Conditions']) {
-    const validSpectatorSurfaces = ['grass', 'cement', 'gravel', 'dirt'];
     park.spectatorConditions = {
-      locationTypes: row['Spectator Location Conditions']
-        .split(',')
-        .map(s => s.trim().toLowerCase())
-        .filter(s => validSpectatorSurfaces.includes(s)),
+      notes: String(row['Spectator Location Conditions']).trim(),
     };
   }
 
@@ -247,6 +243,6 @@ async function run() {
 
 run().catch(async (e) => {
   console.error(e);
-  try { await mongoose.disconnect(); } catch {}
+  try { await mongoose.disconnect(); } catch { }
   process.exit(1);
 });
