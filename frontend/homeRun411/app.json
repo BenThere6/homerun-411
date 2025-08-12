@@ -1,12 +1,14 @@
 {
   "expo": {
-    "name": "homeRun411",
+    "name": "HomeRun411",
     "slug": "homeRun411",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "privacy": "public",
+    "runtimeVersion": { "policy": "sdkVersion" },
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -28,6 +30,15 @@
     },
     "plugins": [
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "28c1b134-de87-4ced-abb2-a68b218c1c13"
+      }
+    },
+    "owner": "benthere7",
+    "updates": {
+      "url": "https://u.expo.dev/28c1b134-de87-4ced-abb2-a68b218c1c13"
+    }
   }
 }
