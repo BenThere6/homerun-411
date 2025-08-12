@@ -4,6 +4,7 @@ const Post = require('../../models/Post');
 const Comment = require('../../models/Comment'); // Assuming Comment model is imported
 const User = require('../../models/User'); // Assuming User model is imported
 const auth = require('../../middleware/auth');
+const isAdmin = require('../../middleware/isAdmin');
 
 // Middleware function to fetch post by ID
 async function getPost(req, res, next) {
@@ -116,7 +117,7 @@ router.get('/:postId/liked', auth, async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const posts = await Post.find()
-      .sort({ createdAt: -1 })
+      .sort({ pinned: -1, pinnedAt: -1, createdAt: -1 })
       .populate('author', 'profile')
       .populate('referencedPark', 'name city state')
       .lean();
@@ -148,6 +149,50 @@ router.get('/search', async (req, res) => {
     const tag = req.query.tag;
     const posts = await Post.find({ tags: tag });
     res.json(posts);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Pin a post (admin 0 or 1)
+router.post('/:id/pin', auth, isAdmin, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+
+    post.pinned = true;
+    post.pinnedAt = new Date();
+    post.pinnedBy = req.user.id;
+    post.updatedAt = new Date();
+    await post.save();
+
+    res.json({ pinned: true, pinnedAt: post.pinnedAt, pinnedBy: post.pinnedBy });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Unpin a post
+// - adminLevel 0: can unpin any
+// - adminLevel 1: can unpin only if they are the one who pinned it
+router.post('/:id/unpin', auth, isAdmin, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id).select('pinned pinnedAt pinnedBy');
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+
+    const level = req.user.adminLevel;
+    const isOwnerOfPin = String(post.pinnedBy || '') === String(req.user.id);
+
+    if (level === 0 || (level === 1 && isOwnerOfPin)) {
+      post.pinned = false;
+      post.pinnedAt = null;
+      post.pinnedBy = null;
+      post.updatedAt = new Date();
+      await post.save();
+      return res.json({ pinned: false });
+    }
+
+    return res.status(403).json({ message: 'Only top admins can unpin others’ posts.' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
