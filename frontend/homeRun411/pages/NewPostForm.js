@@ -10,6 +10,10 @@ import {
     Alert,
     Modal,
     FlatList,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    Keyboard,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -142,39 +146,54 @@ export default function NewPostForm() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <View style={styles.card}>
-                <Text style={styles.title}>Create a New Post</Text>
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0} // adjust if header overlaps
+            >
+                <ScrollView
+                    contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
+                    keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'} // iOS: interactive pull-down, Android: on-drag
+                    onScrollBeginDrag={Keyboard.dismiss}                                    // Android helper: dismiss when you start dragging
+                >
+                    <View style={styles.card}>
+                        <Text style={styles.title}>Create a New Post</Text>
 
-                <TextInput
-                    style={styles.input}
-                    placeholder="Subject (e.g. Concessions, Bathrooms)"
-                    value={title}
-                    onChangeText={setTitle}
-                />
-                <TextInput
-                    style={[styles.input, styles.textArea]}
-                    placeholder="Content"
-                    value={content}
-                    onChangeText={setContent}
-                    multiline
-                />
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Subject (e.g. Concessions, Bathrooms)"
+                            value={title}
+                            onChangeText={setTitle}
+                            returnKeyType="next"
+                        />
 
-                <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.tagButton}>
-                    <Text style={styles.tagText}>
-                        {selectedPark ? `${selectedPark.name}, ${selectedPark.city}` : 'Tag a Park (optional)'}
-                    </Text>
-                </TouchableOpacity>
+                        <TextInput
+                            style={[styles.input, styles.textArea]}
+                            placeholder="Content"
+                            value={content}
+                            onChangeText={setContent}
+                            multiline
+                        />
 
-                {selectedPark && (
-                    <TouchableOpacity onPress={() => setSelectedPark(null)} style={styles.clearTag}>
-                        <Text style={{ color: '#999', fontSize: 12 }}>Clear park</Text>
-                    </TouchableOpacity>
-                )}
+                        <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.tagButton}>
+                            <Text style={styles.tagText}>
+                                {selectedPark ? `${selectedPark.name}, ${selectedPark.city}` : 'Tag a Park (optional)'}
+                            </Text>
+                        </TouchableOpacity>
 
-                <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-                    <Text style={styles.buttonText}>Submit</Text>
-                </TouchableOpacity>
-            </View>
+                        {selectedPark && (
+                            <TouchableOpacity onPress={() => setSelectedPark(null)} style={styles.clearTag}>
+                                <Text style={{ color: '#999', fontSize: 12 }}>Clear park</Text>
+                            </TouchableOpacity>
+                        )}
+
+                        <TouchableOpacity style={styles.button} onPress={handleSubmit}>
+                            <Text style={styles.buttonText}>Submit</Text>
+                        </TouchableOpacity>
+                    </View>
+                </ScrollView>
+            </KeyboardAvoidingView>
 
             {/* Modal for selecting park */}
             <Modal visible={modalVisible} animationType="slide">
@@ -183,10 +202,13 @@ export default function NewPostForm() {
                         <>
                             <Text style={styles.modalTitle}>Select State</Text>
                             {states.map((state) => (
-                                <TouchableOpacity key={state} onPress={() => {
-                                    setSelectedState(state);
-                                    fetchCities(state);
-                                }}>
+                                <TouchableOpacity
+                                    key={state}
+                                    onPress={() => {
+                                        setSelectedState(state);
+                                        fetchCities(state);
+                                    }}
+                                >
                                     <Text style={styles.option}>{state}</Text>
                                 </TouchableOpacity>
                             ))}
@@ -200,10 +222,13 @@ export default function NewPostForm() {
                                 <Text style={styles.modalTitle}>Select City in {selectedState}</Text>
                             </View>
                             {cities.map((city) => (
-                                <TouchableOpacity key={city} onPress={() => {
-                                    setSelectedCity(city);
-                                    fetchParks(selectedState, city);
-                                }}>
+                                <TouchableOpacity
+                                    key={city}
+                                    onPress={() => {
+                                        setSelectedCity(city);
+                                        fetchParks(selectedState, city);
+                                    }}
+                                >
                                     <Text style={styles.option}>{city}</Text>
                                 </TouchableOpacity>
                             ))}
@@ -218,7 +243,7 @@ export default function NewPostForm() {
                             </View>
                             <FlatList
                                 data={parks}
-                                keyExtractor={item => item._id}
+                                keyExtractor={(item) => item._id}
                                 renderItem={({ item }) => (
                                     <TouchableOpacity
                                         onPress={() => {
@@ -230,7 +255,9 @@ export default function NewPostForm() {
                                         style={styles.parkCard}
                                     >
                                         <Text style={styles.parkName}>{item.name}</Text>
-                                        <Text style={styles.parkDetails}>{item.city}, {item.state}</Text>
+                                        <Text style={styles.parkDetails}>
+                                            {item.city}, {item.state}
+                                        </Text>
                                         {item.distanceInMiles && (
                                             <Text style={styles.parkDetails}>{item.distanceInMiles} mi</Text>
                                         )}
@@ -240,11 +267,13 @@ export default function NewPostForm() {
                         </>
                     )}
 
-                    <TouchableOpacity onPress={() => {
-                        setModalVisible(false);
-                        setSelectedState(null);
-                        setSelectedCity(null);
-                    }}>
+                    <TouchableOpacity
+                        onPress={() => {
+                            setModalVisible(false);
+                            setSelectedState(null);
+                            setSelectedCity(null);
+                        }}
+                    >
                         <Text style={styles.closeText}>Close</Text>
                     </TouchableOpacity>
                 </SafeAreaView>
@@ -343,13 +372,13 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.05,
         shadowRadius: 4,
         elevation: 2,
-    },    
+    },
     closeText: {
         textAlign: 'center',
         marginTop: 20,
         color: '#f28b02',
         fontWeight: '500',
-    },    
+    },
     parkName: {
         fontSize: 16,
         fontWeight: '600',
