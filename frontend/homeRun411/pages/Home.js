@@ -80,20 +80,49 @@ export default function Homepage() {
     fetchLocationAndWeather();
   }, []);
 
-  const toggleFavorite = async (parkId) => {
-    try {
-      const isFavorited = favoriteIds.includes(parkId);
-      const endpoint = `/api/user/favorite-parks/${parkId}`;
+  // Optimistic toggle that keeps Favorites section in sync immediately
+  const toggleFavorite = async (park) => {
+    const parkId = park._id;
+    const isFavorited = favoriteIds.includes(parkId);
+    const endpoint = `/api/user/favorite-parks/${parkId}`;
 
+    // --- OPTIMISTIC UPDATE ---
+    if (isFavorited) {
+      // user is un-favoriting
+      setFavoriteIds(prev => prev.filter(id => id !== parkId));
+      setFavoriteParks(prev => prev.filter(p => p._id !== parkId));
+    } else {
+      // user is favoriting
+      setFavoriteIds(prev => [...prev, parkId]);
+      setFavoriteParks(prev => {
+        const exists = prev.some(p => p._id === parkId);
+        return exists ? prev : [park, ...prev]; // put new favorite at top
+      });
+      setExpandFavorites(true); // make sure the section is open/visible
+    }
+
+    // --- SERVER CALL ---
+    try {
       if (isFavorited) {
         await axios.delete(endpoint);
-        setFavoriteIds(prev => prev.filter(id => id !== parkId));
       } else {
         await axios.post(endpoint);
-        setFavoriteIds(prev => [...prev, parkId]);
       }
     } catch (err) {
-      console.error('Failed to toggle favorite:', err.message);
+      // --- REVERT ON FAILURE ---
+      if (isFavorited) {
+        // we tried to un-fav but failed → put it back
+        setFavoriteIds(prev => [...prev, parkId]);
+        setFavoriteParks(prev => {
+          const exists = prev.some(p => p._id === parkId);
+          return exists ? prev : [park, ...prev];
+        });
+      } else {
+        // we tried to fav but failed → remove it
+        setFavoriteIds(prev => prev.filter(id => id !== parkId));
+        setFavoriteParks(prev => prev.filter(p => p._id !== parkId));
+      }
+      console.error('Failed to toggle favorite:', err?.message || err);
     }
   };
 
@@ -191,7 +220,7 @@ export default function Homepage() {
                 key={park._id}
                 park={park}
                 isFavorited={favoriteIds.includes(park._id)}
-                onToggleFavorite={() => toggleFavorite(park._id)}
+                onToggleFavorite={() => toggleFavorite(park)}
               />
             ))}
           </View>
@@ -209,7 +238,7 @@ export default function Homepage() {
                 key={park._id}
                 park={park}
                 isFavorited={favoriteIds.includes(park._id)}
-                onToggleFavorite={() => toggleFavorite(park._id)}
+                onToggleFavorite={() => toggleFavorite(park)}
               />
             ))}
           </View>
@@ -227,7 +256,7 @@ export default function Homepage() {
                 key={park._id}
                 park={park}
                 isFavorited={favoriteIds.includes(park._id)}
-                onToggleFavorite={() => toggleFavorite(park._id)}
+                onToggleFavorite={() => toggleFavorite(park)}
               />
             ))}
           </View>
