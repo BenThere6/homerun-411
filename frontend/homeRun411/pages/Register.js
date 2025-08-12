@@ -90,10 +90,6 @@ export default function RegisterPage() {
 
           setIsLoggedIn(true);
 
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'Tabs' }],
-          });
         } else {
           Alert.alert('Login failed', loginData.message || 'Unable to log in after registration.');
         }

@@ -35,11 +35,6 @@ export default function LoginPage() {
         await AsyncStorage.setItem('token', data.refreshToken);
         setIsLoggedIn(true);
 
-        // Reset navigation to the Tabs screen
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'Tabs' }],
-        });
       } else {
         Alert.alert('Login failed', data.message || 'Invalid email or password.');
       }
