@@ -136,6 +136,35 @@ export default function ForumPage({ navigation }) {
         }
     }, [selectedPost]);
 
+    // keep forum list and selectedPost counts in sync
+    const syncCountsToList = React.useCallback((nextLikes, nextComments) => {
+        const id = selectedPost?._id;
+        if (!id) return;
+
+        setForumPosts(prev =>
+            prev.map(p =>
+                p._id === id
+                    ? {
+                        ...p,
+                        ...(typeof nextLikes === 'number' ? { likesCount: nextLikes } : null),
+                        ...(typeof nextComments === 'number' ? { commentsCount: nextComments } : null),
+                    }
+                    : p
+            )
+        );
+
+        // keep selectedPost mirror updated too
+        setSelectedPost(prev =>
+            prev && prev._id === id
+                ? {
+                    ...prev,
+                    ...(typeof nextLikes === 'number' ? { likesCount: nextLikes } : null),
+                    ...(typeof nextComments === 'number' ? { commentsCount: nextComments } : null),
+                }
+                : prev
+        );
+    }, [selectedPost?._id]);
+
     const toggleLike = async () => {
         if (!selectedPost?._id) return;
         try {
@@ -148,11 +177,9 @@ export default function ForumPage({ navigation }) {
             );
             setHasLiked(data.liked);
             setLikesCount(data.likesCount);
-            setForumPosts((prev) =>
-                prev.map((p) =>
-                    p._id === selectedPost._id ? { ...p, likes: Array(data.likesCount).fill('x') } : p
-                )
-            );
+
+            // NEW: push the count to the list + selectedPost
+            syncCountsToList(data.likesCount, undefined);
         } catch (e) { }
     };
 
@@ -162,14 +189,22 @@ export default function ForumPage({ navigation }) {
             setSubmitting(true);
             const token = await AsyncStorage.getItem('token');
             if (!token) return;
+
             const { data } = await axios.post(
                 `/api/post/${selectedPost._id}/comments`,
                 { content: commentText.trim() },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
-            setComments((prev) => [...prev, data]);
+
+            setComments(prev => {
+                const next = [...prev, data];
+                // keep list + selectedPost counts in sync
+                syncCountsToList(undefined, next.length);
+                return next;
+            });
             setCommentText('');
         } catch (e) {
+            // you can Alert here if you want
         } finally {
             setSubmitting(false);
         }
@@ -253,6 +288,11 @@ export default function ForumPage({ navigation }) {
             id: park?._id ?? park?.id ?? null,
             park,
         });
+    };
+
+    const closeModal = () => {
+        syncCountsToList(likesCount, comments.length);
+        setSelectedPost(null);
     };
 
     const renderPost = ({ item }) => (
@@ -356,7 +396,7 @@ export default function ForumPage({ navigation }) {
             )}
 
             {selectedPost && (
-                <Modal visible transparent animationType="fade" onRequestClose={() => setSelectedPost(null)}>
+                <Modal visible transparent animationType="fade" onRequestClose={closeModal}>
                     <View style={styles.modalOverlay}>
                         <KeyboardAvoidingView
                             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -458,7 +498,7 @@ export default function ForumPage({ navigation }) {
                                         </TouchableOpacity>
                                     </View>
 
-                                    <TouchableOpacity onPress={() => setSelectedPost(null)} style={styles.closeButton}>
+                                    <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
                                         <Text style={styles.closeButtonText}>Close</Text>
                                     </TouchableOpacity>
                                 </View>
