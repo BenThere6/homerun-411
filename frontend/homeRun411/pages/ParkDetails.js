@@ -335,6 +335,15 @@ export default function ParkDetails({ route, navigation }) {
             <Text style={styles.subtitle}>Available</Text>
             <Text style={styles.text}>{park.concessions?.available ? 'Yes' : 'No'}</Text>
 
+            {park.concessions?.available === true && (
+              <View style={styles.note}>
+                <Ionicons name="information-circle-outline" size={16} color="#6b7280" />
+                <Text style={styles.noteText}>
+                  Please note: The presence of a concessions facility doesn’t guarantee service during all events. Operating hours vary by schedule and staffing.
+                </Text>
+              </View>
+            )}
+
             <Text style={styles.subtitle}>Snacks</Text>
             <Text style={styles.text}>{park.concessions?.snacks ? 'Yes' : 'No'}</Text>
 
@@ -578,5 +587,21 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontWeight: '600',
+  },
+  note: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc', // subtle card background
+    borderRadius: 8,
+    padding: 8,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  noteText: {
+    marginLeft: 6,
+    fontSize: 12,
+    color: '#374151',
+    flex: 1,
   },
 });
