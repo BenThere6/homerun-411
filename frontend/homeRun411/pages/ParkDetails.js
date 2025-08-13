@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from '../utils/axiosInstance';
@@ -6,7 +6,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, StyleSheet, ScrollView, ImageBackground, TouchableOpacity, Platform, Linking } from 'react-native';
 import { getWeather } from '../utils/getWeather';
 import WeatherWidget from '../components/WeatherWidget';
-import { useLayoutEffect } from 'react';
 import * as Clipboard from 'expo-clipboard';
 
 export default function ParkDetails({ route, navigation }) {
@@ -27,6 +26,11 @@ export default function ParkDetails({ route, navigation }) {
   const [weather, setWeather] = useState(null);
   const [copied, setCopied] = useState(false);
 
+  const ASK_TIP_KEY = 'seenAskAboutParkTooltip';
+  const TOOLTIP_EXPIRY_DAYS = 30;
+  const [showAskTip, setShowAskTip] = useState(false);
+  const TIP_BG = 'rgba(54, 65, 82, 0.8)';
+
   const copyAddress = async () => {
     const line1 = park.address || '';
     const line2 = [park.city, park.state].filter(Boolean).join(', ');
@@ -36,20 +40,125 @@ export default function ParkDetails({ route, navigation }) {
     setTimeout(() => setCopied(false), 2000); // hide after 2s
   };
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const stored = await AsyncStorage.getItem(ASK_TIP_KEY);
+        const now = Date.now();
+        let shouldShow = true;
+
+        if (stored) {
+          const lastShown = parseInt(stored, 10);
+          if (!isNaN(lastShown)) {
+            const diffDays = (now - lastShown) / (1000 * 60 * 60 * 24);
+            if (diffDays < TOOLTIP_EXPIRY_DAYS) shouldShow = false;
+          }
+        }
+
+        if (shouldShow) {
+          setShowAskTip(true);
+          setTimeout(async () => {
+            setShowAskTip(false);
+            await AsyncStorage.setItem(ASK_TIP_KEY, String(now));
+          }, 8000);
+        }
+      } catch { }
+    })();
+  }, []);
+
   useLayoutEffect(() => {
     if (park.name) {
       navigation.setOptions({
         title: park.name,
-        headerStyle: {
-          backgroundColor: '#ffffff',
-        },
-        headerTitleStyle: {
-          color: '#111111',
-        },
+        headerStyle: { backgroundColor: '#ffffff' },
+        headerTitleStyle: { color: '#111111' },
         headerTintColor: '#111111',
+
+        headerRight: () => (
+          <View style={{ marginRight: 22 }}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Ask About This Park"
+              onPress={async () => {
+                if (showAskTip) {
+                  setShowAskTip(false);
+                  try { await AsyncStorage.setItem(ASK_TIP_KEY, String(Date.now())); } catch { }
+                }
+                navigation.navigate('NewPostForm', {
+                  prefill: {
+                    park: { _id: park._id, name: park.name, city: park.city, state: park.state },
+                    contentPlaceholder: 'Write your question here…',
+                  },
+                });
+              }}
+              style={{ padding: 6 }}
+            >
+              <Ionicons name="help-circle-outline" size={22} color="#111" />
+            </TouchableOpacity>
+
+            {showAskTip && (
+              <>
+                {/* arrow / caret (foreground) */}
+                <View
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute',
+                    top: 36,         // 1px above the shadow to create depth
+                    right: 10,
+                    width: 0,
+                    height: 0,
+                    borderLeftWidth: 8,
+                    borderRightWidth: 8,
+                    borderBottomWidth: 10,
+                    borderLeftColor: 'transparent',
+                    borderRightColor: 'transparent',
+                    borderBottomColor: TIP_BG, // or 'rgba(54, 65, 82, 0.92)'
+                  }}
+                />
+
+                {/* bubble */}
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  onPress={async () => {
+                    setShowAskTip(false);
+                    try { await AsyncStorage.setItem(ASK_TIP_KEY, String(Date.now())); } catch { }
+                  }}
+                  style={{
+                    position: 'absolute',
+                    top: 46,             // sits below the caret
+                    right: -6,           // slight outward nudge
+                    backgroundColor: TIP_BG, // or 'rgba(54, 65, 82, 0.92)'
+                    paddingVertical: 12,
+                    paddingHorizontal: 16,
+                    borderRadius: 18,
+                    width: 330,          // wider; tweak between 300–340 as you like
+                    shadowColor: '#000',
+                    shadowOpacity: 0.16,
+                    shadowRadius: 8,
+                    shadowOffset: { width: 0, height: 4 },
+                    elevation: 5,
+                    borderWidth: 0.5,
+                    borderColor: 'rgba(255,255,255,0.05)',
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: '#F8FAFC',
+                      fontSize: 15,
+                      lineHeight: 21,
+                      letterSpacing: 0.1,
+                    }}
+                  >
+                    Have a question about this park? Tap here to ask in the forum.
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        ),
       });
     }
-  }, [navigation, park.name]);
+  }, [navigation, park.name, park._id, showAskTip]);
 
   // If we only received a skinny park from Forum, fetch the full record by id.
   useEffect(() => {

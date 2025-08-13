@@ -21,20 +21,19 @@ import jwtDecode from 'jwt-decode';
 import colors from '../assets/colors';
 import { BACKEND_URL } from '@env';
 
-export default function NewPostForm() {
+export default function NewPostForm({ route, navigation }) {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [selectedPark, setSelectedPark] = useState(null);
     const [modalVisible, setModalVisible] = useState(false);
-
     const [states, setStates] = useState([]);
     const [cities, setCities] = useState([]);
     const [parks, setParks] = useState([]);
-
     const [selectedState, setSelectedState] = useState(null);
     const [selectedCity, setSelectedCity] = useState(null);
+    const [contentPlaceholder, setContentPlaceholder] = useState('Content');
 
-    const navigation = useNavigation();
+    // const navigation = useNavigation();
 
     const goBackToCity = () => {
         setSelectedCity(null);
@@ -63,6 +62,17 @@ export default function NewPostForm() {
 
         fetchStates();
     }, []);
+
+    useEffect(() => {
+        const pf = route?.params?.prefill;
+        if (pf?.park?._id) {
+            setSelectedPark(pf.park); // pre-select the park (id + name/city/state passed in)
+        }
+        if (pf?.contentPlaceholder) {
+            setContentPlaceholder(pf.contentPlaceholder);
+        }
+        // Title intentionally left blank
+    }, [route?.params]);
 
     const fetchCities = async (state) => {
         try {
@@ -170,7 +180,7 @@ export default function NewPostForm() {
 
                         <TextInput
                             style={[styles.input, styles.textArea]}
-                            placeholder="Content"
+                            placeholder={contentPlaceholder}
                             value={content}
                             onChangeText={setContent}
                             multiline
