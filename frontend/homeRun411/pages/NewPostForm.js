@@ -136,18 +136,44 @@ export default function NewPostForm({ route, navigation }) {
                     title,
                     content,
                     author: userId,
-                    referencedPark: selectedPark?._id,
+                    referencedPark: selectedPark?._id, // optional
                 }),
             });
 
-            const responseText = await response.text();
-            if (response.ok) {
-                Alert.alert('Success', 'Your post has been created.');
-                navigation.goBack();
-            } else {
-                const errorData = await JSON.parse(responseText);
-                Alert.alert('Error', errorData.message || 'Failed to create post.');
+            const created = await response.json();
+
+            if (!response.ok) {
+                Alert.alert('Error', created?.message || 'Failed to create post.');
+                return;
             }
+
+            // Enrich referencedPark for immediate list rendering (if API returned only an id)
+            // Grab whatever name you have in your token (or fall back to "You")
+            const first = (decodedToken?.firstName || decodedToken?.given_name || '').trim();
+            const last = (decodedToken?.lastName || decodedToken?.family_name || '').trim();
+
+            const createdForList = {
+                ...created,
+                likesCount: 0,
+                commentsCount: 0,
+                referencedPark:
+                    (created?.referencedPark && typeof created.referencedPark === 'string' && selectedPark)
+                        ? selectedPark
+                        : created?.referencedPark || selectedPark || null,
+                author: (created?.author && typeof created.author === 'object')
+                    ? created.author
+                    : {
+                        _id: userId,
+                        profile: { firstName: first || 'You', lastName: last || '' },
+                    },
+            };
+
+            // send the created post back to Forum and merge into route params
+            navigation.navigate({
+                name: 'Forum',
+                params: { newPost: createdForList },
+                merge: true,
+            });
         } catch (error) {
             console.error('Error creating post:', error);
             Alert.alert('Error', 'An error occurred while creating the post.');

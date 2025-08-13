@@ -14,13 +14,16 @@ import axios from '../utils/axiosInstance';
 import jwtDecode from 'jwt-decode';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const formatFullDate = (d) =>
-    new Date(d).toLocaleDateString('en-US', {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-    });
+// Put near the top
+const formatForumDate = (d) => {
+    const dt = new Date(d);
+    const nowYear = new Date().getFullYear();
+    const w = dt.toLocaleString('en-US', { weekday: 'short' }); // Mon
+    const m = dt.toLocaleString('en-US', { month: 'short' });   // Aug
+    const day = dt.getDate();
+    const y = dt.getFullYear();
+    return y === nowYear ? `${w}, ${m} ${day}` : `${m} ${day}, ${y}`;
+};
 
 export default function ForumPage({ navigation }) {
     const route = useRoute();
@@ -45,6 +48,12 @@ export default function ForumPage({ navigation }) {
     const backdropA = useRef(new Animated.Value(0)).current; // 0..1
     const sheetA = useRef(new Animated.Value(0)).current;    // 0..1
     const SLIDE_DISTANCE = screenH; // large enough to start fully off-screen
+    const listRef = useRef(null);
+    const rowOpacities = useRef({}).current;
+    const getOpacity = (id) => {
+        if (!rowOpacities[id]) rowOpacities[id] = new Animated.Value(1);
+        return rowOpacities[id];
+    };
 
     // applied (used for fetching)
     const [appliedFilter, setAppliedFilter] = useState(null);        // { type:'park', referencedPark, parkName }
@@ -71,6 +80,7 @@ export default function ForumPage({ navigation }) {
     const parkSearchCfg = useRef({ path: null, key: null });
 
     const insets = useSafeAreaInsets();
+
 
     const fetchPosts = async () => {
         try {
@@ -354,13 +364,21 @@ export default function ForumPage({ navigation }) {
 
     useFocusEffect(
         React.useCallback(() => {
-            const routeParams = navigation.getState()?.routes?.find((r) => r.name === 'Forum')?.params;
-            if (routeParams?.openPostId && forumPosts.length > 0) {
-                const match = forumPosts.find((p) => p._id === routeParams.openPostId);
+            const params = navigation.getState()?.routes?.find(r => r.name === 'Forum')?.params;
+
+            // handle a brand-new post coming back from the composer
+            if (params?.newPost) {
+                insertNewPost(params.newPost);
+                navigation.setParams && navigation.setParams({ newPost: undefined });
+            }
+
+            // your existing openPostId behavior
+            if (params?.openPostId && forumPosts.length > 0) {
+                const match = forumPosts.find((p) => p._id === params.openPostId);
                 if (match) setSelectedPost(match);
                 navigation.setParams && navigation.setParams({ openPostId: null });
             }
-        }, [forumPosts])
+        }, [forumPosts, insertNewPost])
     );
 
     useEffect(() => {
@@ -450,6 +468,66 @@ export default function ForumPage({ navigation }) {
             syncCountsToList(data.likesCount, undefined);
         } catch (e) { }
     };
+
+    // place anywhere in component scope (e.g., after other helpers)
+    const insertNewPost = React.useCallback((created) => {
+        if (!created?._id) return;
+
+        // respect current filter; skip if new post wouldn't be visible
+        const include = (() => {
+            if (!appliedFilter) return true;
+            const rpId = String(
+                created?.referencedPark?._id ||
+                created?.referencedPark?.id ||
+                created?.referencedPark ||
+                ''
+            );
+            if (appliedFilter.type === 'park')
+                return rpId && rpId === String(appliedFilter.referencedPark);
+            if (appliedFilter.type === 'parks')
+                return (appliedFilter.parkIds || []).map(String).includes(rpId);
+            return true;
+        })();
+        if (!include) return;
+
+        // normalize counts
+        const normalized = {
+            ...created,
+            pinned: !!created.pinned,
+            likesCount: typeof created.likesCount === 'number'
+                ? created.likesCount
+                : (created.likes?.length || 0),
+            commentsCount: typeof created.commentsCount === 'number'
+                ? created.commentsCount
+                : (created.comments?.length || 0),
+        };
+
+        // prepare fade
+        const op = getOpacity(created._id);
+        op.setValue(0);
+
+        // push others down
+        LayoutAnimation.configureNext({
+            duration: 280,
+            create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+            update: { type: LayoutAnimation.Types.easeInEaseOut },
+        });
+
+        setForumPosts((prev) => {
+            if (prev.some(p => p._id === created._id)) return prev; // avoid dupes
+            const next = [...prev];
+            const firstUnpinned = next.findIndex(p => !p.pinned);
+            const insertAt = firstUnpinned === -1 ? next.length : firstUnpinned;
+            next.splice(insertAt, 0, normalized); // insert under pinned
+            return next;
+        });
+
+        // fade in
+        Animated.timing(op, { toValue: 1, duration: 320, useNativeDriver: true }).start();
+
+        // make sure it's visible
+        listRef.current?.scrollToOffset({ offset: 0, animated: true });
+    }, [appliedFilter]);
 
     const submitComment = async () => {
         if (!selectedPost?._id || !commentText.trim()) return;
@@ -563,9 +641,29 @@ export default function ForumPage({ navigation }) {
         setSelectedPost(null);
     };
 
+    const displayAuthor = (post) => {
+        const a = post.author;
+
+        // populated shapes
+        if (a?.profile?.firstName || a?.profile?.lastName) {
+            const f = a.profile.firstName || '';
+            const l = a.profile.lastName || '';
+            return `${f}${l ? ' ' + l : ''}`.trim();
+        }
+        if (a?.firstName || a?.lastName) {
+            const f = a.firstName || '';
+            const l = a.lastName || '';
+            return `${f}${l ? ' ' + l : ''}`.trim();
+        }
+
+        // id-only shape
+        if (typeof a === 'string' && userId && a === String(userId)) return 'You';
+        return 'Anonymous';
+    };
+
     const renderPost = ({ item }) => (
         <TouchableOpacity onPress={() => setSelectedPost(item)}>
-            <View style={styles.card}>
+            <Animated.View style={[styles.card, { opacity: getOpacity(item._id) }]}>
                 <View style={styles.topRow}>
                     {item.author?.profile?.avatarUrl ? (
                         <Image source={{ uri: item.author.profile.avatarUrl }} style={styles.avatar} />
@@ -577,13 +675,10 @@ export default function ForumPage({ navigation }) {
                     )}
                     <View style={{ flex: 1 }}>
                         <View style={styles.cardHeader}>
-                            <Text style={styles.authorName}>
-                                {item.author?.profile?.firstName
-                                    ? `${item.author.profile.firstName}${item.author.profile.lastName ? ' ' + item.author.profile.lastName : ''
-                                    }`
-                                    : 'Anonymous'}
+                            <Text style={styles.authorName}>{displayAuthor(item)}</Text>
+                            <Text numberOfLines={1} ellipsizeMode="tail" style={styles.cardDate}>
+                                {formatForumDate(item.createdAt)}
                             </Text>
-                            <Text style={styles.cardDate}>{formatFullDate(item.createdAt)}</Text>
                         </View>
                         <Text style={styles.cardTitle}>{item.title}</Text>
                         {item.pinned && (
@@ -605,10 +700,8 @@ export default function ForumPage({ navigation }) {
                     </View>
                 )}
 
-                <Text style={styles.cardContent}>
-                    {(item.content || '').length > 160
-                        ? (item.content || '').slice(0, 160) + '…'
-                        : (item.content || '')}
+                <Text style={styles.cardContent} numberOfLines={4} ellipsizeMode="tail">
+                    {item.content || ''}
                 </Text>
 
                 {item.referencedPark && (
@@ -638,7 +731,7 @@ export default function ForumPage({ navigation }) {
                     <Ionicons name="chatbubble-outline" size={16} color="#999" style={{ marginLeft: 10 }} />
                     <Text style={styles.metaText}>{item.commentsCount}</Text>
                 </View>
-            </View>
+            </Animated.View>
         </TouchableOpacity>
     );
 
@@ -648,6 +741,7 @@ export default function ForumPage({ navigation }) {
                 <ActivityIndicator size="large" color={colors.thirty} style={{ marginTop: 40 }} />
             ) : (
                 <FlatList
+                    ref={listRef}
                     data={forumPosts}
                     renderItem={renderPost}
                     keyExtractor={(item) => item._id}
@@ -945,7 +1039,7 @@ const styles = StyleSheet.create({
     },
     topRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
     avatar: { width: 44, height: 44, borderRadius: 10, marginRight: 10 },
-    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     authorName: { fontSize: 14, fontWeight: 'bold', color: '#333', flex: 1 },
     cardDate: {
         fontSize: 12,
@@ -959,7 +1053,7 @@ const styles = StyleSheet.create({
     cardTitle: { fontSize: 15, fontWeight: '500', color: '#333', marginTop: 2 },
     tagContainer: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 6, marginBottom: 4 },
     tag: { color: colors.thirty, marginRight: 8, fontSize: 13 },
-    cardContent: { fontSize: 14, color: '#666', marginBottom: 8 },
+    cardContent: { fontSize: 14, color: '#666', marginBottom: 8, lineHeight: 20 },
     cardMeta: { flexDirection: 'row', alignItems: 'center' },
     metaText: { fontSize: 12, color: '#999', marginLeft: 4 },
     fab: {
