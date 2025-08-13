@@ -1,8 +1,10 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
+const { Types } = mongoose;
 const Post = require('../../models/Post');
-const Comment = require('../../models/Comment'); // Assuming Comment model is imported
-const User = require('../../models/User'); // Assuming User model is imported
+const Comment = require('../../models/Comment');
+const User = require('../../models/User');
 const auth = require('../../middleware/auth');
 const isAdmin = require('../../middleware/isAdmin');
 
@@ -26,13 +28,14 @@ async function getPost(req, res, next) {
 router.post('/', auth, async (req, res) => {
   try {
     const { title, content, author, tags, referencedPark } = req.body;
+    const referencedParkId = referencedPark && (referencedPark._id || referencedPark);
 
     const newPost = new Post({
       title,
       content,
       author,
       tags,
-      referencedPark,
+      referencedPark: referencedParkId || undefined,
     });
 
     const savedPost = await newPost.save();
@@ -116,15 +119,52 @@ router.get('/:postId/liked', auth, async (req, res) => {
 // Get all posts
 router.get('/', async (req, res) => {
   try {
-    const posts = await Post.find()
-      .sort({ pinned: -1, pinnedAt: -1, createdAt: -1 })
+    const { referencedPark, pinned, sort = 'newest' } = req.query;
+
+    const query = {};
+    if (referencedPark) {
+      const id = String(referencedPark);
+      if (Types.ObjectId.isValid(id)) {
+        query.$or = [
+          { referencedPark: new Types.ObjectId(id) },
+          { 'referencedPark._id': new Types.ObjectId(id) },
+        ];
+      } else {
+        query.$or = [
+          { referencedPark: id },
+          { 'referencedPark._id': id },
+        ];
+      }
+    }
+    if (String(pinned) === 'true') query.pinned = true;
+
+    const baseSort = { pinned: -1, pinnedAt: -1, createdAt: -1 };
+
+    let posts = await Post.find(query)
+      .sort(baseSort)
       .populate('author', 'profile')
       .populate('referencedPark', 'name city state')
       .lean();
 
-    for (let post of posts) {
-      post.likesCount = post.likes?.length || 0;
-      post.commentsCount = await Comment.countDocuments({ referencedPost: post._id });
+    // counts
+    const commentCounts = await Promise.all(
+      posts.map(p => Comment.countDocuments({ referencedPost: p._id }))
+    );
+    posts.forEach((p, i) => {
+      p.likesCount = (p.likes?.length || 0);
+      p.commentsCount = commentCounts[i] || 0;
+    });
+
+    // additional sorting (keeps pinned first)
+    if (sort === 'liked' || sort === 'comments') {
+      const key = sort === 'liked' ? 'likesCount' : 'commentsCount';
+      const pinnedPosts = posts.filter(p => p.pinned);
+      const otherPosts = posts.filter(p => !p.pinned);
+      pinnedPosts.sort((a, b) => (b[key] || 0) - (a[key] || 0));
+      otherPosts.sort((a, b) => (b[key] || 0) - (a[key] || 0));
+      posts = [...pinnedPosts, ...otherPosts];
+    } else {
+      // 'newest' already satisfied by baseSort
     }
 
     res.json(posts);

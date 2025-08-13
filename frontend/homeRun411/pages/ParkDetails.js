@@ -7,6 +7,7 @@ import { View, Text, StyleSheet, ScrollView, ImageBackground, TouchableOpacity, 
 import { getWeather } from '../utils/getWeather';
 import WeatherWidget from '../components/WeatherWidget';
 import * as Clipboard from 'expo-clipboard';
+import { ActivityIndicator } from 'react-native';
 
 export default function ParkDetails({ route, navigation }) {
   // Pull in whatever was passed, but manage our own park state
@@ -25,6 +26,9 @@ export default function ParkDetails({ route, navigation }) {
   const [isFavorited, setIsFavorited] = useState(false);
   const [weather, setWeather] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [postsPreview, setPostsPreview] = useState([]);
+  const [postsCount, setPostsCount] = useState(0);
+  const [loadingPosts, setLoadingPosts] = useState(false);
 
   const ASK_TIP_KEY = 'seenAskAboutParkTooltip';
   const TOOLTIP_EXPIRY_DAYS = 30;
@@ -65,6 +69,39 @@ export default function ParkDetails({ route, navigation }) {
       } catch { }
     })();
   }, []);
+
+  // run when we know the park id
+  useEffect(() => {
+    const fetchRelated = async () => {
+      if (!park?._id) return;
+      try {
+        setLoadingPosts(true);
+
+        const { data } = await axios.get('/api/post', {
+          params: { referencedPark: park._id, sort: 'desc' } // server may ignore; we’ll filter locally
+        });
+
+        const raw = Array.isArray(data?.items) ? data.items : (Array.isArray(data) ? data : []);
+        const filtered = raw.filter(p => {
+          const rp = p?.referencedPark;
+          const id = typeof rp === 'string' ? rp : (rp?._id || rp?.id);
+          return id === park._id;
+        });
+
+        // optional: cap the preview shown in the card
+        const PREVIEW_LIMIT = 5;
+        setPostsPreview(filtered.slice(0, PREVIEW_LIMIT));
+
+        setPostsPreview(filtered);
+        setPostsCount(filtered.length);
+      } catch (e) {
+        console.log('Failed to load park-related posts', e?.response?.data || e.message);
+      } finally {
+        setLoadingPosts(false);
+      }
+    };
+    fetchRelated();
+  }, [park?._id]);
 
   useLayoutEffect(() => {
     if (park.name) {
@@ -350,6 +387,54 @@ export default function ParkDetails({ route, navigation }) {
             weather={weather}
             locationLabel={`${[park.city, park.state].filter(Boolean).join(', ')} • Park`.trim()}
           />
+
+          {/* Community Q&A (park-related posts) */}
+          <View style={styles.qaCard}>
+            <View style={styles.qaHeader}>
+              <Text style={styles.qaTitle}>Community Q&A</Text>
+              {loadingPosts ? (
+                <ActivityIndicator size="small" />
+              ) : (
+                <Text style={styles.qaCount}>{postsCount} post{postsCount === 1 ? '' : 's'}</Text>
+              )}
+            </View>
+
+            {(!loadingPosts && postsPreview.length === 0) ? (
+              <Text style={styles.qaEmpty}>
+                No posts about this park yet. Be the first to ask!
+              </Text>
+            ) : (
+              postsPreview.map(p => (
+                <View key={p._id} style={styles.qaItem}>
+                  <Ionicons name="chatbubble-ellipses-outline" size={16} color="#51607A" />
+                  <Text numberOfLines={2} style={styles.qaItemText}>
+                    {p.title || '(no subject)'}
+                  </Text>
+                </View>
+              ))
+            )}
+
+            <TouchableOpacity
+              style={styles.qaButton}
+              onPress={() => {
+                // Deep link to Forum tab with filter for this park
+                navigation.navigate('Tabs', {
+                  screen: 'Forum',
+                  params: {
+                    filter: {
+                      type: 'park',
+                      referencedPark: park._id,
+                      parkName: park.name,
+                    },
+                  },
+                });
+              }}
+            >
+              <Text style={styles.qaButtonText}>
+                View all posts about {park.name}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           {/* Amenities & Features */}
           <View style={styles.section}>
@@ -713,4 +798,28 @@ const styles = StyleSheet.create({
     color: '#374151',
     flex: 1,
   },
+  qaCard: {
+    marginTop: 10,
+    marginBottom: 14,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  qaHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  qaTitle: { fontSize: 16, fontWeight: '700', color: '#0f172a' },
+  qaCount: { fontSize: 12, color: '#64748b' },
+  qaEmpty: { fontSize: 13, color: '#475569', marginBottom: 8 },
+  qaItem: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 },
+  qaItemText: { fontSize: 13, color: '#111827', flex: 1 },
+  qaButton: {
+    marginTop: 8,
+    backgroundColor: '#7BAAF7',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+  },
+  qaButtonText: { color: 'white', fontSize: 14, fontWeight: '600' },
 });

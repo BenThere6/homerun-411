@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import {
     View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView,
     ActivityIndicator, Image, RefreshControl, ScrollView, TextInput, Modal,
     Platform, LayoutAnimation, UIManager, useWindowDimensions, Keyboard,
-    KeyboardAvoidingView, Alert
+    KeyboardAvoidingView, Alert, Pressable, Animated, Easing
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../assets/colors';
 import { BACKEND_URL } from '@env';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useRoute } from '@react-navigation/native';
 import axios from '../utils/axiosInstance';
 import jwtDecode from 'jwt-decode';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -23,6 +23,7 @@ const formatFullDate = (d) =>
     });
 
 export default function ForumPage({ navigation }) {
+    const route = useRoute();
     const { height: screenH } = useWindowDimensions();
     const SHEET_MAX = Math.round(screenH * 0.85);
     const [sheetH, setSheetH] = useState(null);
@@ -38,6 +39,36 @@ export default function ForumPage({ navigation }) {
     const [submitting, setSubmitting] = useState(false);
     const [adminLevel, setAdminLevel] = useState(2); // 0,1 admin; 2 non-admin
     const [userId, setUserId] = useState(null);
+    const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+    const [filterSheetVisible, setFilterSheetVisible] = useState(false); // controls Modal visibility
+
+    const backdropA = useRef(new Animated.Value(0)).current; // 0..1
+    const sheetA = useRef(new Animated.Value(0)).current;    // 0..1
+    const SLIDE_DISTANCE = screenH; // large enough to start fully off-screen
+
+    // applied (used for fetching)
+    const [appliedFilter, setAppliedFilter] = useState(null);        // { type:'park', referencedPark, parkName }
+    const [appliedSortBy, setAppliedSortBy] = useState('newest');    // 'newest' | 'liked' | 'comments'
+    const [appliedOnlyPinned, setAppliedOnlyPinned] = useState(false);
+
+    // pending (edited in the modal, only applied on "Apply")
+    const [pendingFilter, setPendingFilter] = useState(null);
+    const [pendingSortBy, setPendingSortBy] = useState('newest');
+    const [pendingOnlyPinned, setPendingOnlyPinned] = useState(false);
+
+    const appliedFiltersCount =
+        appliedFilter?.type === 'parks'
+            ? (appliedFilter.parkIds?.length || 0)
+            : (appliedFilter?.type === 'park' ? 1 : 0);
+
+    // --- Park multi-select (inside filter) ---
+    const [parkQuery, setParkQuery] = useState('');
+    const [parkResults, setParkResults] = useState([]);
+    const [pendingParkIds, setPendingParkIds] = useState([]);   // array of park _ids
+    const [pendingParkObjs, setPendingParkObjs] = useState([]); // array of { _id, name, city, state }
+    const [parkLoading, setParkLoading] = useState(false);
+    // remember which path/param worked so we don't probe every time
+    const parkSearchCfg = useRef({ path: null, key: null });
 
     const insets = useSafeAreaInsets();
 
@@ -46,19 +77,70 @@ export default function ForumPage({ navigation }) {
             if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
                 UIManager.setLayoutAnimationEnabledExperimental(true);
             }
-            const response = await fetch(`${BACKEND_URL}/api/post`);
-            const data = await response.json();
-            const sortedData = [...data].sort((a, b) => {
-                const ap = a.pinned ? 1 : 0;
-                const bp = b.pinned ? 1 : 0;
+
+            const qs = new URLSearchParams();
+
+            if (appliedFilter?.type === 'park' && appliedFilter?.referencedPark) {
+                // legacy single-park; still supported
+                qs.append('referencedPark', appliedFilter.referencedPark);
+            }
+            if (appliedFilter?.type === 'parks' && Array.isArray(appliedFilter.parkIds) && appliedFilter.parkIds.length) {
+                appliedFilter.parkIds.forEach(id => qs.append('referencedPark', id));
+            }
+            if (appliedOnlyPinned) qs.set('pinned', 'true');
+            qs.set('sort', appliedSortBy);
+
+            const url = `${BACKEND_URL}/api/post${qs.toString() ? `?${qs}` : ''}`;
+            const res = await fetch(url);
+            const data = await res.json();
+            let list = Array.isArray(data) ? data : (data?.items ?? []);
+            if (!Array.isArray(list)) list = [];
+
+            const keepIds =
+                appliedFilter?.type === 'park' && appliedFilter?.referencedPark
+                    ? new Set([String(appliedFilter.referencedPark)])
+                    : (appliedFilter?.type === 'parks' && appliedFilter.parkIds?.length
+                        ? new Set(appliedFilter.parkIds.map(String))
+                        : null);
+
+            if (keepIds) {
+                list = list.filter(p => {
+                    const rp = p?.referencedPark;
+                    const id = typeof rp === 'string' ? rp : (rp?._id || rp?.id);
+                    return keepIds.has(String(id));
+                });
+            }
+
+            if (appliedOnlyPinned) list = list.filter(p => !!p.pinned);
+
+            const byDate = (a, b) => new Date(b.createdAt) - new Date(a.createdAt);
+            const likeCount = (p) =>
+                typeof p.likesCount === 'number' ? p.likesCount : (p.likes?.length ?? 0);
+            const commentCount = (p) =>
+                typeof p.commentsCount === 'number' ? p.commentsCount : (p.comments?.length ?? 0);
+
+            // Always sort client-side (after any filtering)
+            list.sort((a, b) => {
+                // Pinned first, most recently pinned first
+                const ap = a.pinned ? 1 : 0, bp = b.pinned ? 1 : 0;
                 if (ap !== bp) return bp - ap;
                 const apAt = a.pinnedAt ? new Date(a.pinnedAt).getTime() : 0;
                 const bpAt = b.pinnedAt ? new Date(b.pinnedAt).getTime() : 0;
                 if (apAt !== bpAt) return bpAt - apAt;
-                return new Date(b.createdAt) - new Date(a.createdAt);
+
+                // Then chosen sort
+                switch (appliedSortBy) {
+                    case 'liked':
+                        return likeCount(b) - likeCount(a) || byDate(a, b);
+                    case 'comments':
+                        return commentCount(b) - commentCount(a) || byDate(a, b);
+                    default: // 'newest'
+                        return byDate(a, b);
+                }
             });
+
             LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-            setForumPosts(sortedData);
+            setForumPosts(list);
         } catch (error) {
             console.error('Error fetching posts:', error);
         } finally {
@@ -69,7 +151,56 @@ export default function ForumPage({ navigation }) {
 
     useEffect(() => {
         fetchPosts();
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [appliedFilter, appliedSortBy, appliedOnlyPinned]);
+
+    useEffect(() => {
+        const incoming = route?.params?.filter;
+        if (!incoming) return;
+
+        // normalize to multi-park structure
+        const normalized =
+            incoming.type === 'park'
+                ? { type: 'parks', parkIds: [incoming.referencedPark], parks: [{ _id: incoming.referencedPark, name: incoming.parkName }] }
+                : incoming;
+
+        const isDifferent =
+            !appliedFilter ||
+            appliedFilter.type !== normalized.type ||
+            JSON.stringify((appliedFilter.parkIds || []).map(String)) !== JSON.stringify((normalized.parkIds || []).map(String));
+
+        if (isDifferent) {
+            setAppliedFilter(normalized);
+            setPendingFilter(normalized);
+        }
+
+        navigation.setParams && navigation.setParams({ filter: undefined });
+    }, [route?.params?.filter, navigation, appliedFilter]);
+
+    useEffect(() => {
+        if (filterSheetOpen) {
+            setFilterSheetVisible(true);
+            Animated.parallel([
+                Animated.timing(backdropA, { toValue: 1, duration: 160, useNativeDriver: true }),
+                Animated.timing(sheetA, {
+                    toValue: 1,
+                    duration: 220,
+                    easing: Easing.out(Easing.cubic),
+                    useNativeDriver: true,
+                }),
+            ]).start();
+        } else if (filterSheetVisible) {
+            Animated.parallel([
+                Animated.timing(sheetA, {
+                    toValue: 0,
+                    duration: 220,
+                    easing: Easing.in(Easing.cubic),
+                    useNativeDriver: true,
+                }),
+                Animated.timing(backdropA, { toValue: 0, duration: 160, useNativeDriver: true }),
+            ]).start(() => setFilterSheetVisible(false));
+        }
+    }, [filterSheetOpen, filterSheetVisible, backdropA, sheetA]);
 
     useEffect(() => {
         (async () => {
@@ -83,13 +214,143 @@ export default function ForumPage({ navigation }) {
         })();
     }, []);
 
+    // normalize strings: remove accents, collapse punctuation/whitespace, lowercase
+    const norm = (s) =>
+        (s ?? '')
+            .toString()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '') // strip diacritics
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, ' ')     // non-alnum -> space
+            .trim();
+
+    const parkMatches = (park, query) => {
+        const hay = norm([park.name, park.city, park.state].filter(Boolean).join(' '));
+        const tokens = norm(query).split(' ').filter(Boolean);
+        // require every token in the query to appear somewhere in name/city/state
+        return tokens.every(t => hay.includes(t));
+    };
+
+    // Debounced park search with endpoint/param fallbacks
+    useEffect(() => {
+        let cancelled = false;
+        if (!filterSheetVisible) return;
+
+        const raw = parkQuery.trim();
+        if (!raw) { setParkResults([]); return; }
+
+        const t = setTimeout(async () => {
+            setParkLoading(true);
+
+            const combos = parkSearchCfg.current.path
+                ? [[parkSearchCfg.current.path, parkSearchCfg.current.key]]
+                : [
+                    ['/api/parks/search', 'q'],
+                    ['/api/parks', 'q'],
+                    ['/api/parks', 'search'],
+                    ['/api/park/search', 'q'],
+                    ['/api/park', 'q'],
+                ];
+
+            let found = [];
+
+            for (const [path, key] of combos) {
+                try {
+                    const { data } = await axios.get(path, { params: { [key]: raw, limit: 50 } });
+                    const items = Array.isArray(data) ? data : (data?.items || data?.results || data?.parks || []);
+                    const filtered = items.filter(p => parkMatches(p, raw));
+
+                    if (filtered.length) {
+                        found = filtered;
+                        parkSearchCfg.current = { path, key }; // cache the combo that yielded matches
+                        break;
+                    }
+                } catch { /* try the next combo */ }
+            }
+
+            // Last-resort: fetch all then filter locally (in case no server endpoint supports search)
+            if (!found.length) {
+                try {
+                    const { data } = await axios.get('/api/parks', { params: { limit: 200 } });
+                    const items = Array.isArray(data) ? data : (data?.items || data?.results || data?.parks || []);
+                    found = items.filter(p => parkMatches(p, raw));
+                    if (found.length) parkSearchCfg.current = { path: '/api/parks', key: null };
+                } catch { /* ignore */ }
+            }
+
+            if (!cancelled) {
+                setParkResults(found);
+                setParkLoading(false);
+            }
+        }, 250);
+
+        return () => { cancelled = true; clearTimeout(t); };
+    }, [parkQuery, filterSheetVisible]);
+
+    // Toggle selection in pending arrays
+    const togglePendingPark = (park) => {
+        const id = String(park._id || park.id || park);
+        setPendingParkIds(prev => prev.some(p => String(p) === id) ? prev.filter(p => String(p) !== id) : [...prev, id]);
+        setPendingParkObjs(prev => prev.some(p => String(p._id || p.id || p) === id)
+            ? prev.filter(p => String(p._id || p.id || p) !== id)
+            : [...prev, park]);
+    };
+
     useLayoutEffect(() => {
         navigation.setOptions({
             title: 'Forum',
             headerStyle: { backgroundColor: '#ffd699' },
             headerTitleAlign: 'center',
+            headerRight: () => (
+                <TouchableOpacity
+                    onPress={() => {
+                        setPendingFilter(appliedFilter);
+                        setPendingSortBy(appliedSortBy);
+
+                        // Seed multi-select from the currently applied filter
+                        if (appliedFilter?.type === 'parks') {
+                            setPendingParkIds(appliedFilter.parkIds || []);
+                            setPendingParkObjs(appliedFilter.parks || []);
+                        } else if (appliedFilter?.type === 'park') {
+                            // normalize old single-park to multi
+                            setPendingParkIds([appliedFilter.referencedPark]);
+                            setPendingParkObjs([{ _id: appliedFilter.referencedPark, name: appliedFilter.parkName }]);
+                        } else {
+                            setPendingParkIds([]);
+                            setPendingParkObjs([]);
+                        }
+
+                        setFilterSheetOpen(true);
+                    }}
+                    style={{ paddingRight: 12 }}
+                >
+                    <View>
+                        <Ionicons name="filter-outline" size={22} color="#333" />
+                        {!!appliedFiltersCount && (
+                            <View
+                                style={{
+                                    position: 'absolute',
+                                    top: -4,
+                                    right: -2,
+                                    minWidth: 16,
+                                    height: 16,
+                                    borderRadius: 8,
+                                    backgroundColor: '#ef4444',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    paddingHorizontal: 3,
+                                }}
+                            >
+                                <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>
+                                    {appliedFiltersCount}
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+                </TouchableOpacity>
+            ),
         });
-    }, [navigation]);
+    }, [navigation, appliedFiltersCount, appliedFilter, appliedSortBy, appliedOnlyPinned]);
 
     useFocusEffect(
         React.useCallback(() => {
@@ -135,6 +396,13 @@ export default function ForumPage({ navigation }) {
             setDockH(0);
         }
     }, [selectedPost]);
+
+    useEffect(() => {
+        if (!filterSheetVisible) {
+            setParkQuery('');
+            setParkResults([]);
+        }
+    }, [filterSheetVisible]);
 
     // keep forum list and selectedPost counts in sync
     const syncCountsToList = React.useCallback((nextLikes, nextComments) => {
@@ -338,7 +606,9 @@ export default function ForumPage({ navigation }) {
                 )}
 
                 <Text style={styles.cardContent}>
-                    {item.content.length > 160 ? item.content.slice(0, 160) + '...' : item.content}
+                    {(item.content || '').length > 160
+                        ? (item.content || '').slice(0, 160) + '…'
+                        : (item.content || '')}
                 </Text>
 
                 {item.referencedPark && (
@@ -382,6 +652,7 @@ export default function ForumPage({ navigation }) {
                     renderItem={renderPost}
                     keyExtractor={(item) => item._id}
                     contentContainerStyle={styles.listContent}
+                    ListHeaderComponent={null}
                     refreshControl={
                         <RefreshControl
                             refreshing={refreshing}
@@ -406,77 +677,39 @@ export default function ForumPage({ navigation }) {
                             <View style={[styles.modalSheet, { maxHeight: SHEET_MAX, height: sheetH ?? undefined }]}>
                                 {/* BODY (scrolls) */}
                                 <ScrollView
-                                    style={styles.modalScroll}
-                                    contentContainerStyle={{ padding: 20, paddingBottom: (dockH || 140) + insets.bottom }}
+                                    style={{ maxHeight: 220, marginTop: 8 }}
                                     keyboardShouldPersistTaps="handled"
-                                    keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-                                    showsVerticalScrollIndicator={false}
-                                    onContentSizeChange={(_, h) => {
-                                        const desired = Math.min(SHEET_MAX, Math.max(300, h));
-                                        setSheetH(desired);
-                                    }}
                                 >
-                                    <Text style={styles.modalTitle}>{selectedPost.title}</Text>
-                                    <Text style={styles.modalAuthor}>
-                                        by {selectedPost.author?.profile?.firstName || 'Anonymous'}
-                                    </Text>
-
-                                    <Text style={styles.modalText}>{selectedPost.content}</Text>
-
-                                    {selectedPost.referencedPark && (
-                                        <TouchableOpacity
-                                            onPress={() => goToRealParkDetails(selectedPost.referencedPark)}
-                                            style={[styles.parkChip, { marginTop: 16 }]}
-                                            activeOpacity={0.7}
-                                        >
-                                            <View style={styles.parkChipLeft}>
-                                                <Ionicons name="location-outline" size={16} color="#f28b02" />
-                                                <View style={{ marginLeft: 8, flex: 1 }}>
-                                                    <Text numberOfLines={1} style={styles.parkChipName}>
-                                                        {selectedPost.referencedPark.name}
-                                                    </Text>
-                                                    <Text numberOfLines={1} style={styles.parkChipSub}>
-                                                        {selectedPost.referencedPark.city}, {selectedPost.referencedPark.state}
-                                                    </Text>
+                                    {parkResults.map(p => {
+                                        const id = String(p._id || p.id);
+                                        const selected = pendingParkIds.some(x => String(x) === id);
+                                        return (
+                                            <Pressable key={id} onPress={() => togglePendingPark(p)} style={styles.rowItem}>
+                                                <Ionicons
+                                                    name={selected ? 'checkbox' : 'square-outline'}
+                                                    size={20}
+                                                    color={selected ? '#f28b02' : '#64748b'}
+                                                />
+                                                <View style={{ marginLeft: 10, flex: 1 }}>
+                                                    <Text style={styles.rowTitle} numberOfLines={1}>{p.name}</Text>
+                                                    {(p.city || p.state) ? (
+                                                        <Text style={styles.rowSub} numberOfLines={1}>
+                                                            {p.city}{p.city && p.state ? ', ' : ''}{p.state}
+                                                        </Text>
+                                                    ) : null}
                                                 </View>
-                                            </View>
-                                            <Ionicons name="chevron-forward" size={16} color="#bbb" />
-                                        </TouchableOpacity>
-                                    )}
+                                            </Pressable>
+                                        );
+                                    })}
 
-                                    {/* Like + comments + pin row */}
-                                    <View style={styles.modalMetaRow}>
-                                        {/* Like */}
-                                        <TouchableOpacity onPress={toggleLike} style={styles.metaBtn}>
-                                            <Ionicons
-                                                name={hasLiked ? 'heart' : 'heart-outline'}
-                                                size={20}
-                                                color={hasLiked ? '#e74c3c' : '#666'}
-                                            />
-                                            <Text style={styles.metaBtnText}>{likesCount}</Text>
-                                        </TouchableOpacity>
-
-                                        {/* Comments */}
-                                        <View style={[styles.metaBtn, { marginLeft: 16 }]}>
-                                            <Ionicons name="chatbubble-ellipses-outline" size={20} color="#666" />
-                                            <Text style={styles.metaBtnText}>{comments.length}</Text>
+                                    {parkLoading && <Text style={[styles.hintMuted, { marginTop: 8 }]}>Searching…</Text>}
+                                    {parkLoading ? (
+                                        <View style={styles.loadingRow}>
+                                            <ActivityIndicator />
                                         </View>
-
-                                        {/* Pin */}
-                                        {isAdminAny && (
-                                            <TouchableOpacity
-                                                onPress={onTogglePin}
-                                                disabled={pinDisabled}
-                                                style={[styles.metaBtn, { marginLeft: 16 }, pinDisabled && styles.metaBtnDisabled]}
-                                                accessibilityLabel={isPinned ? 'Unpin post' : 'Pin post'}
-                                            >
-                                                <Ionicons name={isPinned ? 'pin' : 'pin-outline'} size={20} color={pinTint} />
-                                                <Text style={[styles.metaBtnText, { color: pinTint }]}>
-                                                    {isPinned ? 'Pinned' : 'Pin'}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        )}
-                                    </View>
+                                    ) : parkQuery && parkResults.length === 0 ? (
+                                        <Text style={[styles.hintMuted, { marginTop: 8 }]}>No parks found</Text>
+                                    ) : null}
                                 </ScrollView>
 
                                 {/* STICKY (INSIDE MODAL) DOCK */}
@@ -508,6 +741,186 @@ export default function ForumPage({ navigation }) {
                     </View>
                 </Modal>
             )}
+
+            {/* FILTER SHEET (slides) */}
+            <Modal
+                visible={filterSheetVisible}            // <- use the visibility state driven by the animation
+                transparent
+                animationType="none"                    // <- disable Modal's fade
+                onRequestClose={() => setFilterSheetOpen(false)}
+            >
+                {/* Backdrop fades in/out */}
+                <Animated.View style={[styles.filterBackdrop, { opacity: backdropA }]}>
+                    {/* Tap outside to close */}
+                    <Pressable style={{ flex: 1 }} onPress={() => setFilterSheetOpen(false)} />
+
+                    {/* Bottom sheet slides up/down */}
+                    <Animated.View
+                        style={[
+                            styles.filterSheet,
+                            {
+                                transform: [
+                                    {
+                                        translateY: sheetA.interpolate({
+                                            inputRange: [0, 1],
+                                            outputRange: [SLIDE_DISTANCE, 0], // from off-screen -> on-screen
+                                        }),
+                                    },
+                                ],
+                            },
+                        ]}
+                    >
+                        {/* X button */}
+                        <Pressable
+                            onPress={() => setFilterSheetOpen(false)}
+                            style={styles.filterCloseX}
+                            hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+                        >
+                            <Ionicons name="close" size={20} color="#334155" />
+                        </Pressable>
+
+                        <Text style={[styles.filterTitle, { paddingRight: 28 }]}>Filter posts</Text>
+
+                        <Text style={styles.filterLabel}>Sort by</Text>
+                        <View style={styles.filterRow}>
+                            {[
+                                { key: 'newest', label: 'Newest' },
+                                { key: 'liked', label: 'Most liked' },
+                                { key: 'comments', label: 'Most commented' },
+                            ].map(opt => (
+                                <TouchableOpacity
+                                    key={opt.key}
+                                    onPress={() => setPendingSortBy(opt.key)}
+                                    style={[styles.pill, pendingSortBy === opt.key && styles.pillActive]}
+                                >
+                                    <Text style={[styles.pillText, pendingSortBy === opt.key && styles.pillTextActive]}>
+                                        {opt.label}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+
+                        {/* --- Parks multi-select --- */}
+                        <Text style={styles.filterLabel}>Parks</Text>
+
+                        <View style={{ position: 'relative', marginTop: 6 }}>
+                            <TextInput
+                                placeholder="Search parks…"
+                                value={parkQuery}
+                                onChangeText={(t) => {
+                                    setParkQuery(t);
+                                    const hasQuery = !!t.trim();
+                                    setParkLoading(hasQuery);
+                                    if (!hasQuery) setParkResults([]);
+                                }}
+                                style={[
+                                    styles.parkSearch,
+                                    { paddingRight: 40, height: 44, paddingVertical: 0, textAlignVertical: 'center' }
+                                ]}
+                            />
+
+                            {!!parkQuery.trim() && (
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        setParkQuery('');
+                                        setParkResults([]);
+                                        setParkLoading(false);
+                                    }}
+                                    style={{
+                                        position: 'absolute',
+                                        right: 10,
+                                        top: 0,
+                                        bottom: 0,
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                        width: 32,
+                                    }}
+                                    hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                                >
+                                    <Ionicons name="close-circle" size={20} color="#94a3b8" />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+
+                        {pendingParkIds.length > 0 && (
+                            <View style={styles.selectedChipsWrap}>
+                                {pendingParkObjs.map(p => {
+                                    const id = String(p._id || p.id);
+                                    return (
+                                        <View key={id} style={styles.chip}>
+                                            <Text style={styles.chipText} numberOfLines={1}>{p.name}</Text>
+                                            <Pressable onPress={() => togglePendingPark(p)} style={{ paddingLeft: 6 }}>
+                                                <Ionicons name="close" size={14} color="#7c2d12" />
+                                            </Pressable>
+                                        </View>
+                                    );
+                                })}
+                            </View>
+                        )}
+
+                        <ScrollView style={{ maxHeight: 220, marginTop: 8 }}>
+                            {parkResults.map(p => {
+                                const id = String(p._id || p.id);
+                                const selected = pendingParkIds.some(x => String(x) === id);
+                                return (
+                                    <Pressable key={id} onPress={() => togglePendingPark(p)} style={styles.rowItem}>
+                                        <Ionicons
+                                            name={selected ? 'checkbox' : 'square-outline'}
+                                            size={20}
+                                            color={selected ? '#f28b02' : '#64748b'}
+                                        />
+                                        <View style={{ marginLeft: 10, flex: 1 }}>
+                                            <Text style={styles.rowTitle} numberOfLines={1}>{p.name}</Text>
+                                            {(p.city || p.state) ? (
+                                                <Text style={styles.rowSub} numberOfLines={1}>
+                                                    {p.city}{p.city && p.state ? ', ' : ''}{p.state}
+                                                </Text>
+                                            ) : null}
+                                        </View>
+                                    </Pressable>
+                                );
+                            })}
+                            {parkLoading ? (
+                                <View className="loadingRow">
+                                    <ActivityIndicator />
+                                </View>
+                            ) : parkQuery && parkResults.length === 0 ? (
+                                <Text style={[styles.hintMuted, { marginTop: 8 }]}>No parks found</Text>
+                            ) : null}
+                        </ScrollView>
+
+                        <View style={styles.sheetButtons}>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setPendingFilter(null);
+                                    setPendingSortBy('newest');
+                                    setParkQuery('');
+                                    setPendingParkIds([]);
+                                    setPendingParkObjs([]);
+                                }}
+                                style={[styles.sheetBtn, styles.btnGhost]}
+                            >
+                                <Text style={styles.btnGhostText}>Clear</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    if (pendingParkIds.length) {
+                                        setAppliedFilter({ type: 'parks', parkIds: pendingParkIds, parks: pendingParkObjs });
+                                    } else {
+                                        setAppliedFilter(null);
+                                    }
+                                    setAppliedSortBy(pendingSortBy);
+                                    navigation.setParams && navigation.setParams({ filter: undefined });
+                                    setFilterSheetOpen(false);
+                                }}
+                                style={[styles.sheetBtn, styles.btnPrimary]}
+                            >
+                                <Text style={styles.btnPrimaryText}>Apply</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </Animated.View>
+                </Animated.View>
+            </Modal>
 
             <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('NewPostForm')}>
                 <Ionicons name="add" size={30} color="white" />
@@ -711,4 +1124,112 @@ const styles = StyleSheet.create({
         color: '#b45309',
         fontWeight: '600',
     },
+    filterBackdrop: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.35)',
+        justifyContent: 'flex-end',
+    },
+    filterSheet: {
+        backgroundColor: '#fff',
+        padding: 16,
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
+        shadowColor: '#000',
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: -2 },
+    },
+    filterTitle: { fontSize: 16, fontWeight: '700', color: '#0f172a', marginBottom: 10 },
+    filterLabel: { fontSize: 13, fontWeight: '700', color: '#334155', marginTop: 6, marginBottom: 8 },
+    filterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    pill: {
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 16,
+        backgroundColor: '#f1f5f9',
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+    },
+    pillActive: { backgroundColor: '#eef2ff', borderColor: '#c7d2fe' },
+    pillText: { color: '#334155', fontSize: 13, fontWeight: '600' },
+    pillTextActive: { color: '#3730a3' },
+    toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, marginBottom: 6 },
+    toggleText: { color: '#334155', fontSize: 14, fontWeight: '600' },
+    currentFilterBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginTop: 10,
+        backgroundColor: '#fff8ee',
+        borderWidth: 1,
+        borderColor: '#ffe0bf',
+        borderRadius: 10,
+        paddingVertical: 8,
+        paddingHorizontal: 10,
+    },
+    currentFilterText: { color: '#7c2d12', fontWeight: '700' },
+    sheetButtons: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 16, gap: 10 },
+    sheetBtn: { flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: 10 },
+    btnPrimary: { backgroundColor: '#f28b02' },
+    btnPrimaryText: { color: '#fff', fontWeight: '700' },
+    btnGhost: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e7eb' },
+    btnGhostText: { color: '#334155', fontWeight: '700' },
+    filterChip: {
+        alignSelf: 'flex-start',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: '#eef2ff',
+        borderWidth: 1,
+        borderColor: '#c7d2fe',
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        borderRadius: 14,
+    },
+    filterChipText: { color: '#3730a3', fontSize: 12, fontWeight: '600' },
+    filterCloseX: {
+        position: 'absolute',
+        right: 8,
+        top: 8,
+        padding: 6,
+        zIndex: 2,
+    },
+    parkSearch: {
+        backgroundColor: '#fff',
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+    },
+    selectedChipsWrap: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginTop: 10,
+    },
+    chip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fff8ee',
+        borderWidth: 1,
+        borderColor: '#ffe0bf',
+        borderRadius: 16,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        maxWidth: '100%',
+    },
+    chipText: { color: '#7c2d12', fontWeight: '700', maxWidth: 200 },
+    rowItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 4,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: '#eef2f7',
+    },
+    rowTitle: { color: '#0f172a', fontWeight: '600' },
+    rowSub: { color: '#64748b', fontSize: 12, marginTop: 2 },
+    hintMuted: { color: '#475569', opacity: 0.8 },
+    loadingRow: { paddingVertical: 12, alignItems: 'center' },
 });
