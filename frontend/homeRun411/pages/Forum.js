@@ -54,8 +54,7 @@ export default function ForumPage({ navigation }) {
     const [userId, setUserId] = useState(null);
     const [filterSheetOpen, setFilterSheetOpen] = useState(false);
     const [filterSheetVisible, setFilterSheetVisible] = useState(false); // controls Modal visibility
-    const [commentsHeaderH, setCommentsHeaderH] = useState(40);
-
+    const [commentsHeaderH, setCommentsHeaderH] = useState(0);
     const backdropA = useRef(new Animated.Value(0)).current; // 0..1
     const sheetA = useRef(new Animated.Value(0)).current;    // 0..1
     const SLIDE_DISTANCE = screenH; // large enough to start fully off-screen
@@ -69,6 +68,7 @@ export default function ForumPage({ navigation }) {
 
     // --- Collapsible Post Panel: state/refs/derived ---
     const MIN_POST_PCT = 0.40;             // post must keep at least 40% of the main area
+    const POST_MAX_PCT = 0.73;
     const COMMENTS_MAX_PCT = 0.60;         // comments may take up to 60% of the main area
     const COMMENTS_CUSHION = 12;            // little breathing room under the last comment
 
@@ -79,10 +79,9 @@ export default function ForumPage({ navigation }) {
     const [availableH, setAvailableH] = useState(0);      // space between fixed header and bottom dock
     const [postContentH, setPostContentH] = useState(0);  // full height of post body
     const [commentsContentH, setCommentsContentH] = useState(0); // measured height of all comments (no header)
-
-    const POST_MAX_PCT = 0.73;
-
     const avail = Math.max(0, availableH - dockH);
+    const measurementsReady = avail > 0 && commentsHeaderH > 0 && postContentH > 0;
+
     const HEADER_GAP = 6;
 
     const expandedH = Math.max(
@@ -961,7 +960,8 @@ export default function ForumPage({ navigation }) {
 
                                 <Animated.FlatList
                                     ref={commentsListRef}
-                                    data={comments}
+                                    // Hide rows until everything is measured, but keep the header visible
+                                    data={measurementsReady ? comments : []}
                                     keyExtractor={(c, i) => c?._id ?? String(i)}
                                     keyboardShouldPersistTaps="handled"
                                     showsVerticalScrollIndicator
@@ -970,6 +970,7 @@ export default function ForumPage({ navigation }) {
                                         [{ nativeEvent: { contentOffset: { y: commentsScrollY } } }],
                                         { useNativeDriver: false }
                                     )}
+                                    initialNumToRender={0}
 
                                     /* make the header part of the same scrollable surface */
                                     ListHeaderComponent={
@@ -978,7 +979,7 @@ export default function ForumPage({ navigation }) {
                                             onLayout={(e) => setCommentsHeaderH(e.nativeEvent.layout.height)}
                                             onPress={() =>
                                                 commentsListRef.current?.scrollToOffset?.({
-                                                    offset: Math.max(0, collapseRange + 24),
+                                                    offset: Math.max(0, collapseRange), // exact collapse distance
                                                     animated: true,
                                                 })
                                             }
@@ -990,6 +991,7 @@ export default function ForumPage({ navigation }) {
                                             <View style={styles.sectionLine} />
                                         </Pressable>
                                     }
+                                    ListHeaderComponentStyle={{ backgroundColor: '#fff' }}
                                     stickyHeaderIndices={[0]}
 
                                     /* spacing */
@@ -998,19 +1000,24 @@ export default function ForumPage({ navigation }) {
                                         paddingBottom: 16 + dockH + 8,
                                     }}
 
-                                    /* measure total comments body (exclude header height) */
+                                    /* measure total comments body (exclude header height).
+                                       Before ready, treat body height as 0 so the post doesn't pre-collapse. */
                                     onContentSizeChange={(w, h) =>
-                                        setCommentsContentH(Math.max(0, h - commentsHeaderH))
+                                        setCommentsContentH(
+                                            measurementsReady ? Math.max(0, h - commentsHeaderH) : 0
+                                        )
                                     }
 
                                     /* empty state still scrolls (so drag collapses the post) */
                                     ListEmptyComponent={
-                                        <View style={{ paddingHorizontal: 16 }}>
-                                            <View style={styles.emptyCommentsWrap}>
-                                                <Ionicons name="chatbubble-ellipses-outline" size={14} color="#94a3b8" />
-                                                <Text style={styles.emptyCommentsText}>No comments yet</Text>
+                                        measurementsReady ? (
+                                            <View style={{ paddingHorizontal: 16 }}>
+                                                <View style={styles.emptyCommentsWrap}>
+                                                    <Ionicons name="chatbubble-ellipses-outline" size={14} color="#94a3b8" />
+                                                    <Text style={styles.emptyCommentsText}>No comments yet</Text>
+                                                </View>
                                             </View>
-                                        </View>
+                                        ) : null
                                     }
 
                                     renderItem={({ item, index }) => (
