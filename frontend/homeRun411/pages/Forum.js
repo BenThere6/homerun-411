@@ -6,7 +6,10 @@ import {
     KeyboardAvoidingView, Alert, Pressable, Animated, Easing
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons'
+import { useHeaderHeight } from '@react-navigation/elements';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { BackHandler } from 'react-native';
 import colors from '../assets/colors';
 import { BACKEND_URL } from '@env';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
@@ -23,6 +26,13 @@ const formatForumDate = (d) => {
     const day = dt.getDate();
     const y = dt.getFullYear();
     return y === nowYear ? `${w}, ${m} ${day}` : `${m} ${day}, ${y}`;
+};
+
+const fullName = (a) => {
+    const f = a?.profile?.firstName || a?.firstName || '';
+    const l = a?.profile?.lastName || a?.lastName || '';
+    const n = `${f}${l ? ' ' + l : ''}`.trim();
+    return n || 'Anonymous';
 };
 
 export default function ForumPage({ navigation }) {
@@ -49,6 +59,7 @@ export default function ForumPage({ navigation }) {
     const sheetA = useRef(new Animated.Value(0)).current;    // 0..1
     const SLIDE_DISTANCE = screenH; // large enough to start fully off-screen
     const listRef = useRef(null);
+    const commentInputRef = useRef(null);
     const rowOpacities = useRef({}).current;
     const getOpacity = (id) => {
         if (!rowOpacities[id]) rowOpacities[id] = new Animated.Value(1);
@@ -80,8 +91,8 @@ export default function ForumPage({ navigation }) {
     const parkSearchCfg = useRef({ path: null, key: null });
 
     const insets = useSafeAreaInsets();
-
-
+    const headerH = useHeaderHeight();               // nav header height
+    const tabH = useBottomTabBarHeight?.() ?? 0;
     const fetchPosts = async () => {
         try {
             if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -311,56 +322,66 @@ export default function ForumPage({ navigation }) {
             title: 'Forum',
             headerStyle: { backgroundColor: '#ffd699' },
             headerTitleAlign: 'center',
-            headerRight: () => (
-                <TouchableOpacity
-                    onPress={() => {
-                        setPendingFilter(appliedFilter);
-                        setPendingSortBy(appliedSortBy);
 
-                        // Seed multi-select from the currently applied filter
-                        if (appliedFilter?.type === 'parks') {
-                            setPendingParkIds(appliedFilter.parkIds || []);
-                            setPendingParkObjs(appliedFilter.parks || []);
-                        } else if (appliedFilter?.type === 'park') {
-                            // normalize old single-park to multi
-                            setPendingParkIds([appliedFilter.referencedPark]);
-                            setPendingParkObjs([{ _id: appliedFilter.referencedPark, name: appliedFilter.parkName }]);
-                        } else {
-                            setPendingParkIds([]);
-                            setPendingParkObjs([]);
-                        }
+            // Show a back chevron only while a post is open
+            headerLeft: selectedPost
+                ? () => (
+                    <TouchableOpacity onPress={closeModal} style={{ paddingLeft: 8 }}>
+                        <Ionicons name="chevron-back" size={24} color="#333" />
+                    </TouchableOpacity>
+                )
+                : undefined,
 
-                        setFilterSheetOpen(true);
-                    }}
-                    style={{ paddingRight: 12 }}
-                >
-                    <View>
-                        <Ionicons name="filter-outline" size={22} color="#333" />
-                        {!!appliedFiltersCount && (
-                            <View
-                                style={{
-                                    position: 'absolute',
-                                    top: -4,
-                                    right: -2,
-                                    minWidth: 16,
-                                    height: 16,
-                                    borderRadius: 8,
-                                    backgroundColor: '#ef4444',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    paddingHorizontal: 3,
-                                }}
-                            >
-                                <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>
-                                    {appliedFiltersCount}
-                                </Text>
-                            </View>
-                        )}
-                    </View>
-                </TouchableOpacity>
-            ),
+            // Hide filter while viewing a post
+            headerRight: () =>
+                !selectedPost ? (
+                    <TouchableOpacity
+                        onPress={() => {
+                            setPendingFilter(appliedFilter);
+                            setPendingSortBy(appliedSortBy);
+
+                            if (appliedFilter?.type === 'parks') {
+                                setPendingParkIds(appliedFilter.parkIds || []);
+                                setPendingParkObjs(appliedFilter.parks || []);
+                            } else if (appliedFilter?.type === 'park') {
+                                setPendingParkIds([appliedFilter.referencedPark]);
+                                setPendingParkObjs([{ _id: appliedFilter.referencedPark, name: appliedFilter.parkName }]);
+                            } else {
+                                setPendingParkIds([]);
+                                setPendingParkObjs([]);
+                            }
+
+                            setFilterSheetOpen(true);
+                        }}
+                        style={{ paddingRight: 12 }}
+                    >
+                        <View>
+                            <Ionicons name="filter-outline" size={22} color="#333" />
+                            {!!appliedFiltersCount && (
+                                <View
+                                    style={{
+                                        position: 'absolute',
+                                        top: -4,
+                                        right: -2,
+                                        minWidth: 16,
+                                        height: 16,
+                                        borderRadius: 8,
+                                        backgroundColor: '#ef4444',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        paddingHorizontal: 3,
+                                    }}
+                                >
+                                    <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>
+                                        {appliedFiltersCount}
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
+                    </TouchableOpacity>
+                ) : null,
         });
-    }, [navigation, appliedFiltersCount, appliedFilter, appliedSortBy, appliedOnlyPinned]);
+    }, [navigation, selectedPost, appliedFiltersCount, appliedFilter, appliedSortBy, appliedOnlyPinned]);
 
     useFocusEffect(
         React.useCallback(() => {
@@ -413,6 +434,13 @@ export default function ForumPage({ navigation }) {
             setSheetH(null);
             setDockH(0);
         }
+
+        const onBack = () => {
+            if (selectedPost) { closeModal(); return true; }
+            return false;
+        };
+        const sub = BackHandler.addEventListener('hardwareBackPress', onBack);
+        return () => sub.remove();
     }, [selectedPost]);
 
     useEffect(() => {
@@ -761,79 +789,154 @@ export default function ForumPage({ navigation }) {
             )}
 
             {selectedPost && (
-                <Modal visible transparent animationType="fade" onRequestClose={closeModal}>
-                    <View style={styles.modalOverlay}>
-                        <KeyboardAvoidingView
-                            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                            keyboardVerticalOffset={Platform.OS === 'ios' ? 24 : 0} // tweak (44/64) if needed for header/safe area
-                            style={{ width: '95%', alignSelf: 'center' }}
-                        >
-                            <View style={[styles.modalSheet, { maxHeight: SHEET_MAX, height: sheetH ?? undefined }]}>
-                                {/* BODY (scrolls) */}
-                                <ScrollView
-                                    style={{ maxHeight: 220, marginTop: 8 }}
-                                    keyboardShouldPersistTaps="handled"
-                                >
-                                    {parkResults.map(p => {
-                                        const id = String(p._id || p.id);
-                                        const selected = pendingParkIds.some(x => String(x) === id);
-                                        return (
-                                            <Pressable key={id} onPress={() => togglePendingPark(p)} style={styles.rowItem}>
-                                                <Ionicons
-                                                    name={selected ? 'checkbox' : 'square-outline'}
-                                                    size={20}
-                                                    color={selected ? '#f28b02' : '#64748b'}
-                                                />
-                                                <View style={{ marginLeft: 10, flex: 1 }}>
-                                                    <Text style={styles.rowTitle} numberOfLines={1}>{p.name}</Text>
-                                                    {(p.city || p.state) ? (
-                                                        <Text style={styles.rowSub} numberOfLines={1}>
-                                                            {p.city}{p.city && p.state ? ', ' : ''}{p.state}
-                                                        </Text>
-                                                    ) : null}
-                                                </View>
-                                            </Pressable>
-                                        );
-                                    })}
-
-                                    {parkLoading && <Text style={[styles.hintMuted, { marginTop: 8 }]}>Searching…</Text>}
-                                    {parkLoading ? (
-                                        <View style={styles.loadingRow}>
-                                            <ActivityIndicator />
+                <View
+                    pointerEvents="auto"
+                    style={[
+                        StyleSheet.absoluteFill,
+                        {
+                            // step outside the SafeAreaView's padding
+                            top: -insets.top,
+                            bottom: -insets.bottom,
+                            backgroundColor: '#fff',
+                            zIndex: 1000,
+                            elevation: 1000,
+                        },
+                    ]}
+                >
+                    <KeyboardAvoidingView
+                        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                        style={{ flex: 1 }}
+                        keyboardVerticalOffset={0}
+                    >
+                        {/* Fixed header + scrolling body */}
+                        <View style={{ flex: 1, paddingTop: headerH - 20 }}>
+                            {/* --- FIXED header --- */}
+                            <View style={[styles.modalFixedHeader, { paddingHorizontal: 16 }]}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    {/* avatar ... */}
+                                    <View style={{ flex: 1 }}>
+                                        {/* author + date on one line */}
+                                        <View style={styles.modalTopLine}>
+                                            <Text style={styles.modalAuthorName} numberOfLines={1}>
+                                                {fullName(selectedPost.author)}
+                                            </Text>
+                                            <Text style={styles.modalDate} numberOfLines={1}>
+                                                {formatForumDate(selectedPost.createdAt)}
+                                            </Text>
                                         </View>
-                                    ) : parkQuery && parkResults.length === 0 ? (
-                                        <Text style={[styles.hintMuted, { marginTop: 8 }]}>No parks found</Text>
-                                    ) : null}
-                                </ScrollView>
 
-                                {/* STICKY (INSIDE MODAL) DOCK */}
-                                <View
-                                    style={[styles.bottomDock, { paddingBottom: 12 + insets.bottom }]}
-                                    onLayout={(e) => setDockH(e.nativeEvent.layout.height)}
-                                >
-                                    <View style={styles.commentBar}>
-                                        <TextInput
-                                            value={commentText}
-                                            onChangeText={setCommentText}
-                                            placeholder="Write a comment…"
-                                            style={styles.commentInput}
-                                            multiline
-                                        />
-
-                                        <TouchableOpacity disabled={submitting} onPress={submitComment} style={styles.commentSend}>
-                                            <Ionicons name="send" size={18} color="#fff" />
-                                        </TouchableOpacity>
+                                        {/* subject below, wraps freely */}
+                                        <Text style={styles.modalTitle}>
+                                            {selectedPost.title}
+                                        </Text>
                                     </View>
-
-                                    <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
-                                        <Text style={styles.closeButtonText}>Close</Text>
-                                    </TouchableOpacity>
                                 </View>
                             </View>
-                        </KeyboardAvoidingView>
 
-                    </View>
-                </Modal>
+                            {/* --- Only this part scrolls --- */}
+                            <ScrollView
+                                style={{ flex: 1 }}
+                                keyboardShouldPersistTaps="handled"
+                                contentContainerStyle={{
+                                    paddingTop: 8,
+                                    paddingBottom: 16 + dockH,
+                                    paddingHorizontal: 16,
+                                }}
+                            >
+                                {/* POST CONTENT */}
+                                <View style={styles.postCard}>
+                                    {!!selectedPost.content && (
+                                        <Text style={styles.postBody}>{selectedPost.content}</Text>
+                                    )}
+                                    {!!selectedPost.tags?.length && (
+                                        <View style={styles.tagContainer}>
+                                            {selectedPost.tags.map((tag, i) => (
+                                                <Text key={i} style={styles.tag}>#{tag}</Text>
+                                            ))}
+                                        </View>
+                                    )}
+                                    {selectedPost.referencedPark && (
+                                        <TouchableOpacity
+                                            onPress={() => goToRealParkDetails(selectedPost.referencedPark)}
+                                            style={[styles.parkChip, { marginTop: 8 }]}
+                                            activeOpacity={0.7}
+                                        >
+                                            …
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+
+                                {/* COMMENTS HEADER */}
+                                <View style={styles.sectionBar}>
+                                    <View style={styles.sectionLine} />
+                                    <Text style={styles.sectionLabel}>
+                                        {`Comments${comments.length ? ` (${comments.length})` : ''}`}
+                                    </Text>
+                                    <View style={styles.sectionLine} />
+                                </View>
+
+                                {/* COMMENTS LIST / EMPTY */}
+                                {comments.length === 0 ? (
+                                    <View style={styles.emptyCommentsWrap}>
+                                        <Ionicons name="chatbubble-ellipses-outline" size={14} color="#94a3b8" />
+                                        <Text style={styles.emptyCommentsText}>
+                                            No comments yet — be the first to start the conversation.
+                                        </Text>
+                                    </View>
+                                ) : (
+                                    comments.map((c, i) => (
+                                        <View key={c._id} style={[styles.commentRow, i === 0 && styles.commentRowFirst]}>
+                                            <Text style={styles.commentAuthor}>{fullName(c.author)}</Text>
+                                            <Text style={styles.commentText}>{c.content}</Text>
+                                        </View>
+                                    ))
+                                )}
+                            </ScrollView>
+                        </View>
+
+                        {/* Sticky dock (one copy only) */}
+                        <View
+                            style={[styles.bottomDock, { paddingBottom: 0 + insets.bottom }]}
+                            onLayout={(e) => setDockH(e.nativeEvent.layout.height)}
+                        >
+                            <View style={styles.chipsRow}>
+                                <TouchableOpacity onPress={toggleLike} style={styles.metaBtn}>
+                                    <Ionicons name={hasLiked ? 'heart' : 'heart-outline'} size={16} color={hasLiked ? '#e11d48' : '#333'} />
+                                    <Text style={styles.metaBtnText}>{likesCount}</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity onPress={() => commentInputRef.current?.focus?.()} style={styles.metaBtn}>
+                                    <Ionicons name="chatbubble-outline" size={16} color="#333" />
+                                    <Text style={styles.metaBtnText}>{comments.length}</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    disabled={pinDisabled}
+                                    onPress={onTogglePin}
+                                    style={[styles.metaBtn, pinDisabled && styles.metaBtnDisabled]}
+                                >
+                                    <Ionicons name="pin" size={16} color={pinTint} />
+                                    <Text style={[styles.metaBtnText, { color: pinTint }]}>{isPinned ? 'Pinned' : 'Pin'}</Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            <View style={styles.commentBar}>
+                                <TextInput
+                                    ref={commentInputRef}
+                                    value={commentText}
+                                    onChangeText={setCommentText}
+                                    placeholder="Write a comment…"
+                                    style={styles.commentInput}
+                                    multiline
+                                />
+                                <TouchableOpacity disabled={submitting} onPress={submitComment} style={styles.commentSend}>
+                                    <Ionicons name="send" size={18} color="#fff" />
+                                </TouchableOpacity>
+                            </View>
+                            {/* No Close button; use header back */}
+                        </View>
+                    </KeyboardAvoidingView>
+                </View>
             )}
 
             {/* FILTER SHEET (slides) */}
@@ -1016,9 +1119,11 @@ export default function ForumPage({ navigation }) {
                 </Animated.View>
             </Modal>
 
-            <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('NewPostForm')}>
-                <Ionicons name="add" size={30} color="white" />
-            </TouchableOpacity>
+            {!selectedPost && (
+                <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('NewPostForm')}>
+                    <Ionicons name="add" size={30} color="white" />
+                </TouchableOpacity>
+            )}
         </SafeAreaView>
     );
 }
@@ -1084,7 +1189,6 @@ const styles = StyleSheet.create({
     parkTagLocation: { color: '#888', fontSize: 12, marginTop: 2 },
     selectedSort: { backgroundColor: '#f28b02', color: 'white' },
     sortOption: { backgroundColor: '#fff3e0', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20 },
-    modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
     modalAuthor: { fontSize: 14, color: '#777', marginTop: 4 },
     modalText: { fontSize: 15, color: '#444', marginTop: 12 },
     modalScroll: {},
@@ -1099,9 +1203,23 @@ const styles = StyleSheet.create({
     },
     metaBtnDisabled: { opacity: 0.5 },
     metaBtnText: { marginLeft: 6, color: '#333', fontWeight: '600' },
-    commentRow: { marginTop: 10, backgroundColor: '#fafafa', borderRadius: 8, padding: 10 },
-    commentAuthor: { fontWeight: '700', color: '#333', marginBottom: 4 },
-    commentText: { color: '#444', lineHeight: 20 },
+    commentRow: {
+        paddingVertical: 10,
+        paddingHorizontal: 2,
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: '#e9edf2',
+    },
+    commentAuthor: {
+        fontWeight: '600',
+        color: '#0f172a',
+        marginBottom: 2,
+        fontSize: 13,
+    },
+    commentText: {
+        color: '#334155',
+        lineHeight: 20,
+        fontSize: 14,
+    },
     commentInput: {
         flex: 1,
         minHeight: 40,
@@ -1152,12 +1270,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center',  // keep sheet centered
         alignItems: 'center',
         paddingHorizontal: 10,
-        // bottom space comes from inline paddingBottom: keyboardOffset
     },
     modalSheet: {
-        width: '95%',
-        maxHeight: '80%',
-        minHeight: 300,
+        width: '100%',
+        height: '100%',
         backgroundColor: '#fff',
         borderRadius: 15,
         overflow: 'hidden',   // <-- comment this out if keyboard animation clips
@@ -1326,4 +1442,119 @@ const styles = StyleSheet.create({
     rowSub: { color: '#64748b', fontSize: 12, marginTop: 2 },
     hintMuted: { color: '#475569', opacity: 0.8 },
     loadingRow: { paddingVertical: 12, alignItems: 'center' },
+    chipsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        marginBottom: 8,
+    },
+    modalStickyHeader: {
+        backgroundColor: '#fff',
+        paddingTop: 8,
+        paddingBottom: 8,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: '#eee',
+        zIndex: 2,        // needed for Android
+        elevation: 2,     // needed for Android
+    },
+    modalFixedHeader: {
+        backgroundColor: '#fff',
+        paddingTop: 8,
+        paddingBottom: 8,
+        zIndex: 2,
+        elevation: 2,
+    },
+    modalDivider: {
+        height: StyleSheet.hairlineWidth,
+        backgroundColor: '#e5e7eb', // was very dark
+    },
+    modalTitle: {
+        fontSize: 17,        // was 18
+        fontWeight: '600',   // was 'bold'
+        color: '#111',
+        flexGrow: 1,
+        flexShrink: 1,
+        marginTop: 2,
+        lineHeight: 22,
+    },
+    modalTopLine: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    modalAuthorName: {
+        flexShrink: 1,
+        marginRight: 10,
+        fontSize: 13,        // was 14
+        fontWeight: '600',
+        color: '#475569',    // was '#555'
+    },
+    modalDate: {
+        fontSize: 12,
+        color: '#94a3b8',    // was '#999'
+        flexShrink: 0,
+    },
+    postCard: {
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#eef2f7',
+        padding: 12,
+        shadowColor: '#000',
+        shadowOpacity: 0.03,
+        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 2 },
+    },
+    postBody: {
+        fontSize: 15,
+        lineHeight: 22,
+        color: '#334155', // softer than pure black
+    },
+    sectionBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 16,
+        marginBottom: 6,
+    },
+    sectionLine: {
+        flex: 1,
+        height: StyleSheet.hairlineWidth,
+        backgroundColor: '#e5e7eb',
+    },
+    sectionLabel: {
+        marginHorizontal: 10,
+        color: '#64748b',
+        fontSize: 12,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 0.6,
+    },
+    emptyCommentsWrap: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingVertical: 12,
+        paddingHorizontal: 4,
+    },
+    emptyCommentsText: {
+        fontSize: 13,
+        color: '#64748b',
+    },
+    emptyCommentsWrap: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingVertical: 12,
+        paddingHorizontal: 4,
+    },
+    emptyCommentsText: {
+        fontSize: 13,
+        color: '#64748b',
+    },
+    commentRow: {
+        paddingVertical: 10,
+        paddingHorizontal: 2,
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: '#e9edf2',
+      },
 });
