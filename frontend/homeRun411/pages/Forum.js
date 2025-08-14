@@ -2,7 +2,7 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import {
     View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView,
     ActivityIndicator, Image, RefreshControl, ScrollView, TextInput, Modal,
-    Platform, LayoutAnimation, UIManager, useWindowDimensions, Keyboard,
+    Platform, LayoutAnimation, UIManager, useWindowDimensions,
     KeyboardAvoidingView, Alert, Pressable, Animated, Easing
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -38,8 +38,6 @@ const fullName = (a) => {
 export default function ForumPage({ navigation }) {
     const route = useRoute();
     const { height: screenH } = useWindowDimensions();
-    const SHEET_MAX = Math.round(screenH * 0.85);
-    const [sheetH, setSheetH] = useState(null);
     const [dockH, setDockH] = useState(0); // measured bottom dock heigh
     const [forumPosts, setForumPosts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -54,7 +52,6 @@ export default function ForumPage({ navigation }) {
     const [userId, setUserId] = useState(null);
     const [filterSheetOpen, setFilterSheetOpen] = useState(false);
     const [filterSheetVisible, setFilterSheetVisible] = useState(false); // controls Modal visibility
-    const [commentsHeaderH, setCommentsHeaderH] = useState(0);
     const backdropA = useRef(new Animated.Value(0)).current; // 0..1
     const sheetA = useRef(new Animated.Value(0)).current;    // 0..1
     const SLIDE_DISTANCE = screenH; // large enough to start fully off-screen
@@ -66,57 +63,41 @@ export default function ForumPage({ navigation }) {
         return rowOpacities[id];
     };
 
-    // --- Collapsible Post Panel: state/refs/derived ---
-    const MIN_POST_PCT = 0.40;             // post must keep at least 40% of the main area
-    const POST_MAX_PCT = 0.73;
-    const COMMENTS_MAX_PCT = 0.60;         // comments may take up to 60% of the main area
-    const COMMENTS_CUSHION = 12;            // little breathing room under the last comment
+    // --- Collapsible Post Panel (simple, no measuring) ---
+    const EXPANDED_H = Math.max(0, Math.floor(screenH - 390)); // default/max height
+    const COLLAPSED_H = Math.max(0, Math.floor(screenH - 600)); // when comments pulled up
 
     const commentsScrollY = useRef(new Animated.Value(0)).current;
     const commentsListRef = useRef(null);
     const postScrollRef = useRef(null);
 
-    const [availableH, setAvailableH] = useState(0);      // space between fixed header and bottom dock
-    const [postContentH, setPostContentH] = useState(0);  // full height of post body
-    const [commentsContentH, setCommentsContentH] = useState(0); // measured height of all comments (no header)
-    const avail = Math.max(0, availableH - dockH);
-    const measurementsReady = avail > 0 && commentsHeaderH > 0 && postContentH > 0;
+    // Fixed expanded/collapsed; no re-locking needed
+    const locked = useRef({
+        expanded: EXPANDED_H,
+        collapsed: COLLAPSED_H,
+        range: Math.max(0, EXPANDED_H - COLLAPSED_H),
+    });
 
-    const HEADER_GAP = 6;
+    useEffect(() => {
+        locked.current = {
+            expanded: EXPANDED_H,
+            collapsed: COLLAPSED_H,
+            range: Math.max(0, EXPANDED_H - COLLAPSED_H),
+        };
+        commentsScrollY.setValue(0);
+    }, [screenH, EXPANDED_H, COLLAPSED_H, commentsScrollY]);
 
-    const expandedH = Math.max(
-        0,
-        Math.min(
-            postContentH,
-            Math.max(0, avail - (commentsHeaderH + HEADER_GAP)),
-            Math.floor(avail * POST_MAX_PCT) // <= new hard cap
-        )
-    );
+    // (Optional) if you want to reset to expanded whenever a post opens:
+    useEffect(() => {
+        if (selectedPost) {
+            commentsScrollY.setValue(0);
+        }
+    }, [selectedPost, commentsScrollY]);
 
-    // 2) Comments may grow up to 60% of the area (or as much as they need)
-    const maxCommentsH = Math.floor(avail * COMMENTS_MAX_PCT);
-    const neededCommentsH = Math.min(commentsHeaderH + commentsContentH + COMMENTS_CUSHION, avail);
-    const targetCommentsH = Math.min(neededCommentsH, maxCommentsH);
-
-    // 3) Post height when comments are fully shown
-    const collapsedH = Math.max(
-        0,
-        Math.min(
-            postContentH,
-            Math.max(Math.floor(avail * MIN_POST_PCT), avail - targetCommentsH)
-        )
-    );
-
-    // 4) Animate post height only when the *comments list* scrolls
-    const collapseRange = Math.max(0, expandedH - collapsedH);
-
-    const animatedPostH = collapseRange
-        ? commentsScrollY.interpolate({
-            inputRange: [0, collapseRange],
-            outputRange: [expandedH, collapsedH],
-            extrapolate: 'clamp',
-        })
-        : expandedH;
+    // 0..range as you scroll comments up
+    const clampedY = Animated.diffClamp(commentsScrollY, 0, locked.current.range);
+    // Height goes from EXPANDED_H down to COLLAPSED_H
+    const animatedPostH = Animated.subtract(locked.current.expanded, clampedY);
 
     // applied (used for fetching)
     const [appliedFilter, setAppliedFilter] = useState(null);        // { type:'park', referencedPark, parkName }
@@ -141,6 +122,16 @@ export default function ForumPage({ navigation }) {
     const [parkLoading, setParkLoading] = useState(false);
     // remember which path/param worked so we don't probe every time
     const parkSearchCfg = useRef({ path: null, key: null });
+
+    const renderComment = ({ item }) => (
+        <View style={styles.commentRow}>
+            <Text style={styles.commentAuthor}>
+                {fullName(item.author)}
+                <Text style={{ color: '#94a3b8' }}> · {formatForumDate(item.createdAt)}</Text>
+            </Text>
+            <Text style={styles.commentText}>{item.content ?? item.text ?? ''}</Text>
+        </View>
+    );
 
     const insets = useSafeAreaInsets();
     const headerH = useHeaderHeight();               // nav header height
@@ -483,7 +474,6 @@ export default function ForumPage({ navigation }) {
 
     useEffect(() => {
         if (selectedPost) {
-            setSheetH(null);
             setDockH(0);
         }
 
@@ -506,11 +496,10 @@ export default function ForumPage({ navigation }) {
 
     useEffect(() => {
         const id = commentsScrollY.addListener(({ value }) => {
-            // When value reaches the end of the collapse range, we’re “at 40%”
-            setIsCollapsed(collapseRange > 0 && value >= (collapseRange - 1));
+            setIsCollapsed(locked.current.range > 0 && value >= (locked.current.range - 1));
         });
         return () => commentsScrollY.removeListener(id);
-    }, [commentsScrollY, collapseRange]);
+    }, [commentsScrollY]);
 
     // keep forum list and selectedPost counts in sync
     const syncCountsToList = React.useCallback((nextLikes, nextComments) => {
@@ -900,7 +889,6 @@ export default function ForumPage({ navigation }) {
                                 style={{ flex: 1, paddingBottom: dockH, position: 'relative' }}
                                 pointerEvents="box-none"
                                 collapsable={false}
-                                onLayout={(e) => setAvailableH(Math.max(0, e.nativeEvent.layout.height))}
                             >
                                 {/* 1) POST CONTAINER (height animates with comments scroll) */}
                                 <Animated.View
@@ -911,8 +899,9 @@ export default function ForumPage({ navigation }) {
                                         },
                                     ]}
                                 >
+
                                     {/* Expand control (optional) */}
-                                    {collapseRange > 4 && isCollapsed && (
+                                    {locked.current.range > 4 && isCollapsed && (
                                         <TouchableOpacity
                                             onPress={() =>
                                                 commentsListRef.current?.scrollToOffset?.({ offset: 0, animated: true })
@@ -932,7 +921,7 @@ export default function ForumPage({ navigation }) {
                                         contentContainerStyle={{ paddingBottom: 8 }}
                                         scrollEventThrottle={16}
                                     >
-                                        <View onLayout={(e) => setPostContentH(e.nativeEvent.layout.height)}>
+                                        <View>
                                             <View style={styles.postInner}>
                                                 {!!selectedPost.content && (
                                                     <Text style={styles.postBody}>{selectedPost.content}</Text>
@@ -960,26 +949,25 @@ export default function ForumPage({ navigation }) {
 
                                 <Animated.FlatList
                                     ref={commentsListRef}
-                                    // Hide rows until everything is measured, but keep the header visible
-                                    data={measurementsReady ? comments : []}
+                                    data={comments}
                                     keyExtractor={(c, i) => c?._id ?? String(i)}
+                                    renderItem={renderComment}
                                     keyboardShouldPersistTaps="handled"
                                     showsVerticalScrollIndicator
                                     scrollEventThrottle={16}
+                                    bounces={false}
                                     onScroll={Animated.event(
                                         [{ nativeEvent: { contentOffset: { y: commentsScrollY } } }],
                                         { useNativeDriver: false }
                                     )}
-                                    initialNumToRender={0}
-
-                                    /* make the header part of the same scrollable surface */
+                                    initialNumToRender={8}
+                                    removeClippedSubviews={false}
                                     ListHeaderComponent={
                                         <Pressable
                                             style={[styles.sectionBar, styles.commentsHeaderBar, { paddingHorizontal: 16 }]}
-                                            onLayout={(e) => setCommentsHeaderH(e.nativeEvent.layout.height)}
                                             onPress={() =>
                                                 commentsListRef.current?.scrollToOffset?.({
-                                                    offset: Math.max(0, collapseRange), // exact collapse distance
+                                                    offset: Math.max(0, locked.current.range),
                                                     animated: true,
                                                 })
                                             }
@@ -992,40 +980,10 @@ export default function ForumPage({ navigation }) {
                                         </Pressable>
                                     }
                                     ListHeaderComponentStyle={{ backgroundColor: '#fff' }}
-                                    stickyHeaderIndices={[0]}
-
-                                    /* spacing */
                                     contentContainerStyle={{
                                         paddingHorizontal: 16,
                                         paddingBottom: 16 + dockH + 8,
                                     }}
-
-                                    /* measure total comments body (exclude header height).
-                                       Before ready, treat body height as 0 so the post doesn't pre-collapse. */
-                                    onContentSizeChange={(w, h) =>
-                                        setCommentsContentH(
-                                            measurementsReady ? Math.max(0, h - commentsHeaderH) : 0
-                                        )
-                                    }
-
-                                    /* empty state still scrolls (so drag collapses the post) */
-                                    ListEmptyComponent={
-                                        measurementsReady ? (
-                                            <View style={{ paddingHorizontal: 16 }}>
-                                                <View style={styles.emptyCommentsWrap}>
-                                                    <Ionicons name="chatbubble-ellipses-outline" size={14} color="#94a3b8" />
-                                                    <Text style={styles.emptyCommentsText}>No comments yet</Text>
-                                                </View>
-                                            </View>
-                                        ) : null
-                                    }
-
-                                    renderItem={({ item, index }) => (
-                                        <View style={[styles.commentRow, index === 0 && styles.commentRowFirst]}>
-                                            <Text style={styles.commentAuthor}>{fullName(item.author)}</Text>
-                                            <Text style={styles.commentText}>{item.content}</Text>
-                                        </View>
-                                    )}
                                 />
 
                             </View>
@@ -1678,18 +1636,6 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: '#64748b',
     },
-    emptyCommentsWrap: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        paddingVertical: 12,
-        paddingHorizontal: 4,
-    },
-    emptyCommentsText: {
-        fontSize: 13,
-        color: '#64748b',
-    },
-
     postExpandBtn: {
         position: 'absolute',
         right: 10,
