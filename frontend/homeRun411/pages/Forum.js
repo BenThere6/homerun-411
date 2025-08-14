@@ -54,6 +54,7 @@ export default function ForumPage({ navigation }) {
     const [userId, setUserId] = useState(null);
     const [filterSheetOpen, setFilterSheetOpen] = useState(false);
     const [filterSheetVisible, setFilterSheetVisible] = useState(false); // controls Modal visibility
+    const [commentsHeaderH, setCommentsHeaderH] = useState(40);
 
     const backdropA = useRef(new Animated.Value(0)).current; // 0..1
     const sheetA = useRef(new Animated.Value(0)).current;    // 0..1
@@ -65,6 +66,55 @@ export default function ForumPage({ navigation }) {
         if (!rowOpacities[id]) rowOpacities[id] = new Animated.Value(1);
         return rowOpacities[id];
     };
+
+    // --- Collapsible Post Panel: state/refs/derived ---
+    const MIN_POST_PCT = 0.40;             // post must keep at least 40% of the main area
+    const COMMENTS_MAX_PCT = 0.60;         // comments may take up to 60% of the main area
+    const COMMENTS_CUSHION = 12;            // little breathing room under the last comment
+
+    const commentsScrollY = useRef(new Animated.Value(0)).current;
+    const commentsListRef = useRef(null);
+    const postScrollRef = useRef(null);
+
+    const [availableH, setAvailableH] = useState(0);      // space between fixed header and bottom dock
+    const [postContentH, setPostContentH] = useState(0);  // full height of post body
+    const [commentsContentH, setCommentsContentH] = useState(0); // measured height of all comments (no header)
+
+    // 1) Initial state: only the comments *header* is visible at the bottom.
+    //    So the post fills everything except the header.
+    const expandedH = Math.max(
+        0,
+        Math.min(postContentH, Math.max(0, availableH - commentsHeaderH))
+    );
+
+    // 2) When user expands comments from the header, the comments area may grow
+    //    up to 60% of the main area *or* just as much as it needs (no blank space).
+    const maxCommentsH = Math.floor(availableH * COMMENTS_MAX_PCT);
+    const neededCommentsH = Math.min(
+        commentsHeaderH + commentsContentH + COMMENTS_CUSHION,
+        availableH
+    );
+    const targetCommentsH = Math.min(neededCommentsH, maxCommentsH);
+
+    // 3) Post height at the end of the collapse (i.e., when comments are fully shown).
+    const collapsedH = Math.max(
+        0,
+        Math.min(
+            postContentH,
+            Math.max(Math.floor(availableH * MIN_POST_PCT), availableH - targetCommentsH)
+        )
+    );
+
+    // 4) Animate post height only when the *comments list* scrolls.
+    const collapseRange = Math.max(0, expandedH - collapsedH);
+
+    const animatedPostH = collapseRange
+        ? commentsScrollY.interpolate({
+            inputRange: [0, collapseRange],
+            outputRange: [expandedH, collapsedH],
+            extrapolate: 'clamp',
+        })
+        : expandedH;
 
     // applied (used for fetching)
     const [appliedFilter, setAppliedFilter] = useState(null);        // { type:'park', referencedPark, parkName }
@@ -450,6 +500,16 @@ export default function ForumPage({ navigation }) {
         }
     }, [filterSheetVisible]);
 
+    const [isCollapsed, setIsCollapsed] = useState(false);
+
+    useEffect(() => {
+        const id = commentsScrollY.addListener(({ value }) => {
+            // When value reaches the end of the collapse range, we’re “at 40%”
+            setIsCollapsed(collapseRange > 0 && value >= (collapseRange - 1));
+        });
+        return () => commentsScrollY.removeListener(id);
+    }, [commentsScrollY, collapseRange]);
+
     // keep forum list and selectedPost counts in sync
     const syncCountsToList = React.useCallback((nextLikes, nextComments) => {
         const id = selectedPost?._id;
@@ -685,7 +745,7 @@ export default function ForumPage({ navigation }) {
         }
 
         // id-only shape
-        if (typeof a === 'string' && userId && a === String(userId)) return 'You';
+        if (typeof a === 'string' && userId && a === String(userId)) return a?.firstName + ' ' + a?.lastName;
         return 'Anonymous';
     };
 
@@ -833,65 +893,123 @@ export default function ForumPage({ navigation }) {
                                 </View>
                             </View>
 
-                            {/* --- Only this part scrolls --- */}
-                            <ScrollView
-                                style={{ flex: 1 }}
-                                keyboardShouldPersistTaps="handled"
-                                contentContainerStyle={{
-                                    paddingTop: 8,
-                                    paddingBottom: 16 + dockH,
-                                    paddingHorizontal: 16,
-                                }}
+                            {/* --- Content area above the dock --- */}
+                            <View
+                                style={{ flex: 1, paddingBottom: dockH }}    // keep everything above the dock
+                                collapsable={false}
+                                onLayout={(e) => setAvailableH(Math.max(0, e.nativeEvent.layout.height))}
                             >
-                                {/* POST CONTENT */}
-                                <View style={styles.postCard}>
-                                    {!!selectedPost.content && (
-                                        <Text style={styles.postBody}>{selectedPost.content}</Text>
-                                    )}
-                                    {!!selectedPost.tags?.length && (
-                                        <View style={styles.tagContainer}>
-                                            {selectedPost.tags.map((tag, i) => (
-                                                <Text key={i} style={styles.tag}>#{tag}</Text>
-                                            ))}
-                                        </View>
-                                    )}
-                                    {selectedPost.referencedPark && (
+                                {/* 1) POST CONTAINER (height animates with comments scroll) */}
+                                <Animated.View
+                                    style={[
+                                        styles.postContainer,
+                                        {
+                                            height: animatedPostH,
+                                        },
+                                    ]}
+                                >
+                                    {/* Expand control (optional) */}
+                                    {collapseRange > 4 && isCollapsed && (
                                         <TouchableOpacity
-                                            onPress={() => goToRealParkDetails(selectedPost.referencedPark)}
-                                            style={[styles.parkChip, { marginTop: 8 }]}
-                                            activeOpacity={0.7}
+                                            onPress={() =>
+                                                commentsListRef.current?.scrollToOffset?.({ offset: 0, animated: true })
+                                            }
+                                            style={styles.postExpandBtn}
+                                            hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
                                         >
-                                            …
+                                            <Ionicons name="expand" size={16} color="#64748b" />
                                         </TouchableOpacity>
                                     )}
-                                </View>
 
-                                {/* COMMENTS HEADER */}
-                                <View style={styles.sectionBar}>
-                                    <View style={styles.sectionLine} />
-                                    <Text style={styles.sectionLabel}>
-                                        {`Comments${comments.length ? ` (${comments.length})` : ''}`}
-                                    </Text>
-                                    <View style={styles.sectionLine} />
-                                </View>
+                                    {/* The post body scrolls independently */}
+                                    <ScrollView
+                                        ref={postScrollRef}
+                                        nestedScrollEnabled
+                                        showsVerticalScrollIndicator
+                                        contentContainerStyle={{ paddingBottom: 8 }}
+                                        scrollEventThrottle={16}
+                                    >
+                                        <View onLayout={(e) => setPostContentH(e.nativeEvent.layout.height)}>
+                                            <View style={styles.postInner}>
+                                                {!!selectedPost.content && (
+                                                    <Text style={styles.postBody}>{selectedPost.content}</Text>
+                                                )}
+                                                {!!selectedPost.tags?.length && (
+                                                    <View style={styles.tagContainer}>
+                                                        {selectedPost.tags.map((tag, i) => (
+                                                            <Text key={i} style={styles.tag}>#{tag}</Text>
+                                                        ))}
+                                                    </View>
+                                                )}
+                                                {selectedPost.referencedPark && (
+                                                    <TouchableOpacity
+                                                        onPress={() => goToRealParkDetails(selectedPost.referencedPark)}
+                                                        style={[styles.parkChip, { marginTop: 8 }]}
+                                                        activeOpacity={0.7}
+                                                    >
+                                                        …
+                                                    </TouchableOpacity>
+                                                )}
+                                            </View>
+                                        </View>
+                                    </ScrollView>
+                                </Animated.View>
 
-                                {/* COMMENTS LIST / EMPTY */}
+                                {/* 2) COMMENTS LIST (drives the collapse) */}
                                 {comments.length === 0 ? (
-                                    <View style={styles.emptyCommentsWrap}>
-                                        <Ionicons name="chatbubble-ellipses-outline" size={14} color="#94a3b8" />
-                                        <Text style={styles.emptyCommentsText}>
-                                            No comments yet
-                                        </Text>
+                                    <View style={{ paddingHorizontal: 16 }}>
+                                        <View style={styles.emptyCommentsWrap}>
+                                            <Ionicons name="chatbubble-ellipses-outline" size={14} color="#94a3b8" />
+                                            <Text style={styles.emptyCommentsText}>No comments yet</Text>
+                                        </View>
                                     </View>
                                 ) : (
-                                    comments.map((c, i) => (
-                                        <View key={c._id} style={[styles.commentRow, i === 0 && styles.commentRowFirst]}>
-                                            <Text style={styles.commentAuthor}>{fullName(c.author)}</Text>
-                                            <Text style={styles.commentText}>{c.content}</Text>
-                                        </View>
-                                    ))
+                                    <Animated.FlatList
+                                        ref={commentsListRef}
+                                        data={comments}
+                                        keyExtractor={(c) => c._id}
+                                        // ⬇️ put the header INSIDE the list…
+                                        ListHeaderComponent={
+                                            <Pressable
+                                                style={[styles.sectionBar, { paddingHorizontal: 16 }]}
+                                                onLayout={(e) => setCommentsHeaderH(e.nativeEvent.layout.height)}
+                                                onPress={() =>
+                                                    commentsListRef.current?.scrollToOffset?.({
+                                                        offset: Math.max(0, collapseRange + 24),
+                                                        animated: true,
+                                                    })
+                                                }
+                                            >
+                                                <View style={styles.sectionLine} />
+                                                <Text style={styles.sectionLabel}>
+                                                    {`Comments${comments.length ? ` (${comments.length})` : ''}`}
+                                                </Text>
+                                                <View style={styles.sectionLine} />
+                                            </Pressable>
+                                        }
+                                        stickyHeaderIndices={[0]}     // ⬅️ make that header sticky
+                                        contentContainerStyle={{
+                                            paddingHorizontal: 16,
+                                            // no paddingTop for the header now; it's in the list
+                                            paddingBottom: 16 + dockH,
+                                        }}
+                                        onContentSizeChange={(w, h) => setCommentsContentH(h)}
+                                        renderItem={({ item, index }) => (
+                                            <View style={[styles.commentRow, index === 0 && styles.commentRowFirst]}>
+                                                <Text style={styles.commentAuthor}>{fullName(item.author)}</Text>
+                                                <Text style={styles.commentText}>{item.content}</Text>
+                                            </View>
+                                        )}
+                                        onScroll={Animated.event(
+                                            [{ nativeEvent: { contentOffset: { y: commentsScrollY } } }],
+                                            { useNativeDriver: false }
+                                        )}
+                                        scrollEventThrottle={16}
+                                        keyboardShouldPersistTaps="handled"
+                                        showsVerticalScrollIndicator
+                                    />
                                 )}
-                            </ScrollView>
+                            </View>
                         </View>
 
                         {/* Sticky dock (one copy only) */}
@@ -936,8 +1054,9 @@ export default function ForumPage({ navigation }) {
                             {/* No Close button; use header back */}
                         </View>
                     </KeyboardAvoidingView>
-                </View>
-            )}
+                </View >
+            )
+            }
 
             {/* FILTER SHEET (slides) */}
             <Modal
@@ -1119,12 +1238,14 @@ export default function ForumPage({ navigation }) {
                 </Animated.View>
             </Modal>
 
-            {!selectedPost && (
-                <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('NewPostForm')}>
-                    <Ionicons name="add" size={30} color="white" />
-                </TouchableOpacity>
-            )}
-        </SafeAreaView>
+            {
+                !selectedPost && (
+                    <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('NewPostForm')}>
+                        <Ionicons name="add" size={30} color="white" />
+                    </TouchableOpacity>
+                )
+            }
+        </SafeAreaView >
     );
 }
 
@@ -1492,16 +1613,16 @@ const styles = StyleSheet.create({
         color: '#94a3b8',    // was '#999'
         flexShrink: 0,
     },
-    postCard: {
-        backgroundColor: '#fff',
+    postContainer: {
+        overflow: 'hidden',      // needed for the height animation to clip
+        backgroundColor: '#fff', // sole visible card background
         borderRadius: 12,
         borderWidth: 1,
         borderColor: '#eef2f7',
+        marginHorizontal: 16,
+    },
+    postInner: {
         padding: 12,
-        shadowColor: '#000',
-        shadowOpacity: 0.03,
-        shadowRadius: 6,
-        shadowOffset: { width: 0, height: 2 },
     },
     postBody: {
         fontSize: 15,
@@ -1511,7 +1632,7 @@ const styles = StyleSheet.create({
     sectionBar: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 16,
+        marginTop: 8,
         marginBottom: 6,
     },
     sectionLine: {
@@ -1548,5 +1669,17 @@ const styles = StyleSheet.create({
     emptyCommentsText: {
         fontSize: 13,
         color: '#64748b',
+    },
+
+    postExpandBtn: {
+        position: 'absolute',
+        right: 10,
+        top: 10,
+        zIndex: 3,
+        backgroundColor: '#f8fafc',
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        borderRadius: 10,
+        padding: 6,
     },
 });
