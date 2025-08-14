@@ -880,7 +880,7 @@ export default function ForumPage({ navigation }) {
                                     <View style={styles.emptyCommentsWrap}>
                                         <Ionicons name="chatbubble-ellipses-outline" size={14} color="#94a3b8" />
                                         <Text style={styles.emptyCommentsText}>
-                                            No comments yet — be the first to start the conversation.
+                                            No comments yet
                                         </Text>
                                     </View>
                                 ) : (
@@ -1206,8 +1206,6 @@ const styles = StyleSheet.create({
     commentRow: {
         paddingVertical: 10,
         paddingHorizontal: 2,
-        borderTopWidth: StyleSheet.hairlineWidth,
-        borderTopColor: '#e9edf2',
     },
     commentAuthor: {
         fontWeight: '600',
@@ -1551,10 +1549,4 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: '#64748b',
     },
-    commentRow: {
-        paddingVertical: 10,
-        paddingHorizontal: 2,
-        borderTopWidth: StyleSheet.hairlineWidth,
-        borderTopColor: '#e9edf2',
-      },
 });
