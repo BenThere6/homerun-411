@@ -653,6 +653,21 @@ export default function ForumPage({ navigation }) {
         (adminLevel === 1 && pinnedById === String(userId))
     );
 
+    // How much extra scroll distance we still need to reach the collapse range
+    const [missingScrollPad, setMissingScrollPad] = useState(0);
+
+    // Track sizes to compute how much slack the list already has
+    const listViewportH = useRef(0);
+    const listContentH = useRef(0);
+
+    const recomputeMissingPad = () => {
+        // How much the list can already scroll without any footer
+        const intrinsicSlack = Math.max(0, listContentH.current - listViewportH.current);
+        // Only add the difference required to hit the collapse range
+        const needed = Math.max(0, locked.current.range - intrinsicSlack);
+        setMissingScrollPad(needed);
+    };
+
     // UI tint + disabled state for the chip next to Like/Comment
     const pinTint = (() => {
         if (isPinned && (adminLevel === 0 || pinnedById === String(userId))) return '#e74c3c'; // red
@@ -889,6 +904,10 @@ export default function ForumPage({ navigation }) {
                                 style={{ flex: 1, paddingBottom: dockH, position: 'relative' }}
                                 pointerEvents="box-none"
                                 collapsable={false}
+                                onLayout={e => {
+                                    listViewportH.current = e.nativeEvent.layout.height;
+                                    recomputeMissingPad();
+                                }}
                             >
                                 {/* 1) POST CONTAINER (height animates with comments scroll) */}
                                 <Animated.View
@@ -980,9 +999,14 @@ export default function ForumPage({ navigation }) {
                                         </Pressable>
                                     }
                                     ListHeaderComponentStyle={{ backgroundColor: '#fff' }}
+                                    ListFooterComponent={<View style={{ height: missingScrollPad }} />}
                                     contentContainerStyle={{
                                         paddingHorizontal: 16,
-                                        paddingBottom: 16 + dockH + 8,
+                                        paddingBottom: 24,
+                                    }}
+                                    onContentSizeChange={(_, h) => {
+                                        listContentH.current = h;
+                                        recomputeMissingPad();
                                     }}
                                 />
 
