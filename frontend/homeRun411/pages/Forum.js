@@ -80,32 +80,35 @@ export default function ForumPage({ navigation }) {
     const [postContentH, setPostContentH] = useState(0);  // full height of post body
     const [commentsContentH, setCommentsContentH] = useState(0); // measured height of all comments (no header)
 
-    // 1) Initial state: only the comments *header* is visible at the bottom.
-    //    So the post fills everything except the header.
+    const POST_MAX_PCT = 0.73;
+
+    const avail = Math.max(0, availableH - dockH);
+    const HEADER_GAP = 6;
+
     const expandedH = Math.max(
         0,
-        Math.min(postContentH, Math.max(0, availableH - commentsHeaderH))
+        Math.min(
+            postContentH,
+            Math.max(0, avail - (commentsHeaderH + HEADER_GAP)),
+            Math.floor(avail * POST_MAX_PCT) // <= new hard cap
+        )
     );
 
-    // 2) When user expands comments from the header, the comments area may grow
-    //    up to 60% of the main area *or* just as much as it needs (no blank space).
-    const maxCommentsH = Math.floor(availableH * COMMENTS_MAX_PCT);
-    const neededCommentsH = Math.min(
-        commentsHeaderH + commentsContentH + COMMENTS_CUSHION,
-        availableH
-    );
+    // 2) Comments may grow up to 60% of the area (or as much as they need)
+    const maxCommentsH = Math.floor(avail * COMMENTS_MAX_PCT);
+    const neededCommentsH = Math.min(commentsHeaderH + commentsContentH + COMMENTS_CUSHION, avail);
     const targetCommentsH = Math.min(neededCommentsH, maxCommentsH);
 
-    // 3) Post height at the end of the collapse (i.e., when comments are fully shown).
+    // 3) Post height when comments are fully shown
     const collapsedH = Math.max(
         0,
         Math.min(
             postContentH,
-            Math.max(Math.floor(availableH * MIN_POST_PCT), availableH - targetCommentsH)
+            Math.max(Math.floor(avail * MIN_POST_PCT), avail - targetCommentsH)
         )
     );
 
-    // 4) Animate post height only when the *comments list* scrolls.
+    // 4) Animate post height only when the *comments list* scrolls
     const collapseRange = Math.max(0, expandedH - collapsedH);
 
     const animatedPostH = collapseRange
@@ -895,7 +898,8 @@ export default function ForumPage({ navigation }) {
 
                             {/* --- Content area above the dock --- */}
                             <View
-                                style={{ flex: 1, paddingBottom: dockH }}    // keep everything above the dock
+                                style={{ flex: 1, paddingBottom: dockH, position: 'relative' }}
+                                pointerEvents="box-none"
                                 collapsable={false}
                                 onLayout={(e) => setAvailableH(Math.max(0, e.nativeEvent.layout.height))}
                             >
@@ -955,60 +959,68 @@ export default function ForumPage({ navigation }) {
                                     </ScrollView>
                                 </Animated.View>
 
-                                {/* 2) COMMENTS LIST (drives the collapse) */}
-                                {comments.length === 0 ? (
-                                    <View style={{ paddingHorizontal: 16 }}>
-                                        <View style={styles.emptyCommentsWrap}>
-                                            <Ionicons name="chatbubble-ellipses-outline" size={14} color="#94a3b8" />
-                                            <Text style={styles.emptyCommentsText}>No comments yet</Text>
-                                        </View>
-                                    </View>
-                                ) : (
-                                    <Animated.FlatList
-                                        ref={commentsListRef}
-                                        data={comments}
-                                        keyExtractor={(c) => c._id}
-                                        // ⬇️ put the header INSIDE the list…
-                                        ListHeaderComponent={
-                                            <Pressable
-                                                style={[styles.sectionBar, { paddingHorizontal: 16 }]}
-                                                onLayout={(e) => setCommentsHeaderH(e.nativeEvent.layout.height)}
-                                                onPress={() =>
-                                                    commentsListRef.current?.scrollToOffset?.({
-                                                        offset: Math.max(0, collapseRange + 24),
-                                                        animated: true,
-                                                    })
-                                                }
-                                            >
-                                                <View style={styles.sectionLine} />
-                                                <Text style={styles.sectionLabel}>
-                                                    {`Comments${comments.length ? ` (${comments.length})` : ''}`}
-                                                </Text>
-                                                <View style={styles.sectionLine} />
-                                            </Pressable>
-                                        }
-                                        stickyHeaderIndices={[0]}     // ⬅️ make that header sticky
-                                        contentContainerStyle={{
-                                            paddingHorizontal: 16,
-                                            // no paddingTop for the header now; it's in the list
-                                            paddingBottom: 16 + dockH,
-                                        }}
-                                        onContentSizeChange={(w, h) => setCommentsContentH(h)}
-                                        renderItem={({ item, index }) => (
-                                            <View style={[styles.commentRow, index === 0 && styles.commentRowFirst]}>
-                                                <Text style={styles.commentAuthor}>{fullName(item.author)}</Text>
-                                                <Text style={styles.commentText}>{item.content}</Text>
+                                <Animated.FlatList
+                                    ref={commentsListRef}
+                                    data={comments}
+                                    keyExtractor={(c, i) => c?._id ?? String(i)}
+                                    keyboardShouldPersistTaps="handled"
+                                    showsVerticalScrollIndicator
+                                    scrollEventThrottle={16}
+                                    onScroll={Animated.event(
+                                        [{ nativeEvent: { contentOffset: { y: commentsScrollY } } }],
+                                        { useNativeDriver: false }
+                                    )}
+
+                                    /* make the header part of the same scrollable surface */
+                                    ListHeaderComponent={
+                                        <Pressable
+                                            style={[styles.sectionBar, styles.commentsHeaderBar, { paddingHorizontal: 16 }]}
+                                            onLayout={(e) => setCommentsHeaderH(e.nativeEvent.layout.height)}
+                                            onPress={() =>
+                                                commentsListRef.current?.scrollToOffset?.({
+                                                    offset: Math.max(0, collapseRange + 24),
+                                                    animated: true,
+                                                })
+                                            }
+                                        >
+                                            <View style={styles.sectionLine} />
+                                            <Text style={styles.sectionLabel}>
+                                                {`Comments${comments.length ? ` (${comments.length})` : ''}`}
+                                            </Text>
+                                            <View style={styles.sectionLine} />
+                                        </Pressable>
+                                    }
+                                    stickyHeaderIndices={[0]}
+
+                                    /* spacing */
+                                    contentContainerStyle={{
+                                        paddingHorizontal: 16,
+                                        paddingBottom: 16 + dockH + 8,
+                                    }}
+
+                                    /* measure total comments body (exclude header height) */
+                                    onContentSizeChange={(w, h) =>
+                                        setCommentsContentH(Math.max(0, h - commentsHeaderH))
+                                    }
+
+                                    /* empty state still scrolls (so drag collapses the post) */
+                                    ListEmptyComponent={
+                                        <View style={{ paddingHorizontal: 16 }}>
+                                            <View style={styles.emptyCommentsWrap}>
+                                                <Ionicons name="chatbubble-ellipses-outline" size={14} color="#94a3b8" />
+                                                <Text style={styles.emptyCommentsText}>No comments yet</Text>
                                             </View>
-                                        )}
-                                        onScroll={Animated.event(
-                                            [{ nativeEvent: { contentOffset: { y: commentsScrollY } } }],
-                                            { useNativeDriver: false }
-                                        )}
-                                        scrollEventThrottle={16}
-                                        keyboardShouldPersistTaps="handled"
-                                        showsVerticalScrollIndicator
-                                    />
-                                )}
+                                        </View>
+                                    }
+
+                                    renderItem={({ item, index }) => (
+                                        <View style={[styles.commentRow, index === 0 && styles.commentRowFirst]}>
+                                            <Text style={styles.commentAuthor}>{fullName(item.author)}</Text>
+                                            <Text style={styles.commentText}>{item.content}</Text>
+                                        </View>
+                                    )}
+                                />
+
                             </View>
                         </View>
 
@@ -1681,5 +1693,11 @@ const styles = StyleSheet.create({
         borderColor: '#e2e8f0',
         borderRadius: 10,
         padding: 6,
+    },
+    commentsHeaderBar: {
+        backgroundColor: '#fff',
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: '#e5e7eb',
+        paddingVertical: 10,
     },
 });
