@@ -87,18 +87,6 @@ export default function ForumPage({ navigation }) {
         commentsScrollY.setValue(0);
     }, [screenH, EXPANDED_H, COLLAPSED_H, commentsScrollY]);
 
-    // (Optional) if you want to reset to expanded whenever a post opens:
-    useEffect(() => {
-        if (selectedPost) {
-            commentsScrollY.setValue(0);
-        }
-    }, [selectedPost, commentsScrollY]);
-
-    // 0..range as you scroll comments up
-    const clampedY = Animated.diffClamp(commentsScrollY, 0, locked.current.range);
-    // Height goes from EXPANDED_H down to COLLAPSED_H
-    const animatedPostH = Animated.subtract(locked.current.expanded, clampedY);
-
     // applied (used for fetching)
     const [appliedFilter, setAppliedFilter] = useState(null);        // { type:'park', referencedPark, parkName }
     const [appliedSortBy, setAppliedSortBy] = useState('newest');    // 'newest' | 'liked' | 'comments'
@@ -496,10 +484,10 @@ export default function ForumPage({ navigation }) {
 
     useEffect(() => {
         const id = commentsScrollY.addListener(({ value }) => {
-            setIsCollapsed(locked.current.range > 0 && value >= (locked.current.range - 1));
+            setIsCollapsed(availableRange > 0 && value >= (availableRange - 1));
         });
         return () => commentsScrollY.removeListener(id);
-    }, [commentsScrollY]);
+    }, [commentsScrollY, availableRange]);
 
     // keep forum list and selectedPost counts in sync
     const syncCountsToList = React.useCallback((nextLikes, nextComments) => {
@@ -653,20 +641,35 @@ export default function ForumPage({ navigation }) {
         (adminLevel === 1 && pinnedById === String(userId))
     );
 
-    // How much extra scroll distance we still need to reach the collapse range
-    const [missingScrollPad, setMissingScrollPad] = useState(0);
+    // (Optional) if you want to reset to expanded whenever a post opens:
+    useEffect(() => {
+        if (selectedPost) {
+            commentsScrollY.setValue(0);
+        }
+    }, [selectedPost, commentsScrollY]);
 
-    // Track sizes to compute how much slack the list already has
+    // --- collapse sizing helpers (no synthetic footer) ---
     const listViewportH = useRef(0);
-    const listContentH = useRef(0);
+    const [listContentH, setListContentH] = useState(0);
 
-    const recomputeMissingPad = () => {
-        // How much the list can already scroll without any footer
-        const intrinsicSlack = Math.max(0, listContentH.current - listViewportH.current);
-        // Only add the difference required to hit the collapse range
-        const needed = Math.max(0, locked.current.range - intrinsicSlack);
-        setMissingScrollPad(needed);
+    // Desired range from your fixed heights
+    const DESIRED_RANGE = Math.max(0, EXPANDED_H - COLLAPSED_H);
+
+    // Available range we actually have, capped to real slack
+    const [availableRange, setAvailableRange] = useState(DESIRED_RANGE);
+
+    const recomputeAvailableRange = (viewportH, contentH) => {
+        const intrinsicSlack = Math.max(0, contentH - viewportH);
+        setAvailableRange(Math.min(DESIRED_RANGE, intrinsicSlack));
     };
+
+    // Rebuild the clamp whenever the available range changes
+    const clampedY = React.useMemo(
+        () => Animated.diffClamp(commentsScrollY, 0, availableRange),
+        [commentsScrollY, availableRange]
+    );
+
+    const animatedPostH = Animated.subtract(EXPANDED_H, clampedY);
 
     // UI tint + disabled state for the chip next to Like/Comment
     const pinTint = (() => {
@@ -906,7 +909,7 @@ export default function ForumPage({ navigation }) {
                                 collapsable={false}
                                 onLayout={e => {
                                     listViewportH.current = e.nativeEvent.layout.height;
-                                    recomputeMissingPad();
+                                    recomputeAvailableRange(listViewportH.current, listContentH);
                                 }}
                             >
                                 {/* 1) POST CONTAINER (height animates with comments scroll) */}
@@ -920,7 +923,7 @@ export default function ForumPage({ navigation }) {
                                 >
 
                                     {/* Expand control (optional) */}
-                                    {locked.current.range > 4 && isCollapsed && (
+                                    {availableRange > 4 && isCollapsed && (
                                         <TouchableOpacity
                                             onPress={() =>
                                                 commentsListRef.current?.scrollToOffset?.({ offset: 0, animated: true })
@@ -986,7 +989,7 @@ export default function ForumPage({ navigation }) {
                                             style={[styles.sectionBar, styles.commentsHeaderBar, { paddingHorizontal: 16 }]}
                                             onPress={() =>
                                                 commentsListRef.current?.scrollToOffset?.({
-                                                    offset: Math.max(0, locked.current.range),
+                                                    offset: Math.max(0, availableRange),
                                                     animated: true,
                                                 })
                                             }
@@ -999,14 +1002,14 @@ export default function ForumPage({ navigation }) {
                                         </Pressable>
                                     }
                                     ListHeaderComponentStyle={{ backgroundColor: '#fff' }}
-                                    ListFooterComponent={<View style={{ height: missingScrollPad }} />}
+                                    ListFooterComponent={null}
                                     contentContainerStyle={{
                                         paddingHorizontal: 16,
-                                        paddingBottom: 24,
+                                        paddingBottom: 0,
                                     }}
                                     onContentSizeChange={(_, h) => {
-                                        listContentH.current = h;
-                                        recomputeMissingPad();
+                                        setListContentH(h);
+                                        recomputeAvailableRange(listViewportH.current, h);
                                     }}
                                 />
 
