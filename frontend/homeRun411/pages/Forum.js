@@ -90,6 +90,25 @@ export default function ForumPage({ navigation }) {
     // remember which path/param worked so we don't probe every time
     const parkSearchCfg = useRef({ path: null, key: null });
 
+    const commentsInA = useRef(new Animated.Value(0)).current; // 0..1
+
+    // Reset when opening a new post
+    useEffect(() => {
+        if (selectedPost) commentsInA.setValue(0);
+    }, [selectedPost]);
+
+    // Kick the animation once we know our height OR comments arrived
+    useEffect(() => {
+        if (commentsMaxH > 0 && (comments.length >= 0)) {
+            Animated.timing(commentsInA, {
+                toValue: 1,
+                duration: 220,
+                easing: Easing.out(Easing.cubic),
+                useNativeDriver: true,
+            }).start();
+        }
+    }, [commentsMaxH, comments.length, commentsInA]);
+
     const renderComment = ({ item }) => (
         <View style={styles.commentRow}>
             <Text style={styles.commentAuthor}>
@@ -886,33 +905,38 @@ export default function ForumPage({ navigation }) {
                                 </View>
 
                                 <View style={{ maxHeight: commentsMaxH, flexShrink: 0, overflow: 'hidden' }}>
-                                    <FlatList
-                                        data={comments}
-                                        keyExtractor={(c, i) => c?._id ?? String(i)}
-                                        renderItem={renderComment}
-                                        keyboardShouldPersistTaps="handled"
-                                        showsVerticalScrollIndicator
-                                        
-                                        initialNumToRender={8}
-                                        removeClippedSubviews={false}
-                                        ListHeaderComponent={
-                                            <View style={[styles.sectionBar, styles.commentsHeaderBar, { paddingHorizontal: 16 }]}>
-                                                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                                                    <View style={styles.sectionLine} />
-                                                    <Text style={styles.sectionLabel}>
-                                                        {`Comments${comments.length ? ` (${comments.length})` : ''}`}
-                                                    </Text>
-                                                    <View style={styles.sectionLine} />
-                                                </View>
-                                            </View>
-                                        }
-                                        ListHeaderComponentStyle={{ backgroundColor: '#fff' }}
-                                        ListFooterComponent={null}
-                                        contentContainerStyle={{
-                                            paddingHorizontal: 16,
-                                            paddingBottom: 0,
+                                    <Animated.View
+                                        style={{
+                                            transform: [{
+                                                translateY: commentsInA.interpolate({ inputRange: [0, 1], outputRange: [24, 0] })
+                                            }],
+                                            opacity: commentsInA,
                                         }}
-                                    />
+                                    >
+                                        <FlatList
+                                            data={comments}
+                                            keyExtractor={(c, i) => c?._id ?? String(i)}
+                                            renderItem={renderComment}
+                                            stickyHeaderIndices={[0]}
+                                            initialNumToRender={8}
+                                            removeClippedSubviews={false}
+                                            ListHeaderComponent={
+                                                <View style={[styles.sectionBar, styles.commentsHeaderBar, { paddingHorizontal: 16, backgroundColor: '#fff' }]}>
+                                                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                                                        <View style={styles.sectionLine} />
+                                                        <Text style={styles.sectionLabel}>
+                                                            {(comments?.length ?? 0) === 0 ? 'No Comments' : `Comments (${comments.length})`}
+                                                        </Text>
+                                                        <View style={styles.sectionLine} />
+                                                    </View>
+                                                </View>
+                                            }
+                                            ListHeaderComponentStyle={{ backgroundColor: '#fff' }}
+                                            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 0 }}
+                                            keyboardShouldPersistTaps="handled"
+                                            showsVerticalScrollIndicator
+                                        />
+                                    </Animated.View>
                                 </View>
 
                             </View>
