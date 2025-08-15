@@ -5,6 +5,8 @@ const auth = require('../../middleware/auth');
 const isAdmin = require('../../middleware/isAdmin');
 const User = require('../../models/User');
 
+const { cleanFeatureCollection, fetchNearby } = require('../../utils/mapPipeline');
+
 // Middleware function to fetch a park by ID
 async function getPark(req, res, next) {
   let park;
@@ -347,6 +349,60 @@ router.delete('/:id', auth, isAdmin, getPark, async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
+});
+
+// POST raw geojson -> cleaned -> save
+router.post('/:id/map/geojson', async (req, res) => {
+  try {
+    const park = await Park.findById(req.params.id);
+    if (!park) return res.status(404).json({ message: 'Park not found' });
+
+    const raw = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    const cleaned = cleanFeatureCollection(raw);
+
+    park.mapFeatures = cleaned;
+    await park.save();
+
+    res.json({ ok: true, features: cleaned.features.length });
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
+});
+
+// POST ingest nearby (one-time or refresh)
+router.post('/:id/map/nearby', async (req, res) => {
+  try {
+    const park = await Park.findById(req.params.id);
+    if (!park) return res.status(404).json({ message: 'Park not found' });
+
+    const [lng, lat] = park.coordinates?.coordinates || [];
+    if (!lat || !lng) return res.status(400).json({ message: 'Park lacks coordinates' });
+
+    const results = await fetchNearby({ lat, lng, radius: 1500 }); // tune radius
+    // dedupe by placeId
+    const unique = Object.values(results.reduce((acc, r) => {
+      acc[r.placeId] = r; return acc;
+    }, {}));
+
+    park.nearbyAmenities = unique.map(r => ({ ...r, lastRefreshed: new Date() }));
+    await park.save();
+    res.json({ ok: true, count: unique.length });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
+  }
+});
+
+// GET bundle for the app
+router.get('/:id/map', async (req, res) => {
+  const park = await Park.findById(req.params.id).lean();
+  if (!park) return res.status(404).json({ message: 'Park not found' });
+
+  const [lng, lat] = park.coordinates?.coordinates || [];
+  res.json({
+    center: { lat, lng },
+    mapFeatures: park.mapFeatures || { type: 'FeatureCollection', features: [] },
+    nearbyAmenities: park.nearbyAmenities || [],
+  });
 });
 
 module.exports = router;

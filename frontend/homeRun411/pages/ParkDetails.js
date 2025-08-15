@@ -104,98 +104,16 @@ export default function ParkDetails({ route, navigation }) {
   }, [park?._id]);
 
   useLayoutEffect(() => {
-    if (park.name) {
+    if (park?.name) {
       navigation.setOptions({
         title: park.name,
         headerStyle: { backgroundColor: '#ffffff' },
         headerTitleStyle: { color: '#111111' },
         headerTintColor: '#111111',
-
-        headerRight: () => (
-          <View style={{ marginRight: 22 }}>
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel="Ask About This Park"
-              onPress={async () => {
-                if (showAskTip) {
-                  setShowAskTip(false);
-                  try { await AsyncStorage.setItem(ASK_TIP_KEY, String(Date.now())); } catch { }
-                }
-                navigation.navigate('NewPostForm', {
-                  prefill: {
-                    park: { _id: park._id, name: park.name, city: park.city, state: park.state },
-                    contentPlaceholder: 'Write your question here…',
-                  },
-                });
-              }}
-              style={{ padding: 6 }}
-            >
-              <Ionicons name="help-circle-outline" size={22} color="#111" />
-            </TouchableOpacity>
-
-            {showAskTip && (
-              <>
-                {/* arrow / caret (foreground) */}
-                <View
-                  pointerEvents="none"
-                  style={{
-                    position: 'absolute',
-                    top: 36,         // 1px above the shadow to create depth
-                    right: 10,
-                    width: 0,
-                    height: 0,
-                    borderLeftWidth: 8,
-                    borderRightWidth: 8,
-                    borderBottomWidth: 10,
-                    borderLeftColor: 'transparent',
-                    borderRightColor: 'transparent',
-                    borderBottomColor: TIP_BG, // or 'rgba(54, 65, 82, 0.92)'
-                  }}
-                />
-
-                {/* bubble */}
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  onPress={async () => {
-                    setShowAskTip(false);
-                    try { await AsyncStorage.setItem(ASK_TIP_KEY, String(Date.now())); } catch { }
-                  }}
-                  style={{
-                    position: 'absolute',
-                    top: 46,             // sits below the caret
-                    right: -6,           // slight outward nudge
-                    backgroundColor: TIP_BG, // or 'rgba(54, 65, 82, 0.92)'
-                    paddingVertical: 12,
-                    paddingHorizontal: 16,
-                    borderRadius: 18,
-                    width: 330,          // wider; tweak between 300–340 as you like
-                    shadowColor: '#000',
-                    shadowOpacity: 0.16,
-                    shadowRadius: 8,
-                    shadowOffset: { width: 0, height: 4 },
-                    elevation: 5,
-                    borderWidth: 0.5,
-                    borderColor: 'rgba(255,255,255,0.05)',
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: '#F8FAFC',
-                      fontSize: 15,
-                      lineHeight: 21,
-                      letterSpacing: 0.1,
-                    }}
-                  >
-                    Have a question about this park? Tap here to ask in the forum.
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
-        ),
+        headerRight: undefined,
       });
     }
-  }, [navigation, park.name, park._id, showAskTip]);
+  }, [navigation, park?.name]);
 
   // If we only received a skinny park from Forum, fetch the full record by id.
   useEffect(() => {
@@ -387,6 +305,64 @@ export default function ParkDetails({ route, navigation }) {
             weather={weather}
             locationLabel={`${[park.city, park.state].filter(Boolean).join(', ')} • Park`.trim()}
           />
+
+          {/* === Action Bar (Ask + Map + Directions) === */}
+          <View style={styles.actionBar}>
+            {/* Ask */}
+            <TouchableOpacity
+              style={styles.actionRow}
+              accessibilityRole="button"
+              accessibilityLabel="Ask Other Users About This Park"
+              onPress={() => {
+                navigation.navigate('NewPostForm', {
+                  prefill: {
+                    park: { _id: park._id, name: park.name, city: park.city, state: park.state },
+                    contentPlaceholder: 'Ask a question about this park…',
+                  },
+                });
+              }}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="help-circle-outline" size={20} color="#0f172a" />
+              <View style={{ marginLeft: 10, flex: 1 }}>
+                <Text style={styles.actionTitle}>Ask Other Users About This Park</Text>
+                <Text style={styles.actionSub}>Start a post in the forum</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#9ca3af" />
+            </TouchableOpacity>
+
+            {/* Map View */}
+            <TouchableOpacity
+              style={styles.actionRow}
+              accessibilityRole="button"
+              accessibilityLabel="Map View"
+              onPress={() => navigation.navigate('MapScreen', { parkId: park._id })}
+              activeOpacity={0.9}
+            >
+              <Ionicons name="map-outline" size={20} color="#7c2d12" />
+              <View style={{ marginLeft: 10, flex: 1 }}>
+                <Text style={styles.actionTitle}>Map View</Text>
+                <Text style={styles.actionSub}>See in-park & nearby amenities</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#9ca3af" />
+            </TouchableOpacity>
+
+            {/* Get Directions */}
+            <TouchableOpacity
+              style={[styles.actionRow, styles.actionRowLast]}
+              accessibilityRole="button"
+              accessibilityLabel="Get Directions"
+              onPress={openMapsApp}
+              activeOpacity={0.9}
+            >
+              <Ionicons name="navigate-outline" size={20} color="#1d4ed8" />
+              <View style={{ marginLeft: 10, flex: 1 }}>
+                <Text style={styles.actionTitle}>Get Directions</Text>
+                <Text style={styles.actionSub}>Open in your maps app</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#9ca3af" />
+            </TouchableOpacity>
+          </View>
 
           {/* Community Q&A (park-related posts) */}
           <View style={styles.qaCard}>
@@ -617,12 +593,6 @@ export default function ParkDetails({ route, navigation }) {
         </View>
       </ScrollView>
 
-      {/* Navigation Button */}
-      <View style={styles.fixedBottomBar}>
-        <TouchableOpacity style={styles.customButton} onPress={openMapsApp}>
-          <Text style={styles.buttonText}>Directions</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 }
@@ -822,4 +792,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   qaButtonText: { color: 'white', fontSize: 14, fontWeight: '600' },
+  actionBar: {
+    marginTop: 10,
+    marginBottom: 14,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    backgroundColor: '#f9fafb', // unified background (light gray)
+  },
+  actionRowLast: {
+    borderBottomWidth: 0,
+  },
+  actionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  actionSub: {
+    fontSize: 12,
+    color: '#475569',
+    marginTop: 2,
+  },
 });

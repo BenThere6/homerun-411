@@ -119,6 +119,20 @@ const parkSchema = new Schema({
   locationOfElectricalOutlets: { type: String }, // Location of Electrical Outlets
   stairsDescription: { type: String }, // Stairs Description
   hillsDescription: { type: String }, // Hills Description
+  mapFeatures: {
+    type: Object, // GeoJSON FeatureCollection (cleaned)
+    default: { type: 'FeatureCollection', features: [] }
+  },
+  nearbyAmenities: [{
+    placeId: String,
+    name: String,
+    categories: [String],
+    location: { lat: Number, lng: Number },
+    rating: Number,
+    priceLevel: Number,
+    distanceMeters: Number,
+    lastRefreshed: Date,
+  }],
 });
 
 // Helper function to safely parse integers
