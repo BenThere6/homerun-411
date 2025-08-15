@@ -3,13 +3,13 @@ import {
     View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView,
     ActivityIndicator, Image, RefreshControl, ScrollView, TextInput, Modal,
     Platform, LayoutAnimation, UIManager, useWindowDimensions,
-    KeyboardAvoidingView, Alert, Pressable, Animated, Easing
+    KeyboardAvoidingView, Alert, Pressable, Animated, Easing,
+    BackHandler
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons'
 import { useHeaderHeight } from '@react-navigation/elements';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
-import { BackHandler } from 'react-native';
 import colors from '../assets/colors';
 import { BACKEND_URL } from '@env';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
@@ -63,29 +63,8 @@ export default function ForumPage({ navigation }) {
         return rowOpacities[id];
     };
 
-    // --- Collapsible Post Panel (simple, no measuring) ---
-    const EXPANDED_H = Math.max(0, Math.floor(screenH - 390)); // default/max height
-    const COLLAPSED_H = Math.max(0, Math.floor(screenH - 600)); // when comments pulled up
-
-    const commentsScrollY = useRef(new Animated.Value(0)).current;
-    const commentsListRef = useRef(null);
-    const postScrollRef = useRef(null);
-
-    // Fixed expanded/collapsed; no re-locking needed
-    const locked = useRef({
-        expanded: EXPANDED_H,
-        collapsed: COLLAPSED_H,
-        range: Math.max(0, EXPANDED_H - COLLAPSED_H),
-    });
-
-    useEffect(() => {
-        locked.current = {
-            expanded: EXPANDED_H,
-            collapsed: COLLAPSED_H,
-            range: Math.max(0, EXPANDED_H - COLLAPSED_H),
-        };
-        commentsScrollY.setValue(0);
-    }, [screenH, EXPANDED_H, COLLAPSED_H, commentsScrollY]);
+    const [paneH, setPaneH] = useState(0);           // height of the content area above the dock
+    const commentsMaxH = Math.max(0, Math.floor(paneH * 0.40)); // 40% cap in px
 
     // applied (used for fetching)
     const [appliedFilter, setAppliedFilter] = useState(null);        // { type:'park', referencedPark, parkName }
@@ -480,15 +459,6 @@ export default function ForumPage({ navigation }) {
         }
     }, [filterSheetVisible]);
 
-    const [isCollapsed, setIsCollapsed] = useState(false);
-
-    useEffect(() => {
-        const id = commentsScrollY.addListener(({ value }) => {
-            setIsCollapsed(availableRange > 0 && value >= (availableRange - 1));
-        });
-        return () => commentsScrollY.removeListener(id);
-    }, [commentsScrollY, availableRange]);
-
     // keep forum list and selectedPost counts in sync
     const syncCountsToList = React.useCallback((nextLikes, nextComments) => {
         const id = selectedPost?._id;
@@ -640,36 +610,6 @@ export default function ForumPage({ navigation }) {
         adminLevel === 0 ||
         (adminLevel === 1 && pinnedById === String(userId))
     );
-
-    // (Optional) if you want to reset to expanded whenever a post opens:
-    useEffect(() => {
-        if (selectedPost) {
-            commentsScrollY.setValue(0);
-        }
-    }, [selectedPost, commentsScrollY]);
-
-    // --- collapse sizing helpers (no synthetic footer) ---
-    const listViewportH = useRef(0);
-    const [listContentH, setListContentH] = useState(0);
-
-    // Desired range from your fixed heights
-    const DESIRED_RANGE = Math.max(0, EXPANDED_H - COLLAPSED_H);
-
-    // Available range we actually have, capped to real slack
-    const [availableRange, setAvailableRange] = useState(DESIRED_RANGE);
-
-    const recomputeAvailableRange = (viewportH, contentH) => {
-        const intrinsicSlack = Math.max(0, contentH - viewportH);
-        setAvailableRange(Math.min(DESIRED_RANGE, intrinsicSlack));
-    };
-
-    // Rebuild the clamp whenever the available range changes
-    const clampedY = React.useMemo(
-        () => Animated.diffClamp(commentsScrollY, 0, availableRange),
-        [commentsScrollY, availableRange]
-    );
-
-    const animatedPostH = Animated.subtract(EXPANDED_H, clampedY);
 
     // UI tint + disabled state for the chip next to Like/Comment
     const pinTint = (() => {
@@ -907,37 +847,13 @@ export default function ForumPage({ navigation }) {
                                 style={{ flex: 1, paddingBottom: dockH, position: 'relative' }}
                                 pointerEvents="box-none"
                                 collapsable={false}
-                                onLayout={e => {
-                                    listViewportH.current = e.nativeEvent.layout.height;
-                                    recomputeAvailableRange(listViewportH.current, listContentH);
-                                }}
+                                onLayout={e => setPaneH(e.nativeEvent.layout.height)}
                             >
                                 {/* 1) POST CONTAINER (height animates with comments scroll) */}
-                                <Animated.View
-                                    style={[
-                                        styles.postContainer,
-                                        {
-                                            height: animatedPostH,
-                                        },
-                                    ]}
-                                >
-
-                                    {/* Expand control (optional) */}
-                                    {availableRange > 4 && isCollapsed && (
-                                        <TouchableOpacity
-                                            onPress={() =>
-                                                commentsListRef.current?.scrollToOffset?.({ offset: 0, animated: true })
-                                            }
-                                            style={styles.postExpandBtn}
-                                            hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
-                                        >
-                                            <Ionicons name="expand" size={16} color="#64748b" />
-                                        </TouchableOpacity>
-                                    )}
+                                <View style={[styles.postContainer, { flex: 1 }]}>
 
                                     {/* The post body scrolls independently */}
                                     <ScrollView
-                                        ref={postScrollRef}
                                         nestedScrollEnabled
                                         showsVerticalScrollIndicator
                                         contentContainerStyle={{ paddingBottom: 8 }}
@@ -967,51 +883,37 @@ export default function ForumPage({ navigation }) {
                                             </View>
                                         </View>
                                     </ScrollView>
-                                </Animated.View>
+                                </View>
 
-                                <Animated.FlatList
-                                    ref={commentsListRef}
-                                    data={comments}
-                                    keyExtractor={(c, i) => c?._id ?? String(i)}
-                                    renderItem={renderComment}
-                                    keyboardShouldPersistTaps="handled"
-                                    showsVerticalScrollIndicator
-                                    scrollEventThrottle={16}
-                                    bounces={false}
-                                    onScroll={Animated.event(
-                                        [{ nativeEvent: { contentOffset: { y: commentsScrollY } } }],
-                                        { useNativeDriver: false }
-                                    )}
-                                    initialNumToRender={8}
-                                    removeClippedSubviews={false}
-                                    ListHeaderComponent={
-                                        <Pressable
-                                            style={[styles.sectionBar, styles.commentsHeaderBar, { paddingHorizontal: 16 }]}
-                                            onPress={() =>
-                                                commentsListRef.current?.scrollToOffset?.({
-                                                    offset: Math.max(0, availableRange),
-                                                    animated: true,
-                                                })
-                                            }
-                                        >
-                                            <View style={styles.sectionLine} />
-                                            <Text style={styles.sectionLabel}>
-                                                {`Comments${comments.length ? ` (${comments.length})` : ''}`}
-                                            </Text>
-                                            <View style={styles.sectionLine} />
-                                        </Pressable>
-                                    }
-                                    ListHeaderComponentStyle={{ backgroundColor: '#fff' }}
-                                    ListFooterComponent={null}
-                                    contentContainerStyle={{
-                                        paddingHorizontal: 16,
-                                        paddingBottom: 0,
-                                    }}
-                                    onContentSizeChange={(_, h) => {
-                                        setListContentH(h);
-                                        recomputeAvailableRange(listViewportH.current, h);
-                                    }}
-                                />
+                                <View style={{ maxHeight: commentsMaxH, flexShrink: 0, overflow: 'hidden' }}>
+                                    <FlatList
+                                        data={comments}
+                                        keyExtractor={(c, i) => c?._id ?? String(i)}
+                                        renderItem={renderComment}
+                                        keyboardShouldPersistTaps="handled"
+                                        showsVerticalScrollIndicator
+                                        
+                                        initialNumToRender={8}
+                                        removeClippedSubviews={false}
+                                        ListHeaderComponent={
+                                            <View style={[styles.sectionBar, styles.commentsHeaderBar, { paddingHorizontal: 16 }]}>
+                                                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                                                    <View style={styles.sectionLine} />
+                                                    <Text style={styles.sectionLabel}>
+                                                        {`Comments${comments.length ? ` (${comments.length})` : ''}`}
+                                                    </Text>
+                                                    <View style={styles.sectionLine} />
+                                                </View>
+                                            </View>
+                                        }
+                                        ListHeaderComponentStyle={{ backgroundColor: '#fff' }}
+                                        ListFooterComponent={null}
+                                        contentContainerStyle={{
+                                            paddingHorizontal: 16,
+                                            paddingBottom: 0,
+                                        }}
+                                    />
+                                </View>
 
                             </View>
                         </View>
