@@ -4,6 +4,12 @@ import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, FlatList }
 import MapView, { Marker, Polygon, Polyline } from 'react-native-maps';
 import axios from '../utils/axiosInstance';
 import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+import centroid from '@turf/centroid';
+import length from '@turf/length';
+import along from '@turf/along';
+import { lineString as turfLine } from '@turf/helpers';
 
 const KIND_COLORS = {
     parking: '#2563eb',
@@ -18,6 +24,130 @@ const KIND_COLORS = {
     boundary: '#111827',
     field: '#ef4444',
 };
+
+// Which icon to use per kind, and which library it comes from
+const KIND_ICONS = {
+    field: { lib: 'ion', name: 'baseball-outline', color: '#ef4444' },
+    parking: { lib: 'ion', name: 'car-outline', color: '#2563eb' },
+    parking_entrance: { lib: 'mci', name: 'door-open', color: '#f59e0b' }, // ⟵ explicit
+    handicap_parking: { lib: 'mci', name: 'human-wheelchair', color: '#2563eb' },
+    restroom: { lib: 'mci', name: 'toilet', color: '#16a34a' },
+    concession: { lib: 'ion', name: 'fast-food-outline', color: '#b45309' },
+    entrance: { lib: 'mci', name: 'door-open', color: '#f59e0b' },
+    default: { lib: 'ion', name: 'location-outline', color: '#334155' },
+};
+
+function RenderIcon({ spec, size = 28 }) {
+    const { lib, name, color } = spec || {};
+    if (lib === 'mci') {
+        return <MaterialCommunityIcons name={name} size={size} color={color} />;
+    }
+    // default to Ionicons
+    return <Ionicons name={name} size={size} color={color} />;
+}
+
+function shouldHideIconByName(name = '') {
+    return /football|tennis/i.test(String(name));
+}
+
+// Always-visible label chip  
+const LabelChip = ({ text }) => (
+    <View style={{
+        backgroundColor: 'rgba(0,0,0,0.72)',
+        paddingHorizontal: 6, paddingVertical: 2,
+        borderRadius: 6, maxWidth: 180
+    }}>
+        <Text style={{ color: '#fff', fontSize: 12 }} numberOfLines={1}>{text}</Text>
+    </View>
+);
+
+function PointMarker({ feature }) {
+    const { geometry: g, properties: p } = feature;
+    const [lng, lat] = g.coordinates;
+    const icon = iconFor(p?.kind);
+    const title = p?.name || (p?.kind ? p.kind.replace(/_/g, ' ') : '');
+
+    return (
+        <Marker coordinate={{ latitude: lat, longitude: lng }} anchor={{ x: 0.5, y: 1 }}>
+            <View style={{ alignItems: 'center' }}>
+                {!shouldHideIconByName(p?.name) && <RenderIcon spec={icon} size={28} />}
+                {!!title && (
+                    <View style={{ marginTop: 4 }}>
+                        <LabelChip text={title} />
+                    </View>
+                )}
+            </View>
+        </Marker>
+    );
+}
+
+function PolygonWithLabel({ feature, color }) {
+    const { geometry: g, properties: p } = feature;
+    const coords = (g.coordinates[0] || []).map(([lng, lat]) => ({ latitude: lat, longitude: lng }));
+    const center = centroid(feature);
+    const [clng, clat] = center.geometry.coordinates;
+    const title = p?.name || p?.kind;
+
+    return (
+        <>
+            <Polygon
+                coordinates={coords}
+                strokeColor={color}
+                fillColor={`${color}33`}
+                strokeWidth={2}
+            />
+            {!!title && (
+                <Marker coordinate={{ latitude: clat, longitude: clng }} anchor={{ x: 0.5, y: 0.5 }}>
+                    <LabelChip text={title} />
+                </Marker>
+            )}
+        </>
+    );
+}
+
+function LineWithDistance({ feature, color }) {
+    const { geometry: g, properties: p } = feature;
+    const coords = g.coordinates.map(([lng, lat]) => ({ latitude: lat, longitude: lng }));
+
+    // Prefer precomputed value if present, otherwise compute
+    let feet = p?.fenceFeet;
+    if (feet == null) {
+        const line = turfLine(g.coordinates);
+        feet = Math.round(length(line, { units: 'feet' }));
+    }
+
+    // Midpoint for the label
+    const line = turfLine(g.coordinates);
+    const miles = length(line, { units: 'miles' });
+    const mid = along(line, miles / 2, { units: 'miles' });
+    const [mlng, mlat] = mid.geometry.coordinates;
+
+    return (
+        <>
+            <Polyline coordinates={coords} strokeColor={color} strokeWidth={3} />
+            <Marker coordinate={{ latitude: mlat, longitude: mlng }} anchor={{ x: 0.5, y: 1 }}>
+                <LabelChip text={`${feet} ft`} />
+            </Marker>
+        </>
+    );
+}
+
+function iconFor(kind = '') {
+    const k = String(kind).toLowerCase();
+
+    // exact matches first
+    if (KIND_ICONS[k]) return KIND_ICONS[k];
+
+    // special cases / fallbacks
+    if (k === 'parking_entrance' || /(^|_)entrance($|_)/.test(k)) return KIND_ICONS.entrance;
+    if (k.includes('handicap')) return KIND_ICONS.handicap_parking;
+    if (k.includes('restroom') || k.includes('toilet')) return KIND_ICONS.restroom;
+    if (k.includes('concession') || k.includes('snack')) return KIND_ICONS.concession;
+    if (k.includes('parking')) return KIND_ICONS.parking;
+    if (k.includes('field') || k.includes('diamond') || k.includes('softball') || k.includes('baseball') || k.includes('football')) return KIND_ICONS.field;
+
+    return KIND_ICONS.default;
+}
 
 export default function MapScreen({ route, navigation }) {
     const { parkId } = route.params || {};
@@ -62,18 +192,25 @@ export default function MapScreen({ route, navigation }) {
             points.push({ latitude: center.lat, longitude: center.lng });
         }
 
-        // park features
-        (mapFeatures?.features || []).forEach(f => {
-            const g = f.geometry;
-            if (!g) return;
-            if (g.type === 'Point') {
-                points.push({ latitude: g.coordinates[1], longitude: g.coordinates[0] });
-            } else if (g.type === 'LineString') {
-                g.coordinates.forEach(([lng, lat]) => points.push({ latitude: lat, longitude: lng }));
-            } else if (g.type === 'Polygon') {
-                (g.coordinates[0] || []).forEach(([lng, lat]) => points.push({ latitude: lat, longitude: lng }));
-            }
-        });
+        // Park features (collect coordinates for fit)
+        if (showPark) {
+            (mapFeatures?.features || []).forEach(f => {
+                const g = f?.geometry;
+                if (!g) return;
+                if (g.type === 'Point') {
+                    const [lng, lat] = g.coordinates || [];
+                    if (lat != null && lng != null) points.push({ latitude: lat, longitude: lng });
+                } else if (g.type === 'LineString') {
+                    (g.coordinates || []).forEach(([lng, lat]) => {
+                        if (lat != null && lng != null) points.push({ latitude: lat, longitude: lng });
+                    });
+                } else if (g.type === 'Polygon') {
+                    ((g.coordinates?.[0]) || []).forEach(([lng, lat]) => {
+                        if (lat != null && lng != null) points.push({ latitude: lat, longitude: lng });
+                    });
+                }
+            });
+        }
 
         // nearby
         (nearbyAmenities || []).forEach(n => {
@@ -131,47 +268,14 @@ export default function MapScreen({ route, navigation }) {
                 onMapReady={() => fitToEverything()}
             >
                 {/* Park features */}
-                {showPark && (mapFeatures?.features || []).map(f => {
-                    const { geometry: g, properties: p } = f;
+                {showPark && (mapFeatures?.features || []).map((f, i) => {
+                    const { geometry: g, properties: p } = f || {};
+                    const key = p?.id || i;
                     const color = KIND_COLORS[p?.kind] || '#334155';
 
-                    if (g?.type === 'Point') {
-                        const [lng, lat] = g.coordinates;
-                        return (
-                            <Marker
-                                key={p.id}
-                                coordinate={{ latitude: lat, longitude: lng }}
-                                title={p.name}
-                                description={p.kind}
-                                pinColor={color}
-                            />
-                        );
-                    }
-
-                    if (g?.type === 'LineString') {
-                        const coords = g.coordinates.map(([lng, lat]) => ({ latitude: lat, longitude: lng }));
-                        return (
-                            <Polyline
-                                key={p.id}
-                                coordinates={coords}
-                                strokeColor={color}
-                                strokeWidth={4}
-                            />
-                        );
-                    }
-
-                    if (g?.type === 'Polygon') {
-                        const coords = (g.coordinates[0] || []).map(([lng, lat]) => ({ latitude: lat, longitude: lng }));
-                        return (
-                            <Polygon
-                                key={p.id}
-                                coordinates={coords}
-                                strokeColor={color}
-                                fillColor={`${color}33`}
-                                strokeWidth={2}
-                            />
-                        );
-                    }
+                    if (g?.type === 'Point') return <PointMarker key={key} feature={f} />;
+                    if (g?.type === 'Polygon') return <PolygonWithLabel key={key} feature={f} color={color} />;
+                    if (g?.type === 'LineString') return <LineWithDistance key={key} feature={f} color={color} />;
                     return null;
                 })}
 
