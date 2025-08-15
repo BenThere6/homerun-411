@@ -63,10 +63,6 @@ export default function ForumPage({ navigation }) {
         return rowOpacities[id];
     };
 
-    // keyboard offset + visible flag
-    const kbBottomA = useRef(new Animated.Value(0)).current; // animated bottom inset
-    const [kbShown, setKbShown] = useState(false);
-
     const [paneH, setPaneH] = useState(0);           // height of the content area above the dock
     const commentsMaxH = Math.max(0, Math.floor(paneH * 0.40)); // 40% cap in px
 
@@ -95,39 +91,6 @@ export default function ForumPage({ navigation }) {
     const parkSearchCfg = useRef({ path: null, key: null });
 
     const commentsInA = useRef(new Animated.Value(0)).current; // 0..1
-
-    useEffect(() => {
-        const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-        const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-
-        const onShow = (e) => {
-            const h = e?.endCoordinates?.height ?? 0;
-            const ky = e?.endCoordinates?.screenY ?? (screenH - h);
-            // exact occluded distance at the bottom of the window
-            const target = Math.max(0, screenH - ky - insets.bottom);
-            setKbShown(true);
-            Animated.timing(kbBottomA, {
-                toValue: target,
-                duration: Platform.OS === 'ios' ? (e?.duration ?? 250) : 200,
-                easing: Easing.out(Easing.cubic),
-                useNativeDriver: false, // layout property
-            }).start();
-        };
-
-        const onHide = (e) => {
-            setKbShown(false);
-            Animated.timing(kbBottomA, {
-                toValue: 0,
-                duration: Platform.OS === 'ios' ? (e?.duration ?? 250) : 150,
-                easing: Easing.in(Easing.cubic),
-                useNativeDriver: false,
-            }).start();
-        };
-
-        const s1 = Keyboard.addListener(showEvt, onShow);
-        const s2 = Keyboard.addListener(hideEvt, onHide);
-        return () => { s1.remove(); s2.remove(); };
-    }, [screenH, kbBottomA]);
 
     // Reset when opening a new post
     useEffect(() => {
@@ -975,13 +938,17 @@ export default function ForumPage({ navigation }) {
                                         />
                                     </Animated.View>
                                 </View>
+                                
+                                <View style={{ height: 30 }} pointerEvents="none" />
 
                             </View>
                         </View>
 
-                        {/* Sticky dock (one copy only) */}
-                        <Animated.View
-                            style={[styles.bottomDock, { paddingBottom: kbShown ? 8 : insets.bottom, bottom: kbBottomA }]}
+                        {/* Sticky dock — KAV handles keyboard */}
+                        <KeyboardAvoidingView
+                            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                            keyboardVerticalOffset={insets.bottom}    // add safe-area once, no double count
+                            style={[styles.bottomDock, { marginBottom: 30 }]}
                             onLayout={(e) => setDockH(e.nativeEvent.layout.height)}
                         >
                             <View style={styles.chipsRow}>
@@ -1019,7 +986,7 @@ export default function ForumPage({ navigation }) {
                                 </TouchableOpacity>
                             </View>
                             {/* No Close button; use header back */}
-                        </Animated.View>
+                        </KeyboardAvoidingView>
                     </KeyboardAvoidingView>
                 </View >
             )
