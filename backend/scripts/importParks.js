@@ -188,7 +188,7 @@ async function run() {
   await mongoose.connect(MONGO_URI);
   console.log('✅ Connected to MongoDB');
 
-  const csvPath = path.resolve(__dirname, '../parks.csv');
+  const csvPath = path.resolve(__dirname, '../data/parks.csv');
   const rows = [];
 
   await new Promise((resolve, reject) => {
