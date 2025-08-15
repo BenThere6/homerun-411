@@ -116,7 +116,7 @@ const parkSchema = new Schema({
   rvParkingAvailable: { type: Boolean }, // RV Parking Availability
   bikeRackAvailability: { type: Boolean }, // Bike Racks Available
   electricalOutletsForPublicUse: { type: Boolean, default: null }, // Public Electrical Outlets?
-  locationOfElectricalOutlets: { type: String }, // Location of Electrical Outlets
+  electricalOutletsLocation: { type: String }, // Location of Electrical Outlets
   stairsDescription: { type: String }, // Stairs Description
   hillsDescription: { type: String }, // Hills Description
   mapFeatures: {

@@ -17,6 +17,7 @@ import SettingsPage from './pages/Settings';
 import LoginPage from './pages/Login';
 import RegisterPage from './pages/Register';
 import NewPostForm from './pages/NewPostForm';
+import MapScreen from './pages/MapScreen';
 import colors from './assets/colors';
 import { AuthProvider, useAuth } from './AuthContext';
 import api, { setUnauthorizedHandler } from './utils/axiosInstance';
@@ -196,6 +197,11 @@ function MainStack() {
               headerTintColor: 'black',
               headerTitleAlign: 'center',
             }}
+          />
+          <Stack.Screen
+            name="MapScreen"
+            component={MapScreen}
+            options={{ title: 'Map View' }}
           />
         </>
       )}

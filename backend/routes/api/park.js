@@ -7,6 +7,14 @@ const User = require('../../models/User');
 
 const { cleanFeatureCollection, fetchNearby } = require('../../utils/mapPipeline');
 
+function haversineMeters(a, b) {
+  const toRad = d => d * Math.PI / 180, R = 6371000;
+  const dLat = toRad(b.lat - a.lat), dLng = toRad(b.lng - a.lng);
+  const lat1 = toRad(a.lat), lat2 = toRad(b.lat);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
 // Middleware function to fetch a park by ID
 async function getPark(req, res, next) {
   let park;
@@ -45,6 +53,8 @@ router.post('/', auth, isAdmin, async (req, res) => {
       restrooms,
       fenceDistance,
       powerAccess, // Use power access
+      electricalOutletsForPublicUse,
+      electricalOutletsLocation,
       sidewalks,
       gravelPaths,
       stairs,
@@ -74,6 +84,8 @@ router.post('/', auth, isAdmin, async (req, res) => {
       restrooms,
       fenceDistance,
       powerAccess, // Save power access
+      electricalOutletsForPublicUse,
+      electricalOutletsLocation,
       sidewalks,
       gravelPaths,
       stairs,
@@ -352,7 +364,7 @@ router.delete('/:id', auth, isAdmin, getPark, async (req, res) => {
 });
 
 // POST raw geojson -> cleaned -> save
-router.post('/:id/map/geojson', async (req, res) => {
+router.post('/:id/map/geojson', auth, isAdmin, async (req, res) => {
   try {
     const park = await Park.findById(req.params.id);
     if (!park) return res.status(404).json({ message: 'Park not found' });
@@ -370,7 +382,7 @@ router.post('/:id/map/geojson', async (req, res) => {
 });
 
 // POST ingest nearby (one-time or refresh)
-router.post('/:id/map/nearby', async (req, res) => {
+router.post('/:id/map/nearby', auth, isAdmin, async (req, res) => {
   try {
     const park = await Park.findById(req.params.id);
     if (!park) return res.status(404).json({ message: 'Park not found' });
@@ -378,13 +390,23 @@ router.post('/:id/map/nearby', async (req, res) => {
     const [lng, lat] = park.coordinates?.coordinates || [];
     if (!lat || !lng) return res.status(400).json({ message: 'Park lacks coordinates' });
 
-    const results = await fetchNearby({ lat, lng, radius: 1500 }); // tune radius
-    // dedupe by placeId
-    const unique = Object.values(results.reduce((acc, r) => {
-      acc[r.placeId] = r; return acc;
-    }, {}));
+    const results = await fetchNearby({ lat, lng, radius: 1500 });
 
-    park.nearbyAmenities = unique.map(r => ({ ...r, lastRefreshed: new Date() }));
+    // dedupe by placeId
+    const byId = {};
+    for (const r of results) byId[r.placeId] = r;
+    const unique = Object.values(byId);
+
+    // compute distance to park center
+    const center = { lat, lng };
+    for (const u of unique) {
+      u.distanceMeters = Math.round(
+        haversineMeters(center, { lat: u.location.lat, lng: u.location.lng })
+      );
+      u.lastRefreshed = new Date();
+    }
+
+    park.nearbyAmenities = unique;
     await park.save();
     res.json({ ok: true, count: unique.length });
   } catch (e) {
