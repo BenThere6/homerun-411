@@ -11,6 +11,69 @@ import length from '@turf/length';
 import along from '@turf/along';
 import { lineString as turfLine } from '@turf/helpers';
 
+// --- LOD + declutter helpers ---
+function zoomFromDelta(longitudeDelta) {
+    // Web-mercator-ish approximation; RN Maps uses deltas, so this is fine.
+    return Math.log2(360 / Math.max(longitudeDelta, 1e-6));
+}
+
+function llFromCentroid(feature) {
+    const c = centroid(feature);
+    const [lng, lat] = c?.geometry?.coordinates || [];
+    return (lat != null && lng != null) ? { lat, lng } : null;
+}
+
+function haversineMeters(a, b) {
+    const toRad = d => d * Math.PI / 180, R = 6371000;
+    const dLat = toRad(b.lat - a.lat), dLng = toRad(b.lng - a.lng);
+    const lat1 = toRad(a.lat), lat2 = toRad(b.lat);
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+const KIND_PRIORITY = {
+    field: 100,
+    parking: 90,
+    parking_entrance: 85,
+    entrance: 85,
+    restroom: 80,
+    bullpen: 70,
+    batting_cage: 70,
+    concession: 65,
+    playground: 60,
+    boundary: 50,
+    distance_marker: 40,
+    default: 10,
+};
+
+function kindPriority(kind) {
+    return KIND_PRIORITY[kind] ?? KIND_PRIORITY.default;
+}
+
+function lodForZoom(z) {
+    // tune thresholds to taste
+    if (z < 15) return 'overview';     // far
+    if (z < 16.5) return 'mid';        // city block
+    return 'detail';                   // close
+}
+
+function labelSpacingMetersForZoom(z) {
+    // farther out → larger spacing
+    if (z < 14) return 250;
+    if (z < 15) return 160;
+    if (z < 16) return 110;
+    if (z < 17) return 70;
+    return 45;
+}
+
+function shouldSuppressKind(kind, z) {
+    const k = String(kind || '').toLowerCase();
+    // Hide generic non-baseball context by default unless very close
+    if (/football|tennis/.test(k)) return z < 17.2;
+    if (k === 'distance_marker') return z < 16.8; // only close
+    return false;
+}
+
 const KIND_COLORS = {
     parking: '#2563eb',
     parking_entrance: '#2563eb',
@@ -51,29 +114,45 @@ function shouldHideIconByName(name = '') {
 }
 
 // Always-visible label chip  
-const LabelChip = ({ text }) => (
+const LabelChip = ({ text, dim = false }) => (
     <View style={{
-        backgroundColor: 'rgba(0,0,0,0.72)',
+        backgroundColor: dim ? 'rgba(17,24,39,0.55)' : 'rgba(17,24,39,0.78)',
         paddingHorizontal: 6, paddingVertical: 2,
-        borderRadius: 6, maxWidth: 180
+        borderRadius: 6, maxWidth: 160
     }}>
-        <Text style={{ color: '#fff', fontSize: 12 }} numberOfLines={1}>{text}</Text>
+        <Text style={{ color: '#fff', fontSize: 11 }} numberOfLines={1}>{text}</Text>
     </View>
 );
 
-function PointMarker({ feature }) {
+function PointMarker({ feature, zoom, focusedId, allowedLabelIds, onPress }) {
     const { geometry: g, properties: p } = feature;
     const [lng, lat] = g.coordinates;
     const icon = iconFor(p?.kind);
     const title = p?.name || (p?.kind ? p.kind.replace(/_/g, ' ') : '');
+    const isFocused = focusedId === p?.id;
+
+    const lod = lodForZoom(zoom);
+    const showLabel =
+        isFocused ||
+        (lod === 'detail' &&
+            kindPriority(p?.kind) >= 70 &&
+            allowedLabelIds.has(p?.id));
+
+    const hideForKind = shouldSuppressKind(p?.kind, zoom) || shouldHideIconByName(p?.name);
+
+    if (hideForKind) return null;
 
     return (
-        <Marker coordinate={{ latitude: lat, longitude: lng }} anchor={{ x: 0.5, y: 1 }}>
+        <Marker
+            coordinate={{ latitude: lat, longitude: lng }}
+            anchor={{ x: 0.5, y: 1 }}
+            onPress={() => onPress?.(p?.id)}
+        >
             <View style={{ alignItems: 'center' }}>
-                {!shouldHideIconByName(p?.name) && <RenderIcon spec={icon} size={28} />}
-                {!!title && (
-                    <View style={{ marginTop: 4 }}>
-                        <LabelChip text={title} />
+                <RenderIcon spec={icon} size={24} />
+                {showLabel && !!title && (
+                    <View style={{ marginTop: 3 }}>
+                        <LabelChip text={title} dim={!isFocused} />
                     </View>
                 )}
             </View>
@@ -81,53 +160,76 @@ function PointMarker({ feature }) {
     );
 }
 
-function PolygonWithLabel({ feature, color }) {
+function PolygonWithLabel({ feature, color, zoom, focusedId, allowedLabelIds, onPress }) {
     const { geometry: g, properties: p } = feature;
     const coords = (g.coordinates[0] || []).map(([lng, lat]) => ({ latitude: lat, longitude: lng }));
     const center = centroid(feature);
     const [clng, clat] = center.geometry.coordinates;
     const title = p?.name || p?.kind;
+    const isFocused = focusedId === p?.id;
+
+    const lod = lodForZoom(zoom);
+    const showLabel =
+        isFocused ||
+        (lod !== 'overview' && allowedLabelIds.has(p?.id));
+
+    const fill = isFocused ? `${color}3D` : `${color}26`; // subtle
+
+    if (shouldSuppressKind(p?.kind, zoom)) return null;
 
     return (
         <>
             <Polygon
                 coordinates={coords}
                 strokeColor={color}
-                fillColor={`${color}33`}
-                strokeWidth={2}
+                fillColor={fill}
+                strokeWidth={isFocused ? 3 : 1.5}
+                tappable
+                onPress={() => onPress?.(p?.id)}
             />
-            {!!title && (
-                <Marker coordinate={{ latitude: clat, longitude: clng }} anchor={{ x: 0.5, y: 0.5 }}>
-                    <LabelChip text={title} />
+            {showLabel && !!title && (
+                <Marker coordinate={{ latitude: clat, longitude: clng }} anchor={{ x: 0.5, y: 0.5 }} onPress={() => onPress?.(p?.id)}>
+                    <LabelChip text={title} dim={!isFocused} />
                 </Marker>
             )}
         </>
     );
 }
 
-function LineWithDistance({ feature, color }) {
+function LineWithDistance({ feature, color, zoom, focusedId, allowedLabelIds, onPress }) {
     const { geometry: g, properties: p } = feature;
     const coords = g.coordinates.map(([lng, lat]) => ({ latitude: lat, longitude: lng }));
 
-    // Prefer precomputed value if present, otherwise compute
-    let feet = p?.fenceFeet;
-    if (feet == null) {
-        const line = turfLine(g.coordinates);
-        feet = Math.round(length(line, { units: 'feet' }));
-    }
-
-    // Midpoint for the label
     const line = turfLine(g.coordinates);
     const miles = length(line, { units: 'miles' });
     const mid = along(line, miles / 2, { units: 'miles' });
     const [mlng, mlat] = mid.geometry.coordinates;
 
+    let feet = p?.fenceFeet;
+    if (feet == null) feet = Math.round(length(line, { units: 'feet' }));
+
+    const isFocused = focusedId === p?.id;
+    const lod = lodForZoom(zoom);
+    const showLabel =
+        isFocused ||
+        (zoom >= 16.6 && allowedLabelIds.has(p?.id));
+
+
+    if (shouldSuppressKind(p?.kind, zoom)) return null;
+
     return (
         <>
-            <Polyline coordinates={coords} strokeColor={color} strokeWidth={3} />
-            <Marker coordinate={{ latitude: mlat, longitude: mlng }} anchor={{ x: 0.5, y: 1 }}>
-                <LabelChip text={`${feet} ft`} />
-            </Marker>
+            <Polyline
+                coordinates={coords}
+                strokeColor={color}
+                strokeWidth={isFocused ? 4 : 2}
+                onPress={() => onPress?.(p?.id)}
+            />
+            {showLabel && (
+                <Marker coordinate={{ latitude: mlat, longitude: mlng }} anchor={{ x: 0.5, y: 1 }} onPress={() => onPress?.(p?.id)}>
+                    <LabelChip text={`${feet} ft`} dim={!isFocused} />
+                </Marker>
+            )}
         </>
     );
 }
@@ -158,6 +260,9 @@ export default function MapScreen({ route, navigation }) {
     const [showPark, setShowPark] = useState(true);
     const [showNearby, setShowNearby] = useState(true);
     const [activeCats, setActiveCats] = useState([]); // nearby category filter
+    const [region, setRegion] = useState(null);
+    const [zoom, setZoom] = useState(16);
+    const [focusedId, setFocusedId] = useState(null);
 
     useEffect(() => {
         let mounted = true;
@@ -227,6 +332,37 @@ export default function MapScreen({ route, navigation }) {
         }
     };
 
+    // Smoothly zoom by a factor (e.g., 0.6 in, 1.4 out)
+    const zoomBy = (factor) => {
+        const init = {
+            latitude: center?.lat || 40,
+            longitude: center?.lng || -111,
+            latitudeDelta: 0.02,
+            longitudeDelta: 0.02,
+        };
+        const cur = region || init;
+
+        // Clamp deltas to reasonable bounds
+        const MIN_DELTA = 0.0008; // tighter -> closer
+        const MAX_DELTA = 0.3;    // looser -> farther
+
+        const nextLatDelta = Math.min(MAX_DELTA, Math.max(MIN_DELTA, cur.latitudeDelta * factor));
+        const nextLngDelta = Math.min(MAX_DELTA, Math.max(MIN_DELTA, cur.longitudeDelta * factor));
+
+        mapRef.current?.animateToRegion(
+            {
+                latitude: cur.latitude,
+                longitude: cur.longitude,
+                latitudeDelta: nextLatDelta,
+                longitudeDelta: nextLngDelta,
+            },
+            180
+        );
+    };
+
+    const zoomIn = () => zoomBy(0.6);  // ~+40%
+    const zoomOut = () => zoomBy(1.4); // ~-40%  
+
     const nearbyCats = useMemo(() => {
         const set = new Set();
         (bundle?.nearbyAmenities || []).forEach(n => (n.categories || []).forEach(c => set.add(c)));
@@ -254,6 +390,26 @@ export default function MapScreen({ route, navigation }) {
 
     const { center, mapFeatures } = bundle;
 
+    // Build a set of feature ids that are allowed to show labels this frame
+    const allowedLabelIds = new Set();
+    {
+        const spacing = labelSpacingMetersForZoom(zoom);
+        const placed = [];
+        const feats = (mapFeatures?.features || [])
+            .filter(f => !shouldSuppressKind(f.properties?.kind, zoom))
+            .sort((a, b) => kindPriority(b.properties?.kind) - kindPriority(a.properties?.kind)); // high first
+
+        for (const f of feats) {
+            const c = llFromCentroid(f);
+            if (!c) continue;
+            const conflict = placed.some(p => haversineMeters(p, c) < spacing);
+            if (!conflict) {
+                allowedLabelIds.add(f.properties?.id);
+                placed.push(c);
+            }
+        }
+    }
+
     return (
         <View style={{ flex: 1 }}>
             <MapView
@@ -265,6 +421,10 @@ export default function MapScreen({ route, navigation }) {
                     latitudeDelta: 0.02,
                     longitudeDelta: 0.02,
                 }}
+                onRegionChangeComplete={(r) => {
+                    setRegion(r);
+                    setZoom(zoomFromDelta(r.longitudeDelta || 0.02));
+                }}
                 onMapReady={() => fitToEverything()}
             >
                 {/* Park features */}
@@ -272,10 +432,11 @@ export default function MapScreen({ route, navigation }) {
                     const { geometry: g, properties: p } = f || {};
                     const key = p?.id || i;
                     const color = KIND_COLORS[p?.kind] || '#334155';
+                    const common = { zoom, focusedId, allowedLabelIds, onPress: setFocusedId };
 
-                    if (g?.type === 'Point') return <PointMarker key={key} feature={f} />;
-                    if (g?.type === 'Polygon') return <PolygonWithLabel key={key} feature={f} color={color} />;
-                    if (g?.type === 'LineString') return <LineWithDistance key={key} feature={f} color={color} />;
+                    if (g?.type === 'Point') return <PointMarker key={key} feature={f} {...common} />;
+                    if (g?.type === 'Polygon') return <PolygonWithLabel key={key} feature={f} color={color} {...common} />;
+                    if (g?.type === 'LineString') return <LineWithDistance key={key} feature={f} color={color} {...common} />;
                     return null;
                 })}
 
@@ -291,6 +452,34 @@ export default function MapScreen({ route, navigation }) {
                     </Marker>
                 ))}
             </MapView>
+
+            {focusedId && (
+                <TouchableOpacity
+                    style={{
+                        position: 'absolute',
+                        right: 12,
+                        top: 12,
+                        padding: 8,
+                        backgroundColor: 'white',
+                        borderRadius: 16,
+                        borderWidth: 1,
+                        borderColor: '#e5e7eb',
+                    }}
+                    onPress={() => setFocusedId(null)}
+                >
+                    <Ionicons name="close" size={18} />
+                </TouchableOpacity>
+            )}
+
+            {/* Zoom controls */}
+            <View style={[styles.zoomControls, { bottom: showNearby ? 72 : 12 }]}>
+                <TouchableOpacity style={styles.zoomBtn} onPress={zoomIn}>
+                    <Ionicons name="add" size={20} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.zoomBtn} onPress={zoomOut}>
+                    <Ionicons name="remove" size={20} />
+                </TouchableOpacity>
+            </View>
 
             {/* Top chips */}
             <View style={styles.topBar}>
@@ -372,4 +561,26 @@ const styles = StyleSheet.create({
     catPillOn: { backgroundColor: '#f0f9ff', borderColor: '#bae6fd' },
     catText: { fontSize: 12, color: '#111827' },
     catTextOn: { color: '#075985', fontWeight: '700' },
+    zoomControls: {
+        position: 'absolute',
+        right: 12,
+        // bottom is set dynamically above
+        alignItems: 'center',
+        gap: 8,
+    },
+    zoomBtn: {
+        backgroundColor: 'white',
+        borderRadius: 16,
+        width: 36,
+        height: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+        elevation: 2,              // Android shadow
+        shadowColor: '#000',       // iOS shadow
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        shadowOffset: { width: 0, height: 1 },
+    },
 });
