@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   View,
@@ -35,6 +35,7 @@ export default function SearchPage() {
   const [searchResults, setSearchResults] = useState({ inCity: [], nearby: [] });
   const [favoriteIds, setFavoriteIds] = useState([]);
   const [displayedQuery, setDisplayedQuery] = useState('');
+  const [searchKind, setSearchKind] = useState('text'); // 'zip' | 'city' | 'state' | 'park' | 'text'
 
   const stateNameToAbbreviation = {
     Alabama: 'AL', Alaska: 'AK', Arizona: 'AZ', Arkansas: 'AR', California: 'CA',
@@ -48,6 +49,54 @@ export default function SearchPage() {
     "Rhode Island": 'RI', "South Carolina": 'SC', "South Dakota": 'SD', Tennessee: 'TN',
     Texas: 'TX', Utah: 'UT', Vermont: 'VT', Virginia: 'VA', Washington: 'WA',
     "West Virginia": 'WV', Wisconsin: 'WI', Wyoming: 'WY',
+  };
+
+  // --- query classification helpers ---
+  const normalize = (s) => (s || '').toLowerCase().trim();
+  const looksLikeZip = (s) => /^\d{5}$/.test(String(s).trim());
+
+  /** Try to parse "City, ST" or "City, StateName" */
+  const parseCityState = (text, abbrMap) => {
+    const t = String(text || '').trim();
+    if (!t) return null;
+    const m = t.match(/^(.+),\s*([A-Za-z]{2}|[A-Za-z .'\-]+)$/);
+    if (!m) return null;
+    const city = m[1].trim();
+    const st = m[2].trim();
+    const abbr = st.length === 2 ? st.toUpperCase() : (abbrMap[st] || null);
+    return { city, state: abbr };
+  };
+
+  /** Rough centroid from a list of parks with GeoJSON Point coords */
+  const getCityCenterFromParks = (parksInCity) => {
+    const pts = parksInCity
+      .map(p => p?.coordinates?.coordinates)
+      .filter(a => Array.isArray(a) && a.length === 2)
+      .map(([lng, lat]) => ({ lat, lon: lng }));
+    if (!pts.length) return null;
+    const lat = pts.reduce((s, p) => s + p.lat, 0) / pts.length;
+    const lon = pts.reduce((s, p) => s + p.lon, 0) / pts.length;
+    return { latitude: lat, longitude: lon };
+  };
+
+  // High-confidence park-name matcher (tighter threshold)
+  const parkNameFuse = useMemo(
+    () => new Fuse(parks, { keys: ['name'], threshold: 0.25, includeScore: true }),
+    [parks]
+  );
+
+  /** Return a strong park match or null */
+  const bestParkByName = (q) => {
+    const trimmed = String(q || '').trim();
+    if (!trimmed) return null;
+    const res = parkNameFuse.search(trimmed, { limit: 3 });
+    if (!res.length) return null;
+    const top = res[0];
+    // "Strong" = good Fuse score OR substring match ignoring case/punct
+    const strong =
+      top.score <= 0.15 ||
+      normalize(top.item.name).includes(normalize(trimmed));
+    return strong ? top.item : null;
   };
 
   const waitForLocation = async (retries = 3, delay = 300) => {
@@ -147,43 +196,141 @@ export default function SearchPage() {
 
     const trimmed = text.trim();
     const capitalized = trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
-    const stateAbbr = stateNameToAbbreviation[capitalized];
-    let searchTerm;
-    if (locationCoords?.city) {
-      searchTerm = locationCoords.city;
-    } else {
-      searchTerm = stateAbbr || capitalized;
-    }
 
-    const coords = locationCoords || await waitForLocation();
-
-    if (coords.latitude && coords.longitude) {
+    // 1) ZIP?
+    if (looksLikeZip(trimmed)) {
+      const loc = locationCoords || await getCoordinatesFromZip(trimmed);
+      if (!loc) {
+        console.warn('ZIP not found');
+        setSearchResults({ inCity: [], nearby: [] });
+        return;
+      }
       try {
         const res = await axios.get('/api/park/searchByCityWithNearby', {
           params: {
-            city: searchTerm,
-            lat: coords.latitude,
-            lon: coords.longitude,
+            city: loc.city || capitalized,     // use city if zip->city lookup returned it
+            lat: loc.latitude,
+            lon: loc.longitude,
           },
         });
-
-        setSearchResults({
-          inCity: res.data.cityMatches,
-          nearby: res.data.nearbyParks,
-        });
+        setSearchResults({ inCity: res.data.cityMatches, nearby: res.data.nearbyParks });
+        setDisplayedQuery(loc.city || trimmed);
+        setSearchKind('zip');
       } catch (err) {
-        console.error('Error in location-based search:', err);
+        console.error('Error in ZIP search:', err);
         setSearchResults({ inCity: [], nearby: [] });
       }
-    } else {
-      const results = fuse.search(trimmed).map(r => r.item);
-      setSearchResults({ inCity: results, nearby: [] });
+      setSearchConfirmed(true);
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+      setQuery(text);
+      if (saveToRecent) await updateRecentSearches(text);
+      return;
     }
 
+    // 2) Park name?
+    const parkMatch = bestParkByName(trimmed);
+    if (parkMatch) {
+      // Use the park's coordinates for the NEARBY section
+      const coordsArr = parkMatch?.coordinates?.coordinates; // [lng, lat]
+      const lng = Array.isArray(coordsArr) ? coordsArr[0] : null;
+      const lat = Array.isArray(coordsArr) ? coordsArr[1] : null;
+
+      try {
+        let nearby = [];
+        if (lat != null && lng != null) {
+          const res = await axios.get('/api/park/searchByCityWithNearby', {
+            params: { city: parkMatch.city, lat, lon: lng },
+          });
+          // avoid duplicating the same park in nearby
+          nearby = (res.data.nearbyParks || []).filter(p => p._id !== parkMatch._id);
+          setSearchResults({ inCity: [parkMatch], nearby });
+        } else {
+          // Fallback: no coords on the park — show just the match locally
+          setSearchResults({ inCity: [parkMatch], nearby: [] });
+        }
+        setDisplayedQuery(parkMatch.name);
+        setSearchKind('park');
+      } catch (err) {
+        console.error('Error in park-name search:', err);
+        setSearchResults({ inCity: [parkMatch], nearby: [] });
+        setDisplayedQuery(parkMatch.name);
+        setSearchKind('park');
+      }
+      setSearchConfirmed(true);
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+      setQuery(text);
+      if (saveToRecent) await updateRecentSearches(text);
+      return;
+    }
+
+    // 3) City, ST (or "City, StateName")?
+    const parsed = parseCityState(trimmed, stateNameToAbbreviation);
+    if (parsed) {
+      // Try to center the nearby search near where our dataset places that city
+      const parksInCity = parks.filter(
+        p =>
+          normalize(p.city) === normalize(parsed.city) &&
+          (!parsed.state || (String(p.state || '').toUpperCase() === parsed.state))
+      );
+      const centerFromData = getCityCenterFromParks(parksInCity);
+      const loc = centerFromData || locationCoords || await waitForLocation();
+
+      try {
+        const res = await axios.get('/api/park/searchByCityWithNearby', {
+          params: {
+            city: parsed.city,
+            lat: loc?.latitude,
+            lon: loc?.longitude,
+          },
+        });
+        setSearchResults({ inCity: res.data.cityMatches, nearby: res.data.nearbyParks });
+      } catch (err) {
+        console.error('Error in city,state search:', err);
+        setSearchResults({ inCity: [], nearby: [] });
+      }
+      setDisplayedQuery(`${parsed.city}${parsed.state ? `, ${parsed.state}` : ''}`);
+      setSearchKind('city');
+      setSearchConfirmed(true);
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+      setQuery(text);
+      if (saveToRecent) await updateRecentSearches(text);
+      return;
+    }
+
+    // 4) Standalone state name?
+    const stateAbbr = stateNameToAbbreviation[capitalized];
+    if (stateAbbr) {
+      const loc = locationCoords || await waitForLocation();
+      try {
+        const res = await axios.get('/api/park/searchByCityWithNearby', {
+          params: {
+            city: stateAbbr, // backend may treat this as a broader filter; adjust if you add a state param server-side
+            lat: loc?.latitude,
+            lon: loc?.longitude,
+          },
+        });
+        setSearchResults({ inCity: res.data.cityMatches, nearby: res.data.nearbyParks });
+      } catch (err) {
+        console.error('Error in state search:', err);
+        setSearchResults({ inCity: [], nearby: [] });
+      }
+      setDisplayedQuery(stateAbbr);
+      setSearchKind('state');
+      setSearchConfirmed(true);
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+      setQuery(text);
+      if (saveToRecent) await updateRecentSearches(text);
+      return;
+    }
+
+    // 5) Fallback: general fuzzy (name/city/state)
+    const results = fuse.search(trimmed).map(r => r.item);
+    setSearchResults({ inCity: results, nearby: [] });
+    setDisplayedQuery(trimmed);
+    setSearchKind('text');
     setSearchConfirmed(true);
     scrollRef.current?.scrollTo({ y: 0, animated: true });
     setQuery(text);
-    setDisplayedQuery(searchTerm);
     if (saveToRecent) await updateRecentSearches(text);
   };
 
@@ -277,7 +424,9 @@ export default function SearchPage() {
             {searchConfirmed ? (
               <View style={styles.allParksContainer}>
                 <Text style={styles.sectionTitle}>
-                  Parks in {displayedQuery.charAt(0).toUpperCase() + displayedQuery.slice(1)}
+                  {searchKind === 'park'
+                    ? 'Park'
+                    : `Parks in ${displayedQuery.charAt(0).toUpperCase() + displayedQuery.slice(1)}`}
                 </Text>
                 {(searchResults.inCity?.length || 0) > 0 ? (
                   searchResults.inCity.map((park) => (
@@ -404,7 +553,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingBottom: 60,
     paddingTop: 80, // adjust based on search bar height
-  },  
+  },
   recentSearchesContainer: { marginBottom: 20, paddingHorizontal: 20 },
   searchItem: {
     flexDirection: 'row',
@@ -462,5 +611,5 @@ const styles = StyleSheet.create({
     backgroundColor: colors.sixty,
     alignItems: 'center',
     paddingBottom: 10,
-  },  
+  },
 });
