@@ -37,6 +37,46 @@ const fullName = (a) => {
 
 export default function ForumPage({ navigation }) {
     const route = useRoute();
+
+    // Apply incoming params on focus (filter or open a post) and clear them.
+    useFocusEffect(
+        React.useCallback(() => {
+            const p = route.params || {};
+
+            // Deep-link straight to a post if provided
+            // if (p.openPostId) {
+            //     navigation.navigate('PostDetails', { postId: p.openPostId });
+            //     navigation.setParams?.({ openPostId: undefined });
+            // }
+
+            // Apply a filter immediately
+            if (p.filter) {
+                const normalized =
+                    p.filter.type === 'park'
+                        ? {
+                            type: 'parks',
+                            parkIds: [p.filter.referencedPark],
+                            parks: [{ _id: p.filter.referencedPark, name: p.filter.parkName }],
+                        }
+                        : p.filter;
+
+                // Reset list so stale items don't flash
+                setLoading(true);
+                setForumPosts([]);
+
+                // This drives your existing fetch useEffect
+                setAppliedFilter(normalized);
+                setPendingFilter(normalized);
+
+                // Jump to top
+                listRef.current?.scrollToOffset?.({ offset: 0, animated: false });
+
+                // Clear params so back nav doesn’t re-apply
+                navigation.setParams?.({ filter: undefined, bump: undefined });
+            }
+        }, [route.params?.openPostId, route.params?.filter, route.params?.bump])
+    );
+
     const { height: screenH } = useWindowDimensions();
     const [dockH, setDockH] = useState(0); // measured bottom dock heigh
     const [forumPosts, setForumPosts] = useState([]);
@@ -205,29 +245,6 @@ export default function ForumPage({ navigation }) {
     }, [appliedFilter, appliedSortBy, appliedOnlyPinned]);
 
     useEffect(() => {
-        const incoming = route?.params?.filter;
-        if (!incoming) return;
-
-        // normalize to multi-park structure
-        const normalized =
-            incoming.type === 'park'
-                ? { type: 'parks', parkIds: [incoming.referencedPark], parks: [{ _id: incoming.referencedPark, name: incoming.parkName }] }
-                : incoming;
-
-        const isDifferent =
-            !appliedFilter ||
-            appliedFilter.type !== normalized.type ||
-            JSON.stringify((appliedFilter.parkIds || []).map(String)) !== JSON.stringify((normalized.parkIds || []).map(String));
-
-        if (isDifferent) {
-            setAppliedFilter(normalized);
-            setPendingFilter(normalized);
-        }
-
-        navigation.setParams && navigation.setParams({ filter: undefined });
-    }, [route?.params?.filter, navigation, appliedFilter]);
-
-    useEffect(() => {
         if (filterSheetOpen) {
             setFilterSheetVisible(true);
             Animated.parallel([
@@ -353,13 +370,44 @@ export default function ForumPage({ navigation }) {
             headerTitleAlign: 'center',
 
             // Show a back chevron only while a post is open
-            headerLeft: selectedPost
-                ? () => (
-                    <TouchableOpacity onPress={closeModal} style={{ paddingLeft: 8 }}>
+            // Show a back chevron only while a post is open
+            headerLeft: () => {
+                if (selectedPost) {
+                    const from = route.params?.returnTo;
+                    const onBackFromPost = () => {
+                        if (from?.name) {
+                            setSelectedPost(null); // clear overlay state
+                            navigation.navigate(from.name, from.params || {});
+                        } else {
+                            closeModal(); // fallback to closing the in-page post
+                        }
+                    };
+                    return (
+                        <TouchableOpacity onPress={onBackFromPost} style={{ paddingLeft: 8 }}>
+                            <Ionicons name="chevron-back" size={24} color="#333" />
+                        </TouchableOpacity>
+                    );
+                }
+
+                // (keep your existing else/returnTo logic for the list screen)
+                const from = route.params?.returnTo;
+                const canGoBack = navigation.canGoBack?.() || !!from;
+                if (!canGoBack) return null;
+
+                const onBack = () => {
+                    if (from?.name) {
+                        navigation.navigate(from.name, from.params || {});
+                    } else {
+                        navigation.goBack();
+                    }
+                };
+
+                return (
+                    <TouchableOpacity onPress={onBack} style={{ paddingLeft: 8 }}>
                         <Ionicons name="chevron-back" size={24} color="#333" />
                     </TouchableOpacity>
-                )
-                : undefined,
+                );
+            },
 
             // Hide filter while viewing a post
             headerRight: () =>
@@ -414,21 +462,21 @@ export default function ForumPage({ navigation }) {
 
     useFocusEffect(
         React.useCallback(() => {
-            const params = navigation.getState()?.routes?.find(r => r.name === 'Forum')?.params;
+            const params = route.params || {};
 
-            // handle a brand-new post coming back from the composer
-            if (params?.newPost) {
+            if (params.newPost) {
                 insertNewPost(params.newPost);
-                navigation.setParams && navigation.setParams({ newPost: undefined });
+                navigation.setParams?.({ newPost: undefined });
             }
 
-            // your existing openPostId behavior
-            if (params?.openPostId && forumPosts.length > 0) {
+            if (params.openPostId && forumPosts.length > 0) {
                 const match = forumPosts.find((p) => p._id === params.openPostId);
-                if (match) setSelectedPost(match);
-                navigation.setParams && navigation.setParams({ openPostId: null });
+                if (match) {
+                    setSelectedPost(match);
+                    navigation.setParams?.({ openPostId: undefined });
+                }
             }
-        }, [forumPosts, insertNewPost])
+        }, [route.params?.newPost, route.params?.openPostId, forumPosts, insertNewPost])
     );
 
     useEffect(() => {
@@ -459,17 +507,24 @@ export default function ForumPage({ navigation }) {
     }, [selectedPost]);
 
     useEffect(() => {
-        if (selectedPost) {
-            setDockH(0);
-        }
+        if (selectedPost) setDockH(0);
 
         const onBack = () => {
-            if (selectedPost) { closeModal(); return true; }
-            return false;
+            if (!selectedPost) return false;
+
+            const from = route.params?.returnTo;
+            if (from?.name) {
+                setSelectedPost(null);
+                navigation.navigate(from.name, from.params || {});
+            } else {
+                closeModal();
+            }
+            return true;
         };
+
         const sub = BackHandler.addEventListener('hardwareBackPress', onBack);
         return () => sub.remove();
-    }, [selectedPost]);
+    }, [selectedPost, route.params?.returnTo, navigation, closeModal]);
 
     useEffect(() => {
         if (!filterSheetVisible) {
@@ -896,7 +951,22 @@ export default function ForumPage({ navigation }) {
                                                         style={[styles.parkChip, { marginTop: 8 }]}
                                                         activeOpacity={0.7}
                                                     >
-                                                        …
+                                                        <View style={styles.parkChipLeft}>
+                                                            <Ionicons name="location-outline" size={16} color="#f28b02" />
+                                                            <View style={{ marginLeft: 8, flex: 1 }}>
+                                                                <Text numberOfLines={1} style={styles.parkChipName}>
+                                                                    {selectedPost.referencedPark.name}
+                                                                </Text>
+                                                                {(selectedPost.referencedPark.city || selectedPost.referencedPark.state) && (
+                                                                    <Text numberOfLines={1} style={styles.parkChipSub}>
+                                                                        {selectedPost.referencedPark.city}
+                                                                        {selectedPost.referencedPark.city && selectedPost.referencedPark.state ? ', ' : ''}
+                                                                        {selectedPost.referencedPark.state}
+                                                                    </Text>
+                                                                )}
+                                                            </View>
+                                                        </View>
+                                                        <Ionicons name="chevron-forward" size={16} color="#bbb" />
                                                     </TouchableOpacity>
                                                 )}
                                             </View>
@@ -938,7 +1008,7 @@ export default function ForumPage({ navigation }) {
                                         />
                                     </Animated.View>
                                 </View>
-                                
+
                                 <View style={{ height: 30 }} pointerEvents="none" />
 
                             </View>

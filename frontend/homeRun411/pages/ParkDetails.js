@@ -91,9 +91,8 @@ export default function ParkDetails({ route, navigation }) {
         // optional: cap the preview shown in the card
         const PREVIEW_LIMIT = 5;
         setPostsPreview(filtered.slice(0, PREVIEW_LIMIT));
-
-        setPostsPreview(filtered);
         setPostsCount(filtered.length);
+
       } catch (e) {
         console.log('Failed to load park-related posts', e?.response?.data || e.message);
       } finally {
@@ -219,6 +218,19 @@ export default function ParkDetails({ route, navigation }) {
     } catch (err) {
       console.error('Failed to check favorite status:', err.message);
     }
+  };
+
+  const openPost = (post) => {
+    if (!post?._id) return;
+    navigation.navigate('Tabs', {
+      screen: 'Forum',
+      params: {
+        openPostId: post._id,
+        bump: Date.now(),
+        // so Forum can put a back button that returns here:
+        returnTo: { name: 'ParkDetails', params: { parkId: park._id, id: park._id, park } },
+      },
+    });
   };
 
   const openMapsApp = () => {
@@ -367,7 +379,7 @@ export default function ParkDetails({ route, navigation }) {
           {/* Community Q&A (park-related posts) */}
           <View style={styles.qaCard}>
             <View style={styles.qaHeader}>
-              <Text style={styles.qaTitle}>Community Q&A</Text>
+              <Text style={styles.qaTitle}>Park Q&A</Text>
               {loadingPosts ? (
                 <ActivityIndicator size="small" />
               ) : (
@@ -383,33 +395,34 @@ export default function ParkDetails({ route, navigation }) {
               postsPreview.map(p => (
                 <View key={p._id} style={styles.qaItem}>
                   <Ionicons name="chatbubble-ellipses-outline" size={16} color="#51607A" />
-                  <Text numberOfLines={2} style={styles.qaItemText}>
+                  <Text
+                    numberOfLines={2}
+                    style={styles.qaItemLink}
+                    accessibilityRole="link"
+                    onPress={() => openPost(p)}
+                  >
                     {p.title || '(no subject)'}
                   </Text>
                 </View>
               ))
             )}
 
-            <TouchableOpacity
-              style={styles.qaButton}
+            <Text
+              style={styles.qaViewAllLink}
+              accessibilityRole="link"
               onPress={() => {
-                // Deep link to Forum tab with filter for this park
                 navigation.navigate('Tabs', {
                   screen: 'Forum',
                   params: {
-                    filter: {
-                      type: 'park',
-                      referencedPark: park._id,
-                      parkName: park.name,
-                    },
+                    filter: { type: 'park', referencedPark: park._id, parkName: park.name },
+                    bump: Date.now(),
+                    returnTo: { name: 'ParkDetails', params: { parkId: park._id, id: park._id, park } },
                   },
                 });
               }}
             >
-              <Text style={styles.qaButtonText}>
-                View all posts about {park.name}
-              </Text>
-            </TouchableOpacity>
+              View All Posts
+            </Text>
           </View>
 
           {/* Amenities & Features */}
@@ -821,5 +834,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#475569',
     marginTop: 2,
+  },
+  qaItemLink: {
+    fontSize: 13,
+    color: '#0f172a',
+    textDecorationLine: 'underline',
+    flex: 1,
+  },
+  qaViewAllLink: {
+    marginTop: 8,
+    fontSize: 13,
+    color: '#1d4ed8',
+    textDecorationLine: 'underline',
+    alignSelf: 'flex-start',
   },
 });
