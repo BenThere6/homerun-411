@@ -68,9 +68,24 @@ function labelSpacingMetersForZoom(z) {
 
 function shouldSuppressKind(kind, z) {
     const k = String(kind || '').toLowerCase();
-    // Hide generic non-baseball context by default unless very close
+
+    // At far zoom, only show essentials
+    if (z < 15) {
+        const essentials = new Set(['parking', 'parking_entrance', 'entrance', 'restroom', 'boundary', 'field']);
+        return !essentials.has(k);
+    }
+
+    // At mid zoom, still hide fine-grained stuff
+    if (z < 16.5) {
+        if (['distance_marker', 'bullpen', 'batting_cage', 'concession', 'playground'].includes(k)) return true;
+    }
+
+    // Context objects stay hidden until very close
     if (/football|tennis/.test(k)) return z < 17.2;
-    if (k === 'distance_marker') return z < 16.8; // only close
+
+    // Distance lines only at "detail"
+    if (k === 'distance_marker') return z < 16.6;
+
     return false;
 }
 
@@ -210,10 +225,11 @@ function LineWithDistance({ feature, color, zoom, focusedId, allowedLabelIds, on
 
     const isFocused = focusedId === p?.id;
     const lod = lodForZoom(zoom);
-    const showLabel =
-        isFocused ||
-        (zoom >= 16.6 && allowedLabelIds.has(p?.id));
 
+    // Don’t even render the line at overview/mid unless focused
+    if (lod !== 'detail' && !isFocused) return null;
+
+    const showLabel = isFocused || lod === 'detail';
 
     if (shouldSuppressKind(p?.kind, zoom)) return null;
 
