@@ -7,6 +7,7 @@ const Comment = require('../../models/Comment');
 const User = require('../../models/User');
 const auth = require('../../middleware/auth');
 const isAdmin = require('../../middleware/isAdmin');
+const Notification = require('../../models/Notification');
 
 // Middleware function to fetch post by ID
 async function getPost(req, res, next) {
@@ -64,8 +65,13 @@ router.post('/:postId/comments', auth, async (req, res) => {
     const { postId } = req.params;
     const { content } = req.body;
 
-    const user = await User.findById(req.user.id);
+    const [user, post] = await Promise.all([
+      User.findById(req.user.id).select('profile.firstName profile.lastName profile.avatarUrl'),
+      Post.findById(postId).select('author title'),
+    ]);
+
     if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!post) return res.status(404).json({ message: 'Post not found' });
 
     const comment = await Comment.create({
       referencedPost: postId,
@@ -74,6 +80,29 @@ router.post('/:postId/comments', auth, async (req, res) => {
     });
 
     const populated = await comment.populate('author', 'profile.firstName profile.lastName');
+
+    // create notification for post owner (avoid self-notify)
+    if (String(post.author) !== String(req.user.id)) {
+      const notif = await Notification.create({
+        user: post.author,
+        actor: req.user.id,
+        type: 'comment',
+        post: postId,
+        comment: comment._id,
+      });
+
+      // emit to the post owner’s room
+      const io = req.app.get('io');
+      io?.to(`user:${post.author}`).emit('notification:new', {
+        _id: notif._id,
+        type: 'comment',
+        createdAt: notif.createdAt,
+        actor: { _id: req.user.id, profile: user.profile },
+        post: { _id: postId, title: post.title },
+        comment: { _id: comment._id, content: comment.content },
+      });
+    }
+
     res.status(201).json(populated);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -86,15 +115,50 @@ router.post('/:postId/like', auth, async (req, res) => {
     const { postId } = req.params;
     const userId = req.user.id;
 
-    const post = await Post.findById(postId).select('likes');
+    const post = await Post.findById(postId).select('likes author title');
     if (!post) return res.status(404).json({ message: 'Post not found' });
 
     const already = post.likes.some(id => id.equals(userId));
-    if (already) post.likes.pull(userId);
-    else post.likes.push(userId);
+    if (already) {
+      post.likes.pull(userId);
+      await post.save();
+      return res.json({ liked: false, likesCount: post.likes.length });
+    }
 
+    post.likes.push(userId);
     await post.save();
-    res.json({ liked: !already, likesCount: post.likes.length });
+
+    // Notify only when a new like happens, and not for self
+    if (String(post.author) !== String(userId)) {
+      // upsert style: find-or-create to avoid dupes
+      const exists = await Notification.findOne({
+        user: post.author,
+        actor: userId,
+        post: postId,
+        type: 'like',
+      });
+      if (!exists) {
+        const notif = await Notification.create({
+          user: post.author,
+          actor: userId,
+          type: 'like',
+          post: postId,
+        });
+
+        const actor = await User.findById(userId).select('profile.firstName profile.lastName profile.avatarUrl');
+
+        const io = req.app.get('io');
+        io?.to(`user:${post.author}`).emit('notification:new', {
+          _id: notif._id,
+          type: 'like',
+          createdAt: notif.createdAt,
+          actor: { _id: userId, profile: actor?.profile },
+          post: { _id: postId, title: post.title },
+        });
+      }
+    }
+
+    res.json({ liked: true, likesCount: post.likes.length });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

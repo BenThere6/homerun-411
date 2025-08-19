@@ -24,6 +24,7 @@ import api, { setUnauthorizedHandler } from './utils/axiosInstance';
 import HomePlateIcon from './components/icons/HomePlateIcon';
 import HomePlateIcon_Selected from './components/icons/HomePlateIcon_Selected';
 import { initUserLocation } from './utils/initUserLocation';
+import { connectSocket } from './utils/socket';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -75,6 +76,7 @@ function TabsNavigator() {
 
 // Main App Navigation with Stack
 export default function App() {
+  useEffect(() => { connectSocket(); }, []);
   return (
     <AuthProvider>
       <NavigationContainer>

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons'; // Icon library for icons
 import { useNavigation } from '@react-navigation/native'; // For navigation
 import colors from '../assets/colors'; // Importing the color variables
 import { useState } from 'react';
+import NotificationsBell from './NotificationsBell';
 
 export default function Header() {
   const navigation = useNavigation(); // Hook for navigation
@@ -38,7 +39,7 @@ export default function Header() {
 
       {/* Notification Icon (Touchable) */}
       <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
-        <Ionicons name="notifications-outline" size={24} color={colors.primaryText} style={styles.notificationIcon} />
+        <NotificationsBell navigation={navigation} />
       </TouchableOpacity>
     </View>
   );
