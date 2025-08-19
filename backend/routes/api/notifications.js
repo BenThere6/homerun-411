@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../../middleware/auth');
-const Notification = require('../models/Notification');
+const Notification = require('../../models/Notification');
 
 // GET /api/notifications?unreadOnly=true&limit=20
 router.get('/', auth, async (req, res) => {
