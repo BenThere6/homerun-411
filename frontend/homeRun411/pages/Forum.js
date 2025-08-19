@@ -155,7 +155,24 @@ export default function ForumPage({ navigation }) {
                 {fullName(item.author)}
                 <Text style={{ color: '#94a3b8' }}> · {formatForumDate(item.createdAt)}</Text>
             </Text>
+
             <Text style={styles.commentText}>{item.content ?? item.text ?? ''}</Text>
+
+            {/* NEW: comment meta row (like) */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+                <TouchableOpacity
+                    onPress={() => toggleCommentLike(item._id)}
+                    style={[styles.metaBtn, { paddingVertical: 4, paddingHorizontal: 8 }]}
+                    activeOpacity={0.7}
+                >
+                    <Ionicons
+                        name={item.liked ? 'heart' : 'heart-outline'}
+                        size={14}
+                        color={item.liked ? '#e11d48' : '#333'}
+                    />
+                    <Text style={[styles.metaBtnText, { marginLeft: 6 }]}>{item.likesCount ?? 0}</Text>
+                </TouchableOpacity>
+            </View>
         </View>
     );
 
@@ -298,6 +315,21 @@ export default function ForumPage({ navigation }) {
         return tokens.every(t => hay.includes(t));
     };
 
+    const toggleCommentLike = async (commentId) => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            if (!token) return;
+
+            const { data } = await axios.post(`/api/comment/${commentId}/like`, {});
+            // Update just that comment in state
+            setComments(prev => prev.map(c =>
+                c._id === commentId ? { ...c, liked: data.liked, likesCount: data.likesCount } : c
+            ));
+        } catch (e) {
+            // optional Alert/Toast
+        }
+    };
+
     // Debounced park search with endpoint/param fallbacks
     useEffect(() => {
         let cancelled = false;
@@ -376,10 +408,14 @@ export default function ForumPage({ navigation }) {
                     const from = route.params?.returnTo;
                     const onBackFromPost = () => {
                         if (from?.name) {
-                            setSelectedPost(null); // clear overlay state
-                            navigation.navigate(from.name, from.params || {});
+                            setSelectedPost(null);
+                            if (from?.pop) {
+                                navigation.goBack();
+                            } else {
+                                navigation.navigate(from.name, from.params || {});
+                            }
                         } else {
-                            closeModal(); // fallback to closing the in-page post
+                            closeModal();
                         }
                     };
                     return (
@@ -479,13 +515,53 @@ export default function ForumPage({ navigation }) {
         }, [route.params?.newPost, route.params?.openPostId, forumPosts, insertNewPost])
     );
 
+    useFocusEffect(
+        React.useCallback(() => {
+            // If we arrived to Forum normally (no post open), nuke any stale returnTo/openPostId
+            if (!selectedPost && (route.params?.returnTo || route.params?.openPostId)) {
+                navigation.setParams?.({ returnTo: undefined, openPostId: undefined });
+            }
+        }, [selectedPost, route.params?.returnTo, route.params?.openPostId, navigation])
+    );
+
+    useFocusEffect(
+        React.useCallback(() => {
+            return () => {
+                // On leaving Forum, don’t leave behind a returnTo that can hijack the next visit
+                navigation.setParams?.({ returnTo: undefined, openPostId: undefined });
+            };
+        }, [navigation])
+    );
+
     useEffect(() => {
         const load = async () => {
             if (!selectedPost?._id) return;
             try {
-                const { data: cmts } = await axios.get(`/api/post/${selectedPost._id}/comments`);
-                setComments(cmts || []);
+                const { data: cmtsRaw } = await axios.get(`/api/post/${selectedPost._id}/comments`);
+
                 const token = await AsyncStorage.getItem('token');
+
+                // Start with baseline counts (works even if not logged in)
+                let cmts = (cmtsRaw || []).map(c => ({
+                    ...c,
+                    likesCount: Array.isArray(c.likes) ? c.likes.length : (c.likesCount ?? 0),
+                    liked: false,
+                }));
+
+                // If logged in, fetch liked status per comment (simple + clear)
+                if (token) {
+                    cmts = await Promise.all(cmts.map(async (c) => {
+                        try {
+                            const { data } = await axios.get(`/api/comment/${c._id}/liked`);
+                            return { ...c, liked: !!data?.liked, likesCount: data?.likesCount ?? c.likesCount };
+                        } catch {
+                            return c;
+                        }
+                    }));
+                }
+
+                setComments(cmts);
+
                 if (token) {
                     const { data } = await axios.get(`/api/post/${selectedPost._id}/liked`, {
                         headers: { Authorization: `Bearer ${token}` },
@@ -515,8 +591,15 @@ export default function ForumPage({ navigation }) {
             const from = route.params?.returnTo;
             if (from?.name) {
                 setSelectedPost(null);
-                navigation.navigate(from.name, from.params || {});
+                if (from?.pop) {
+                    // came from Notifications -> post; pop back to Notifications
+                    navigation.goBack();
+                } else {
+                    // normal: navigate to the named screen
+                    navigation.navigate(from.name, from.params || {});
+                }
             } else {
+                // no special origin: just close the in-page post view
                 closeModal();
             }
             return true;

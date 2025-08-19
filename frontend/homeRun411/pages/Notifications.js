@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useLayoutEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, SafeAreaView, TouchableOpacity, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from '../utils/axiosInstance';
@@ -31,25 +31,52 @@ export default function NotificationsPage({ navigation }) {
     setRefreshing(false);
   };
 
-  const markAllRead = async () => {
+  // mark a single notification as read (optimistic)
+  const markOneRead = async (id) => {
+    // optimistic UI
+    setItems(prev => prev.map(n => n._id === id ? { ...n, read: true } : n));
+    try {
+      // preferred REST shape
+      await axios.patch(`/api/notifications/${id}/read`);
+    } catch {
+      // fallback API (uncomment if your backend uses this shape)
+      // try { await axios.patch('/api/notifications/read-one', { id }); } catch {}
+    }
+  };
+
+  const markAllRead = useCallback(async () => {
     try {
       await axios.patch('/api/notifications/read-all');
       await load();
     } catch { }
-  };
+  }, [load]);
 
-  const goToPost = (n) => {
-    navigation.navigate('Forum', { openPostId: n?.post?._id });
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity onPress={markAllRead} style={{ marginRight: 16 }}>
+          <Text style={{ color: '#334155', fontWeight: '700' }}>Mark all read</Text>
+        </TouchableOpacity>
+      ),
+      title: 'Notifications',
+    });
+  }, [navigation, markAllRead]);
+
+  const goToPost = async (n) => {
+    if (!n) return;
+    // 1) mark this specific notification as read (optimistic)
+    await markOneRead(n._id);
+
+    // 2) open the post in Forum AND tell Forum how to get back here
+    navigation.navigate('Forum', {
+      openPostId: n?.post?._id,
+      // tell Forum we should POP back to this screen (not push)
+      returnTo: { name: 'Notifications', pop: true },
+    });
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.topBar}>
-        <Text style={styles.title}>Notifications</Text>
-        <TouchableOpacity onPress={markAllRead} style={styles.markAllBtn}>
-          <Text style={styles.markAllText}>Mark all read</Text>
-        </TouchableOpacity>
-      </View>
 
       <ScrollView
         contentContainerStyle={styles.scrollContainer}

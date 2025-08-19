@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const Comment = require('../../models/Comment');
 const auth = require('../../middleware/auth');
+const User = require('../../models/User');
+const Notification = require('../../models/Notification');
 
 // Middleware function to fetch a comment by ID
 async function getComment(req, res, next) {
@@ -69,6 +71,80 @@ router.delete('/:id', auth, getComment, async (req, res) => {
       return res.status(404).json({ message: 'Comment not found' });
     }
     res.json({ message: 'Comment deleted successfully', deletedComment });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Toggle like/unlike a comment
+router.post('/:id/like', auth, async (req, res) => {
+  try {
+    const commentId = req.params.id;
+    const userId = req.user.id;
+
+    const comment = await Comment.findById(commentId).select('author likes referencedPost');
+    if (!comment) return res.status(404).json({ message: 'Comment not found' });
+
+    const already = comment.likes.some(id => String(id) === String(userId));
+    if (already) {
+      // Unlike
+      comment.likes.pull(userId);
+      await comment.save();
+      return res.json({ liked: false, likesCount: comment.likes.length });
+    }
+
+    // Like
+    comment.likes.addToSet(userId);
+    await comment.save();
+
+    // Notify the comment author (avoid self-notify)
+    if (String(comment.author) !== String(userId)) {
+      // upsert-style: avoid duplicate like notifications from same actor on same comment
+      const exists = await Notification.findOne({
+        user: comment.author,
+        actor: userId,
+        comment: comment._id,
+        type: 'comment_like',
+      });
+
+      if (!exists) {
+        const notif = await Notification.create({
+          user: comment.author,        // recipient (comment owner)
+          actor: userId,               // the one who liked
+          type: 'comment_like',
+          post: comment.referencedPost,
+          comment: comment._id,
+        });
+
+        // include basic actor profile in the socket payload
+        const actor = await User.findById(userId).select('profile.firstName profile.lastName profile.avatarUrl');
+
+        const io = req.app.get('io');
+        io?.to(`user:${comment.author}`).emit('notification:new', {
+          _id: notif._id,
+          type: 'comment_like',
+          createdAt: notif.createdAt,
+          actor: { _id: userId, profile: actor?.profile },
+          post: { _id: String(comment.referencedPost) },
+          comment: { _id: String(comment._id) },
+        });
+      }
+    }
+
+    res.json({ liked: true, likesCount: comment.likes.length });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Has current user liked this comment?
+router.get('/:id/liked', auth, async (req, res) => {
+  try {
+    const comment = await Comment.findById(req.params.id).select('likes');
+    if (!comment) return res.status(404).json({ message: 'Comment not found' });
+
+    const liked = comment.likes.some(id => String(id) === String(req.user.id));
+    res.json({ liked, likesCount: comment.likes.length });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
