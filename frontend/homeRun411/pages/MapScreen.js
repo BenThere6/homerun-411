@@ -11,6 +11,10 @@ import length from '@turf/length';
 import along from '@turf/along';
 import { lineString as turfLine } from '@turf/helpers';
 
+// Sensible default zoom when we only have a single point (park center)
+const DEFAULT_LAT_DELTA = 0.005;  // ~neighborhood scale
+const DEFAULT_LNG_DELTA = 0.005;
+
 // --- LOD + declutter helpers ---
 function zoomFromDelta(longitudeDelta) {
     // Web-mercator-ish approximation; RN Maps uses deltas, so this is fine.
@@ -340,11 +344,22 @@ export default function MapScreen({ route, navigation }) {
             }
         });
 
-        if (points.length > 0) {
+        if (points.length >= 2) {
             mapRef.current.fitToCoordinates(points, {
                 edgePadding: { top: 60, right: 60, bottom: 60, left: 60 },
                 animated: true,
             });
+        } else if (points.length === 1) {
+            const [p] = points;
+            mapRef.current.animateToRegion(
+                {
+                    latitude: p.latitude,
+                    longitude: p.longitude,
+                    latitudeDelta: DEFAULT_LAT_DELTA,
+                    longitudeDelta: DEFAULT_LNG_DELTA,
+                },
+                300
+            );
         }
     };
 
