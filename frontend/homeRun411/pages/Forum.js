@@ -42,7 +42,8 @@ const PostHeader = ({
     hasLiked,
     likesCount,
     onPressPark,
-    showInlineActions = false, // keep for future use; default hidden
+    onTogglePin,
+    pinDisabled,
 }) => {
     if (!post) return null;
     return (
@@ -124,18 +125,28 @@ const PostHeader = ({
                 </View>
             )}
 
-            {/* inline actions hidden by default (we only use the dock) */}
-            {showInlineActions && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 2 }}>
-                    <TouchableOpacity onPress={onToggleLike} style={{
-                        flexDirection: 'row', alignItems: 'center',
-                        paddingVertical: 6, paddingHorizontal: 8, borderRadius: 8, backgroundColor: '#f5f5f5'
-                    }}>
-                        <Ionicons name={hasLiked ? 'heart' : 'heart-outline'} size={16} color={hasLiked ? '#e11d48' : '#333'} />
-                        <Text style={{ marginLeft: 6, color: '#333', fontWeight: '600' }}>{likesCount}</Text>
-                    </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6, marginBottom: 6 }}>
+                <TouchableOpacity onPress={onToggleLike} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 8, borderRadius: 8, backgroundColor: '#f5f5f5' }}>
+                    <Ionicons name={hasLiked ? 'heart' : 'heart-outline'} size={16} color={hasLiked ? '#e11d48' : '#333'} />
+                    <Text style={{ marginLeft: 6, color: '#333', fontWeight: '600' }}>{likesCount}</Text>
+                </TouchableOpacity>
+
+                <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 8, borderRadius: 8, backgroundColor: '#f5f5f5' }}>
+                    <Ionicons name="chatbubble-outline" size={16} color="#333" />
+                    <Text style={{ marginLeft: 6, color: '#333', fontWeight: '600' }}>{post.commentsCount ?? 0}</Text>
                 </View>
-            )}
+
+                <TouchableOpacity
+                    disabled={pinDisabled}
+                    onPress={onTogglePin}
+                    style={[{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 8, borderRadius: 8, backgroundColor: '#f5f5f5' }, pinDisabled && { opacity: 0.5 }]}
+                >
+                    <Ionicons name="pin" size={16} color={pinDisabled ? '#aaa' : '#666'} />
+                    <Text style={{ marginLeft: 6, color: pinDisabled ? '#aaa' : '#666', fontWeight: '600' }}>
+                        {post.pinned ? 'Pinned' : 'Pin'}
+                    </Text>
+                </TouchableOpacity>
+            </View>
 
             {/* divider before comments */}
             <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: '#e5e7eb', marginTop: 12 }} />
@@ -314,7 +325,7 @@ export default function ForumPage({ navigation }) {
     // derived bottoms (subtract the safe-area once)
     const tabTop = Math.max(0, tabH - insets.bottom);   // top edge of tab bar
     const kbTop = Math.max(0, kbH - insets.bottom);    // top edge of keyboard
-    const lift = (kbH > 0 ? kbTop : tabTop) - insets.bottom + 10;
+    const lift = (kbH > 0 ? kbTop : tabTop) - insets.bottom;
 
     // animate the dock's bottom offset
     const dockBottomA = useRef(new Animated.Value(lift)).current;
@@ -909,6 +920,7 @@ export default function ForumPage({ navigation }) {
                 return next;
             });
             setCommentText('');
+            setTimeout(() => commentsRef.current?.scrollToEnd({ animated: true }), 0);
         } catch (e) {
             // you can Alert here if you want
         } finally {
@@ -1099,6 +1111,8 @@ export default function ForumPage({ navigation }) {
         </TouchableOpacity>
     );
 
+    const commentsRef = useRef(null);
+
     return (
         <SafeAreaView style={styles.container}>
             {loading ? (
@@ -1109,10 +1123,7 @@ export default function ForumPage({ navigation }) {
                     data={forumPosts}
                     renderItem={renderPost}
                     keyExtractor={(item) => item._id}
-                    contentContainerStyle={{
-                        // keep content clear of the dock; only add tab bar space when keyboard is closed
-                        paddingBottom: dockH + (kbH > 0 ? 0 : tabTop),
-                    }}
+                    contentContainerStyle={{ paddingBottom: tabH }}
                     ListHeaderComponent={null}
                     refreshControl={
                         <RefreshControl
@@ -1133,18 +1144,23 @@ export default function ForumPage({ navigation }) {
                     style={[
                         StyleSheet.absoluteFill,
                         {
-                            top: -insets.top,
-                            bottom: -insets.bottom,
+                            top: 0,
+                            bottom: 0,
                             backgroundColor: '#fff',
                             zIndex: 1000,
                             elevation: 1000,
                         },
                     ]}
                 >
-                    <View style={{ flex: 1 }}>
-                        {/* Content + comments */}
-                        <View style={{ flex: 1, paddingTop: headerH - 20 }}>
+                    <KeyboardAvoidingView
+                        style={{ flex: 1 }}
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        keyboardVerticalOffset={headerH} // keeps composer above the keyboard, like other screens
+                    >
+                        {/* Content */}
+                        <View style={{ flex: 1 }}>
                             <FlatList
+                                ref={commentsRef}
                                 data={comments}
                                 keyExtractor={(c, i) => c?._id ?? String(i)}
                                 renderItem={({ item }) => (
@@ -1157,6 +1173,8 @@ export default function ForumPage({ navigation }) {
                                         hasLiked={hasLiked}
                                         likesCount={likesCount}
                                         onPressPark={goToRealParkDetails}
+                                        onTogglePin={onTogglePin}
+                                        pinDisabled={pinDisabled}
                                     />
                                 }
                                 ListEmptyComponent={
@@ -1165,53 +1183,21 @@ export default function ForumPage({ navigation }) {
                                     </View>
                                 }
                                 keyboardShouldPersistTaps="handled"
-                                contentContainerStyle={{
-                                    // keep content clear of both the dock and what's under it
-                                    paddingBottom: dockH + (kbH > 0 ? kbTop : tabTop),
-                                }}
+                                contentContainerStyle={{ paddingBottom: 8 }} // no special math needed
                                 showsVerticalScrollIndicator
                             />
                         </View>
 
-                        {/* Absolutely pinned dock; measure its height once and
-                            lift it exactly to the keyboard top — no bouncing */}
-                        <Animated.View
-                            onLayout={e => setDockH(e.nativeEvent.layout.height)}
-                            style={[
-                                styles.absoluteDock,
-                                { bottom: dockBottomA },
-                            ]}
-                        >
-                            <View style={[styles.chipsRow, { paddingHorizontal: 12, paddingTop: 8 }]}>
-                                <TouchableOpacity onPress={toggleLike} style={styles.metaBtn}>
-                                    <Ionicons name={hasLiked ? 'heart' : 'heart-outline'} size={16} color={hasLiked ? '#e11d48' : '#333'} />
-                                    <Text style={styles.metaBtnText}>{likesCount}</Text>
-                                </TouchableOpacity>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 8, borderRadius: 8, backgroundColor: '#f5f5f5' }}>
-                                    <Ionicons name="chatbubble-outline" size={16} color="#333" />
-                                    <Text style={styles.metaBtnText}>{comments.length}</Text>
-                                </View>
-                                <TouchableOpacity
-                                    disabled={pinDisabled}
-                                    onPress={onTogglePin}
-                                    style={[styles.metaBtn, pinDisabled && styles.metaBtnDisabled]}
-                                >
-                                    <Ionicons name="pin" size={16} color={pinDisabled ? '#aaa' : (hasLiked ? '#e74c3c' : '#666')} />
-                                    <Text style={[styles.metaBtnText, { color: pinDisabled ? '#aaa' : '#666' }]}>{isPinned ? 'Pinned' : 'Pin'}</Text>
-                                </TouchableOpacity>
-                            </View>
-
-                            <Composer
-                                value={commentText}
-                                onChangeText={setCommentText}
-                                onSend={submitComment}
-                                disabled={submitting}
-                            />
-                        </Animated.View>
-                    </View>
+                        {/* Bottom comment bar (only this stays fixed) */}
+                        <Composer
+                            value={commentText}
+                            onChangeText={setCommentText}
+                            onSend={submitComment}
+                            disabled={submitting}
+                        />
+                    </KeyboardAvoidingView>
                 </View>
-            )
-            }
+            )}
 
             {/* FILTER SHEET (slides) */}
             <Modal
