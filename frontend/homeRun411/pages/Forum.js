@@ -35,6 +35,165 @@ const fullName = (a) => {
     return n || 'Anonymous';
 };
 
+/** --- Small helpers for the Post Details screen --- **/
+const PostHeader = ({ post, onToggleLike, hasLiked, likesCount, onPressPark }) => {
+    if (!post) return null;
+    return (
+        <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8 }}>
+            {/* author + date (single line) */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                {post.author?.profile?.avatarUrl ? (
+                    <Image source={{ uri: post.author.profile.avatarUrl }} style={{ width: 36, height: 36, borderRadius: 9, marginRight: 10 }} />
+                ) : (
+                    <Image source={{ uri: 'https://cdn-icons-png.flaticon.com/512/149/149071.png' }} style={{ width: 36, height: 36, borderRadius: 9, marginRight: 10 }} />
+                )}
+                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+                    <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: '600', color: '#475569', flexShrink: 1, marginRight: 8 }}>
+                        {fullName(post.author)}
+                    </Text>
+                    <Text numberOfLines={1} style={{ fontSize: 12, color: '#94a3b8' }}>
+                        {formatForumDate(post.createdAt)}
+                    </Text>
+                </View>
+            </View>
+
+            {/* title */}
+            {!!post.title && (
+                <Text style={{ fontSize: 17, fontWeight: '600', color: '#111', lineHeight: 22, marginBottom: 6 }}>
+                    {post.title}
+                </Text>
+            )}
+
+            {/* pinned */}
+            {post.pinned && (
+                <View style={{
+                    flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start',
+                    backgroundColor: '#fff7ed', borderColor: '#fed7aa', borderWidth: 1,
+                    paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginBottom: 6
+                }}>
+                    <Ionicons name="pin" size={12} color="#b45309" />
+                    <Text style={{ marginLeft: 4, fontSize: 12, color: '#b45309', fontWeight: '600' }}>Pinned</Text>
+                </View>
+            )}
+
+            {/* park chip */}
+            {post.referencedPark && (
+                <TouchableOpacity onPress={() => onPressPark(post.referencedPark)}
+                    style={{
+                        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                        paddingVertical: 10, paddingHorizontal: 12, backgroundColor: '#fff8ee',
+                        borderRadius: 10, borderWidth: 1, borderColor: '#ffe0bf', marginBottom: 8
+                    }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                        <Ionicons name="location-outline" size={16} color="#f28b02" />
+                        <View style={{ marginLeft: 8, flex: 1 }}>
+                            <Text numberOfLines={1} style={{ fontWeight: '700', color: '#333', fontSize: 14 }}>
+                                {post.referencedPark.name}
+                            </Text>
+                            {(post.referencedPark.city || post.referencedPark.state) && (
+                                <Text numberOfLines={1} style={{ color: '#8a8a8a', fontSize: 12, marginTop: 2 }}>
+                                    {post.referencedPark.city}{post.referencedPark.city && post.referencedPark.state ? ', ' : ''}{post.referencedPark.state}
+                                </Text>
+                            )}
+                        </View>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color="#bbb" />
+                </TouchableOpacity>
+            )}
+
+            {/* content */}
+            {!!post.content && (
+                <Text style={{ fontSize: 15, lineHeight: 22, color: '#334155', marginBottom: 8 }}>
+                    {post.content}
+                </Text>
+            )}
+
+            {/* tags */}
+            {!!post.tags?.length && (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 2, marginBottom: 8 }}>
+                    {post.tags.map((tag, i) => (
+                        <Text key={i} style={{ color: '#f28b02', marginRight: 8, fontSize: 13 }}>#{tag}</Text>
+                    ))}
+                </View>
+            )}
+
+            {/* action bar */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 2 }}>
+                <TouchableOpacity onPress={onToggleLike} style={{
+                    flexDirection: 'row', alignItems: 'center',
+                    paddingVertical: 6, paddingHorizontal: 8, borderRadius: 8, backgroundColor: '#f5f5f5'
+                }}>
+                    <Ionicons name={hasLiked ? 'heart' : 'heart-outline'} size={16} color={hasLiked ? '#e11d48' : '#333'} />
+                    <Text style={{ marginLeft: 6, color: '#333', fontWeight: '600' }}>{likesCount}</Text>
+                </TouchableOpacity>
+            </View>
+
+            {/* divider before comments */}
+            <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: '#e5e7eb', marginTop: 12 }} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, marginBottom: 6 }}>
+                <View style={{ flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: '#e5e7eb' }} />
+                <Text style={{
+                    marginHorizontal: 10, color: '#64748b', fontSize: 12, fontWeight: '700',
+                    textTransform: 'uppercase', letterSpacing: 0.6
+                }}>
+                    Comments
+                </Text>
+                <View style={{ flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: '#e5e7eb' }} />
+            </View>
+        </View>
+    );
+};
+
+const CommentRow = ({ comment, onToggleLike }) => (
+    <View style={{ paddingVertical: 10, paddingHorizontal: 16 }}>
+        <Text style={{ fontWeight: '600', color: '#0f172a', marginBottom: 2, fontSize: 13 }}>
+            {fullName(comment.author)} <Text style={{ color: '#94a3b8' }}>· {formatForumDate(comment.createdAt)}</Text>
+        </Text>
+        <Text style={{ color: '#334155', lineHeight: 20, fontSize: 14 }}>
+            {comment.content ?? comment.text ?? ''}
+        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+            <TouchableOpacity onPress={onToggleLike}
+                style={{
+                    flexDirection: 'row', alignItems: 'center', paddingVertical: 4, paddingHorizontal: 8,
+                    borderRadius: 8, backgroundColor: '#f5f5f5'
+                }}
+                activeOpacity={0.7}>
+                <Ionicons name={comment.liked ? 'heart' : 'heart-outline'} size={14} color={comment.liked ? '#e11d48' : '#333'} />
+                <Text style={{ marginLeft: 6, color: '#333', fontWeight: '600' }}>{comment.likesCount ?? 0}</Text>
+            </TouchableOpacity>
+        </View>
+    </View>
+);
+
+const Composer = React.forwardRef(({ value, onChangeText, onSend, disabled }, _ref) => (
+    <View style={{
+        paddingHorizontal: 12, paddingTop: 8, paddingBottom: 12,
+        backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#eee'
+    }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginBottom: 10 }}>
+            <TextInput
+                value={value}
+                onChangeText={onChangeText}
+                placeholder="Write a comment…"
+                style={{
+                    flex: 1, minHeight: 40, maxHeight: 120, paddingHorizontal: 12, paddingVertical: 10,
+                    backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee', borderRadius: 10
+                }}
+                multiline
+            />
+            <TouchableOpacity disabled={disabled || !value?.trim()} onPress={onSend}
+                style={{
+                    marginLeft: 0, paddingHorizontal: 14, paddingVertical: 10,
+                    backgroundColor: disabled || !value?.trim() ? '#f5f5f5' : '#f28b02',
+                    borderRadius: 10, justifyContent: 'center', alignItems: 'center'
+                }}>
+                <Ionicons name="send" size={18} color={disabled || !value?.trim() ? '#bbb' : '#fff'} />
+            </TouchableOpacity>
+        </View>
+    </View>
+));
+
 export default function ForumPage({ navigation }) {
     const route = useRoute();
 
@@ -78,7 +237,8 @@ export default function ForumPage({ navigation }) {
     );
 
     const { height: screenH } = useWindowDimensions();
-    const [dockH, setDockH] = useState(0); // measured bottom dock heigh
+    const [kbH, setKbH] = useState(0);
+    const [dockH, setDockH] = useState(0);
     const [forumPosts, setForumPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -96,15 +256,23 @@ export default function ForumPage({ navigation }) {
     const sheetA = useRef(new Animated.Value(0)).current;    // 0..1
     const SLIDE_DISTANCE = screenH; // large enough to start fully off-screen
     const listRef = useRef(null);
-    const commentInputRef = useRef(null);
+
+    const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+    useEffect(() => {
+        const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
+        const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
+        return () => {
+            showSub.remove();
+            hideSub.remove();
+        };
+    }, []);
+
     const rowOpacities = useRef({}).current;
     const getOpacity = (id) => {
         if (!rowOpacities[id]) rowOpacities[id] = new Animated.Value(1);
         return rowOpacities[id];
     };
-
-    const [paneH, setPaneH] = useState(0);           // height of the content area above the dock
-    const commentsMaxH = Math.max(0, Math.floor(paneH * 0.40)); // 40% cap in px
 
     // applied (used for fetching)
     const [appliedFilter, setAppliedFilter] = useState(null);        // { type:'park', referencedPark, parkName }
@@ -130,54 +298,27 @@ export default function ForumPage({ navigation }) {
     // remember which path/param worked so we don't probe every time
     const parkSearchCfg = useRef({ path: null, key: null });
 
-    const commentsInA = useRef(new Animated.Value(0)).current; // 0..1
-
-    // Reset when opening a new post
-    useEffect(() => {
-        if (selectedPost) commentsInA.setValue(0);
-    }, [selectedPost]);
-
-    // Kick the animation once we know our height OR comments arrived
-    useEffect(() => {
-        if (commentsMaxH > 0 && (comments.length >= 0)) {
-            Animated.timing(commentsInA, {
-                toValue: 1,
-                duration: 220,
-                easing: Easing.out(Easing.cubic),
-                useNativeDriver: true,
-            }).start();
-        }
-    }, [commentsMaxH, comments.length, commentsInA]);
-
-    const renderComment = ({ item }) => (
-        <View style={styles.commentRow}>
-            <Text style={styles.commentAuthor}>
-                {fullName(item.author)}
-                <Text style={{ color: '#94a3b8' }}> · {formatForumDate(item.createdAt)}</Text>
-            </Text>
-
-            <Text style={styles.commentText}>{item.content ?? item.text ?? ''}</Text>
-
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
-                <TouchableOpacity
-                    onPress={() => toggleCommentLike(item._id)}
-                    style={[styles.metaBtn, { paddingVertical: 4, paddingHorizontal: 8 }]}
-                    activeOpacity={0.7}
-                >
-                    <Ionicons
-                        name={item.liked ? 'heart' : 'heart-outline'}
-                        size={14}
-                        color={item.liked ? '#e11d48' : '#333'}
-                    />
-                    <Text style={[styles.metaBtnText, { marginLeft: 6 }]}>{item.likesCount ?? 0}</Text>
-                </TouchableOpacity>
-            </View>
-        </View>
-    );
-
     const insets = useSafeAreaInsets();
     const headerH = useHeaderHeight();               // nav header height
     const tabH = useBottomTabBarHeight?.() ?? 0;
+
+    // derived bottoms (subtract the safe-area once)
+    const tabTop = Math.max(0, tabH - insets.bottom);   // top edge of tab bar
+    const kbTop = Math.max(0, kbH - insets.bottom);    // top edge of keyboard
+    const lift = (kbH > 0 ? kbTop : tabTop) - insets.bottom + 10;
+
+    // animate the dock's bottom offset
+    const dockBottomA = useRef(new Animated.Value(lift)).current;
+
+    useEffect(() => {
+        Animated.timing(dockBottomA, {
+            toValue: lift,
+            duration: 220,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: false, // 'bottom' isn't supported by native driver
+        }).start();
+    }, [lift]);
+
     const fetchPosts = async () => {
         try {
             if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -295,6 +436,23 @@ export default function ForumPage({ navigation }) {
                 setUserId(decoded?.id ?? null);
             } catch { }
         })();
+    }, []);
+
+    useEffect(() => {
+        const onChangeFrame = (e) => {
+            // Height of the keyboard that overlaps the app window
+            const h = Math.max(0, e.endCoordinates?.height ?? 0);
+            setKbH(h);
+        };
+
+        const onShow = (e) => setKbH(Math.max(0, e.endCoordinates?.height ?? 0));
+        const onHide = () => setKbH(0);
+
+        const sub1 = Keyboard.addListener('keyboardWillChangeFrame', onChangeFrame); // iOS
+        const sub2 = Keyboard.addListener('keyboardDidShow', onShow);   // Android fallback
+        const sub3 = Keyboard.addListener('keyboardDidHide', onHide);   // Android fallback
+
+        return () => { sub1.remove(); sub2.remove(); sub3.remove(); };
     }, []);
 
     // normalize strings: remove accents, collapse punctuation/whitespace, lowercase
@@ -942,7 +1100,10 @@ export default function ForumPage({ navigation }) {
                     data={forumPosts}
                     renderItem={renderPost}
                     keyExtractor={(item) => item._id}
-                    contentContainerStyle={styles.listContent}
+                    contentContainerStyle={{
+                        // keep content clear of the dock; only add tab bar space when keyboard is closed
+                        paddingBottom: dockH + (kbH > 0 ? 0 : tabTop),
+                    }}
                     ListHeaderComponent={null}
                     refreshControl={
                         <RefreshControl
@@ -963,7 +1124,6 @@ export default function ForumPage({ navigation }) {
                     style={[
                         StyleSheet.absoluteFill,
                         {
-                            // step outside the SafeAreaView's padding
                             top: -insets.top,
                             bottom: -insets.bottom,
                             backgroundColor: '#fff',
@@ -972,369 +1132,265 @@ export default function ForumPage({ navigation }) {
                         },
                     ]}
                 >
-                    <KeyboardAvoidingView
-                        behavior={undefined}
-                        style={{ flex: 1 }}
-                        keyboardVerticalOffset={0}
-                    >
-                        {/* Fixed header + scrolling body */}
+                    <View style={{ flex: 1 }}>
+                        {/* Content + comments */}
                         <View style={{ flex: 1, paddingTop: headerH - 20 }}>
-                            {/* --- FIXED header --- */}
-                            <View style={[styles.modalFixedHeader, { paddingHorizontal: 16 }]}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                    {/* avatar ... */}
-                                    <View style={{ flex: 1 }}>
-                                        {/* author + date on one line */}
-                                        <View style={styles.modalTopLine}>
-                                            <Text style={styles.modalAuthorName} numberOfLines={1}>
-                                                {fullName(selectedPost.author)}
-                                            </Text>
-                                            <Text style={styles.modalDate} numberOfLines={1}>
-                                                {formatForumDate(selectedPost.createdAt)}
-                                            </Text>
-                                        </View>
-
-                                        {/* subject below, wraps freely */}
-                                        <Text style={styles.modalTitle}>
-                                            {selectedPost.title}
-                                        </Text>
+                            <FlatList
+                                data={comments}
+                                keyExtractor={(c, i) => c?._id ?? String(i)}
+                                renderItem={({ item }) => (
+                                    <CommentRow comment={item} onToggleLike={() => toggleCommentLike(item._id)} />
+                                )}
+                                ListHeaderComponent={
+                                    <PostHeader
+                                        post={selectedPost}
+                                        onToggleLike={toggleLike}
+                                        hasLiked={hasLiked}
+                                        likesCount={likesCount}
+                                        onPressPark={goToRealParkDetails}
+                                    />
+                                }
+                                ListEmptyComponent={
+                                    <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
+                                        <Text style={{ color: '#64748b' }}>No comments yet</Text>
                                     </View>
-                                </View>
-                            </View>
-
-                            {/* --- Content area above the dock --- */}
-                            <View
-                                style={{ flex: 1, paddingBottom: dockH, position: 'relative' }}
-                                pointerEvents="box-none"
-                                collapsable={false}
-                                onLayout={e => setPaneH(e.nativeEvent.layout.height)}
-                            >
-                                {/* 1) POST CONTAINER (height animates with comments scroll) */}
-                                <View style={[styles.postContainer, { flex: 1 }]}>
-
-                                    {/* The post body scrolls independently */}
-                                    <ScrollView
-                                        nestedScrollEnabled
-                                        showsVerticalScrollIndicator
-                                        contentContainerStyle={{ paddingBottom: 8 }}
-                                        scrollEventThrottle={16}
-                                    >
-                                        <View>
-                                            <View style={styles.postInner}>
-                                                {!!selectedPost.content && (
-                                                    <Text style={styles.postBody}>{selectedPost.content}</Text>
-                                                )}
-                                                {!!selectedPost.tags?.length && (
-                                                    <View style={styles.tagContainer}>
-                                                        {selectedPost.tags.map((tag, i) => (
-                                                            <Text key={i} style={styles.tag}>#{tag}</Text>
-                                                        ))}
-                                                    </View>
-                                                )}
-                                                {selectedPost.referencedPark && (
-                                                    <TouchableOpacity
-                                                        onPress={() => goToRealParkDetails(selectedPost.referencedPark)}
-                                                        style={[styles.parkChip, { marginTop: 8 }]}
-                                                        activeOpacity={0.7}
-                                                    >
-                                                        <View style={styles.parkChipLeft}>
-                                                            <Ionicons name="location-outline" size={16} color="#f28b02" />
-                                                            <View style={{ marginLeft: 8, flex: 1 }}>
-                                                                <Text numberOfLines={1} style={styles.parkChipName}>
-                                                                    {selectedPost.referencedPark.name}
-                                                                </Text>
-                                                                {(selectedPost.referencedPark.city || selectedPost.referencedPark.state) && (
-                                                                    <Text numberOfLines={1} style={styles.parkChipSub}>
-                                                                        {selectedPost.referencedPark.city}
-                                                                        {selectedPost.referencedPark.city && selectedPost.referencedPark.state ? ', ' : ''}
-                                                                        {selectedPost.referencedPark.state}
-                                                                    </Text>
-                                                                )}
-                                                            </View>
-                                                        </View>
-                                                        <Ionicons name="chevron-forward" size={16} color="#bbb" />
-                                                    </TouchableOpacity>
-                                                )}
-                                            </View>
-                                        </View>
-                                    </ScrollView>
-                                </View>
-
-                                <View style={{ maxHeight: commentsMaxH, flexShrink: 0, overflow: 'hidden' }}>
-                                    <Animated.View
-                                        style={{
-                                            transform: [{
-                                                translateY: commentsInA.interpolate({ inputRange: [0, 1], outputRange: [24, 0] })
-                                            }],
-                                            opacity: commentsInA,
-                                        }}
-                                    >
-                                        <FlatList
-                                            data={comments}
-                                            keyExtractor={(c, i) => c?._id ?? String(i)}
-                                            renderItem={renderComment}
-                                            stickyHeaderIndices={[0]}
-                                            initialNumToRender={8}
-                                            removeClippedSubviews={false}
-                                            ListHeaderComponent={
-                                                <View style={[styles.sectionBar, styles.commentsHeaderBar, { paddingHorizontal: 16, backgroundColor: '#fff' }]}>
-                                                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                                                        <View style={styles.sectionLine} />
-                                                        <Text style={styles.sectionLabel}>
-                                                            {(comments?.length ?? 0) === 0 ? 'No Comments' : `Comments (${comments.length})`}
-                                                        </Text>
-                                                        <View style={styles.sectionLine} />
-                                                    </View>
-                                                </View>
-                                            }
-                                            ListHeaderComponentStyle={{ backgroundColor: '#fff' }}
-                                            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 0 }}
-                                            keyboardShouldPersistTaps="handled"
-                                            showsVerticalScrollIndicator
-                                        />
-                                    </Animated.View>
-                                </View>
-
-                                <View style={{ height: 30 }} pointerEvents="none" />
-
-                            </View>
+                                }
+                                keyboardShouldPersistTaps="handled"
+                                contentContainerStyle={{
+                                    // keep content clear of both the dock and what's under it
+                                    paddingBottom: dockH + (kbH > 0 ? kbTop : tabTop),
+                                }}
+                                showsVerticalScrollIndicator
+                            />
                         </View>
 
-                        {/* Sticky dock — KAV handles keyboard */}
-                        <KeyboardAvoidingView
-                            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                            keyboardVerticalOffset={insets.bottom}    // add safe-area once, no double count
-                            style={[styles.bottomDock, { marginBottom: 30 }]}
-                            onLayout={(e) => setDockH(e.nativeEvent.layout.height)}
+                        {/* Absolutely pinned dock; measure its height once and
+                            lift it exactly to the keyboard top — no bouncing */}
+                        <Animated.View
+                            onLayout={e => setDockH(e.nativeEvent.layout.height)}
+                            style={[
+                                styles.absoluteDock,
+                                { bottom: dockBottomA },
+                            ]}
                         >
-                            <View style={styles.chipsRow}>
+                            <View style={[styles.chipsRow, { paddingHorizontal: 12, paddingTop: 8 }]}>
                                 <TouchableOpacity onPress={toggleLike} style={styles.metaBtn}>
                                     <Ionicons name={hasLiked ? 'heart' : 'heart-outline'} size={16} color={hasLiked ? '#e11d48' : '#333'} />
                                     <Text style={styles.metaBtnText}>{likesCount}</Text>
                                 </TouchableOpacity>
-
-                                <TouchableOpacity onPress={() => commentInputRef.current?.focus?.()} style={styles.metaBtn}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 8, borderRadius: 8, backgroundColor: '#f5f5f5' }}>
                                     <Ionicons name="chatbubble-outline" size={16} color="#333" />
                                     <Text style={styles.metaBtnText}>{comments.length}</Text>
-                                </TouchableOpacity>
-
+                                </View>
                                 <TouchableOpacity
                                     disabled={pinDisabled}
                                     onPress={onTogglePin}
                                     style={[styles.metaBtn, pinDisabled && styles.metaBtnDisabled]}
                                 >
-                                    <Ionicons name="pin" size={16} color={pinTint} />
-                                    <Text style={[styles.metaBtnText, { color: pinTint }]}>{isPinned ? 'Pinned' : 'Pin'}</Text>
+                                    <Ionicons name="pin" size={16} color={pinDisabled ? '#aaa' : (hasLiked ? '#e74c3c' : '#666')} />
+                                    <Text style={[styles.metaBtnText, { color: pinDisabled ? '#aaa' : '#666' }]}>{isPinned ? 'Pinned' : 'Pin'}</Text>
                                 </TouchableOpacity>
                             </View>
 
-                            <View style={styles.commentBar}>
-                                <TextInput
-                                    ref={commentInputRef}
-                                    value={commentText}
-                                    onChangeText={setCommentText}
-                                    placeholder="Write a comment…"
-                                    style={styles.commentInput}
-                                    multiline
-                                />
-                                <TouchableOpacity disabled={submitting} onPress={submitComment} style={styles.commentSend}>
-                                    <Ionicons name="send" size={18} color="#fff" />
-                                </TouchableOpacity>
-                            </View>
-                            {/* No Close button; use header back */}
-                        </KeyboardAvoidingView>
-                    </KeyboardAvoidingView>
-                </View >
-            )
-            }
-
-            {/* FILTER SHEET (slides) */}
-            <Modal
-                visible={filterSheetVisible}            // <- use the visibility state driven by the animation
-                transparent
-                animationType="none"                    // <- disable Modal's fade
-                onRequestClose={() => setFilterSheetOpen(false)}
-            >
-                {/* Backdrop fades in/out */}
-                <Animated.View style={[styles.filterBackdrop, { opacity: backdropA }]}>
-                    {/* Tap outside to close */}
-                    <Pressable style={{ flex: 1 }} onPress={() => setFilterSheetOpen(false)} />
-
-                    {/* Bottom sheet slides up/down */}
-                    <Animated.View
-                        style={[
-                            styles.filterSheet,
-                            {
-                                transform: [
-                                    {
-                                        translateY: sheetA.interpolate({
-                                            inputRange: [0, 1],
-                                            outputRange: [SLIDE_DISTANCE, 0], // from off-screen -> on-screen
-                                        }),
-                                    },
-                                ],
-                            },
-                        ]}
-                    >
-                        {/* X button */}
-                        <Pressable
-                            onPress={() => setFilterSheetOpen(false)}
-                            style={styles.filterCloseX}
-                            hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
-                        >
-                            <Ionicons name="close" size={20} color="#334155" />
-                        </Pressable>
-
-                        <Text style={[styles.filterTitle, { paddingRight: 28 }]}>Filter posts</Text>
-
-                        <Text style={styles.filterLabel}>Sort by</Text>
-                        <View style={styles.filterRow}>
-                            {[
-                                { key: 'newest', label: 'Newest' },
-                                { key: 'liked', label: 'Most liked' },
-                                { key: 'comments', label: 'Most commented' },
-                            ].map(opt => (
-                                <TouchableOpacity
-                                    key={opt.key}
-                                    onPress={() => setPendingSortBy(opt.key)}
-                                    style={[styles.pill, pendingSortBy === opt.key && styles.pillActive]}
-                                >
-                                    <Text style={[styles.pillText, pendingSortBy === opt.key && styles.pillTextActive]}>
-                                        {opt.label}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-
-                        {/* --- Parks multi-select --- */}
-                        <Text style={styles.filterLabel}>Parks</Text>
-
-                        <View style={{ position: 'relative', marginTop: 6 }}>
-                            <TextInput
-                                placeholder="Search parks…"
-                                value={parkQuery}
-                                onChangeText={(t) => {
-                                    setParkQuery(t);
-                                    const hasQuery = !!t.trim();
-                                    setParkLoading(hasQuery);
-                                    if (!hasQuery) setParkResults([]);
-                                }}
-                                style={[
-                                    styles.parkSearch,
-                                    { paddingRight: 40, height: 44, paddingVertical: 0, textAlignVertical: 'center' }
-                                ]}
+                            <Composer
+                                value={commentText}
+                                onChangeText={setCommentText}
+                                onSend={submitComment}
+                                disabled={submitting}
                             />
-
-                            {!!parkQuery.trim() && (
-                                <TouchableOpacity
-                                    onPress={() => {
-                                        setParkQuery('');
-                                        setParkResults([]);
-                                        setParkLoading(false);
-                                    }}
-                                    style={{
-                                        position: 'absolute',
-                                        right: 10,
-                                        top: 0,
-                                        bottom: 0,
-                                        justifyContent: 'center',
-                                        alignItems: 'center',
-                                        width: 32,
-                                    }}
-                                    hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
-                                >
-                                    <Ionicons name="close-circle" size={20} color="#94a3b8" />
-                                </TouchableOpacity>
-                            )}
-                        </View>
-
-                        {pendingParkIds.length > 0 && (
-                            <View style={styles.selectedChipsWrap}>
-                                {pendingParkObjs.map(p => {
-                                    const id = String(p._id || p.id);
-                                    return (
-                                        <View key={id} style={styles.chip}>
-                                            <Text style={styles.chipText} numberOfLines={1}>{p.name}</Text>
-                                            <Pressable onPress={() => togglePendingPark(p)} style={{ paddingLeft: 6 }}>
-                                                <Ionicons name="close" size={14} color="#7c2d12" />
-                                            </Pressable>
-                                        </View>
-                                    );
-                                })}
-                            </View>
-                        )}
-
-                        <ScrollView style={{ maxHeight: 220, marginTop: 8 }}>
-                            {parkResults.map(p => {
-                                const id = String(p._id || p.id);
-                                const selected = pendingParkIds.some(x => String(x) === id);
-                                return (
-                                    <Pressable key={id} onPress={() => togglePendingPark(p)} style={styles.rowItem}>
-                                        <Ionicons
-                                            name={selected ? 'checkbox' : 'square-outline'}
-                                            size={20}
-                                            color={selected ? '#f28b02' : '#64748b'}
-                                        />
-                                        <View style={{ marginLeft: 10, flex: 1 }}>
-                                            <Text style={styles.rowTitle} numberOfLines={1}>{p.name}</Text>
-                                            {(p.city || p.state) ? (
-                                                <Text style={styles.rowSub} numberOfLines={1}>
-                                                    {p.city}{p.city && p.state ? ', ' : ''}{p.state}
-                                                </Text>
-                                            ) : null}
-                                        </View>
-                                    </Pressable>
-                                );
-                            })}
-                            {parkLoading ? (
-                                <View style={styles.loadingRow}>
-                                    <ActivityIndicator />
-                                </View>
-                            ) : parkQuery && parkResults.length === 0 ? (
-                                <Text style={[styles.hintMuted, { marginTop: 8 }]}>No parks found</Text>
-                            ) : null}
-                        </ScrollView>
-
-                        <View style={styles.sheetButtons}>
-                            <TouchableOpacity
-                                onPress={() => {
-                                    setPendingFilter(null);
-                                    setPendingSortBy('newest');
-                                    setParkQuery('');
-                                    setPendingParkIds([]);
-                                    setPendingParkObjs([]);
-                                }}
-                                style={[styles.sheetBtn, styles.btnGhost]}
-                            >
-                                <Text style={styles.btnGhostText}>Clear</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                onPress={() => {
-                                    if (pendingParkIds.length) {
-                                        setAppliedFilter({ type: 'parks', parkIds: pendingParkIds, parks: pendingParkObjs });
-                                    } else {
-                                        setAppliedFilter(null);
-                                    }
-                                    setAppliedSortBy(pendingSortBy);
-                                    navigation.setParams && navigation.setParams({ filter: undefined });
-                                    setFilterSheetOpen(false);
-                                }}
-                                style={[styles.sheetBtn, styles.btnPrimary]}
-                            >
-                                <Text style={styles.btnPrimaryText}>Apply</Text>
-                            </TouchableOpacity>
-                        </View>
                     </Animated.View>
-                </Animated.View>
-            </Modal>
+                </View>
+                </View>
+    )
+}
 
-            {
-                !selectedPost && (
-                    <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('NewPostForm')}>
-                        <Ionicons name="add" size={30} color="white" />
+{/* FILTER SHEET (slides) */ }
+<Modal
+    visible={filterSheetVisible}            // <- use the visibility state driven by the animation
+    transparent
+    animationType="none"                    // <- disable Modal's fade
+    onRequestClose={() => setFilterSheetOpen(false)}
+>
+    {/* Backdrop fades in/out */}
+    <Animated.View style={[styles.filterBackdrop, { opacity: backdropA }]}>
+        {/* Tap outside to close */}
+        <Pressable style={{ flex: 1 }} onPress={() => setFilterSheetOpen(false)} />
+
+        {/* Bottom sheet slides up/down */}
+        <Animated.View
+            style={[
+                styles.filterSheet,
+                {
+                    transform: [
+                        {
+                            translateY: sheetA.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [SLIDE_DISTANCE, 0], // from off-screen -> on-screen
+                            }),
+                        },
+                    ],
+                },
+            ]}
+        >
+            {/* X button */}
+            <Pressable
+                onPress={() => setFilterSheetOpen(false)}
+                style={styles.filterCloseX}
+                hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+            >
+                <Ionicons name="close" size={20} color="#334155" />
+            </Pressable>
+
+            <Text style={[styles.filterTitle, { paddingRight: 28 }]}>Filter posts</Text>
+
+            <Text style={styles.filterLabel}>Sort by</Text>
+            <View style={styles.filterRow}>
+                {[
+                    { key: 'newest', label: 'Newest' },
+                    { key: 'liked', label: 'Most liked' },
+                    { key: 'comments', label: 'Most commented' },
+                ].map(opt => (
+                    <TouchableOpacity
+                        key={opt.key}
+                        onPress={() => setPendingSortBy(opt.key)}
+                        style={[styles.pill, pendingSortBy === opt.key && styles.pillActive]}
+                    >
+                        <Text style={[styles.pillText, pendingSortBy === opt.key && styles.pillTextActive]}>
+                            {opt.label}
+                        </Text>
                     </TouchableOpacity>
-                )
-            }
+                ))}
+            </View>
+
+            {/* --- Parks multi-select --- */}
+            <Text style={styles.filterLabel}>Parks</Text>
+
+            <View style={{ position: 'relative', marginTop: 6 }}>
+                <TextInput
+                    placeholder="Search parks…"
+                    value={parkQuery}
+                    onChangeText={(t) => {
+                        setParkQuery(t);
+                        const hasQuery = !!t.trim();
+                        setParkLoading(hasQuery);
+                        if (!hasQuery) setParkResults([]);
+                    }}
+                    style={[
+                        styles.parkSearch,
+                        { paddingRight: 40, height: 44, paddingVertical: 0, textAlignVertical: 'center' }
+                    ]}
+                />
+
+                {!!parkQuery.trim() && (
+                    <TouchableOpacity
+                        onPress={() => {
+                            setParkQuery('');
+                            setParkResults([]);
+                            setParkLoading(false);
+                        }}
+                        style={{
+                            position: 'absolute',
+                            right: 10,
+                            top: 0,
+                            bottom: 0,
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            width: 32,
+                        }}
+                        hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                    >
+                        <Ionicons name="close-circle" size={20} color="#94a3b8" />
+                    </TouchableOpacity>
+                )}
+            </View>
+
+            {pendingParkIds.length > 0 && (
+                <View style={styles.selectedChipsWrap}>
+                    {pendingParkObjs.map(p => {
+                        const id = String(p._id || p.id);
+                        return (
+                            <View key={id} style={styles.chip}>
+                                <Text style={styles.chipText} numberOfLines={1}>{p.name}</Text>
+                                <Pressable onPress={() => togglePendingPark(p)} style={{ paddingLeft: 6 }}>
+                                    <Ionicons name="close" size={14} color="#7c2d12" />
+                                </Pressable>
+                            </View>
+                        );
+                    })}
+                </View>
+            )}
+
+            <ScrollView style={{ maxHeight: 220, marginTop: 8 }}>
+                {parkResults.map(p => {
+                    const id = String(p._id || p.id);
+                    const selected = pendingParkIds.some(x => String(x) === id);
+                    return (
+                        <Pressable key={id} onPress={() => togglePendingPark(p)} style={styles.rowItem}>
+                            <Ionicons
+                                name={selected ? 'checkbox' : 'square-outline'}
+                                size={20}
+                                color={selected ? '#f28b02' : '#64748b'}
+                            />
+                            <View style={{ marginLeft: 10, flex: 1 }}>
+                                <Text style={styles.rowTitle} numberOfLines={1}>{p.name}</Text>
+                                {(p.city || p.state) ? (
+                                    <Text style={styles.rowSub} numberOfLines={1}>
+                                        {p.city}{p.city && p.state ? ', ' : ''}{p.state}
+                                    </Text>
+                                ) : null}
+                            </View>
+                        </Pressable>
+                    );
+                })}
+                {parkLoading ? (
+                    <View style={styles.loadingRow}>
+                        <ActivityIndicator />
+                    </View>
+                ) : parkQuery && parkResults.length === 0 ? (
+                    <Text style={[styles.hintMuted, { marginTop: 8 }]}>No parks found</Text>
+                ) : null}
+            </ScrollView>
+
+            <View style={styles.sheetButtons}>
+                <TouchableOpacity
+                    onPress={() => {
+                        setPendingFilter(null);
+                        setPendingSortBy('newest');
+                        setParkQuery('');
+                        setPendingParkIds([]);
+                        setPendingParkObjs([]);
+                    }}
+                    style={[styles.sheetBtn, styles.btnGhost]}
+                >
+                    <Text style={styles.btnGhostText}>Clear</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    onPress={() => {
+                        if (pendingParkIds.length) {
+                            setAppliedFilter({ type: 'parks', parkIds: pendingParkIds, parks: pendingParkObjs });
+                        } else {
+                            setAppliedFilter(null);
+                        }
+                        setAppliedSortBy(pendingSortBy);
+                        navigation.setParams && navigation.setParams({ filter: undefined });
+                        setFilterSheetOpen(false);
+                    }}
+                    style={[styles.sheetBtn, styles.btnPrimary]}
+                >
+                    <Text style={styles.btnPrimaryText}>Apply</Text>
+                </TouchableOpacity>
+            </View>
+        </Animated.View>
+    </Animated.View>
+</Modal>
+
+{
+    !selectedPost && (
+        <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('NewPostForm')}>
+            <Ionicons name="add" size={30} color="white" />
+        </TouchableOpacity>
+    )
+}
         </SafeAreaView >
     );
 }
@@ -1703,41 +1759,6 @@ const styles = StyleSheet.create({
         color: '#94a3b8',    // was '#999'
         flexShrink: 0,
     },
-    postContainer: {
-        overflow: 'hidden',      // needed for the height animation to clip
-        backgroundColor: '#fff', // sole visible card background
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#eef2f7',
-        marginHorizontal: 16,
-    },
-    postInner: {
-        padding: 12,
-    },
-    postBody: {
-        fontSize: 15,
-        lineHeight: 22,
-        color: '#334155', // softer than pure black
-    },
-    sectionBar: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 8,
-        marginBottom: 6,
-    },
-    sectionLine: {
-        flex: 1,
-        height: StyleSheet.hairlineWidth,
-        backgroundColor: '#e5e7eb',
-    },
-    sectionLabel: {
-        marginHorizontal: 10,
-        color: '#64748b',
-        fontSize: 12,
-        fontWeight: '700',
-        textTransform: 'uppercase',
-        letterSpacing: 0.6,
-    },
     emptyCommentsWrap: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -1760,10 +1781,12 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         padding: 6,
     },
-    commentsHeaderBar: {
+    absoluteDock: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
         backgroundColor: '#fff',
-        borderTopWidth: StyleSheet.hairlineWidth,
-        borderTopColor: '#e5e7eb',
-        paddingVertical: 10,
+        borderTopWidth: 1,
+        borderTopColor: '#eee',
     },
 });
