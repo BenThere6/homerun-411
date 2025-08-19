@@ -1212,171 +1212,179 @@ export default function ForumPage({ navigation }) {
                     <Pressable style={{ flex: 1 }} onPress={() => setFilterSheetOpen(false)} />
 
                     {/* Bottom sheet slides up/down */}
-                    <Animated.View
-                        style={[
-                            styles.filterSheet,
-                            {
-                                transform: [
-                                    {
-                                        translateY: sheetA.interpolate({
-                                            inputRange: [0, 1],
-                                            outputRange: [SLIDE_DISTANCE, 0], // from off-screen -> on-screen
-                                        }),
-                                    },
-                                ],
-                            },
-                        ]}
+                    <KeyboardAvoidingView
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        keyboardVerticalOffset={0}  // usually 0 for a bottom sheet
+                        style={{ width: '100%' }}
                     >
-                        {/* X button */}
-                        <Pressable
-                            onPress={() => setFilterSheetOpen(false)}
-                            style={styles.filterCloseX}
-                            hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+                        <Animated.View
+                            style={[
+                                styles.filterSheet,
+                                { paddingBottom: insets.bottom, /* safe-area */ },
+                                {
+                                    transform: [
+                                        {
+                                            translateY: sheetA.interpolate({
+                                                inputRange: [0, 1],
+                                                outputRange: [SLIDE_DISTANCE, 0],
+                                            }),
+                                        },
+                                    ],
+                                },
+                            ]}
                         >
-                            <Ionicons name="close" size={20} color="#334155" />
-                        </Pressable>
+                            {/* X button */}
+                            <Pressable
+                                onPress={() => setFilterSheetOpen(false)}
+                                style={styles.filterCloseX}
+                                hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+                            >
+                                <Ionicons name="close" size={20} color="#334155" />
+                            </Pressable>
 
-                        <Text style={[styles.filterTitle, { paddingRight: 28 }]}>Filter posts</Text>
+                            <Text style={[styles.filterTitle, { paddingRight: 28 }]}>Filter posts</Text>
 
-                        <Text style={styles.filterLabel}>Sort by</Text>
-                        <View style={styles.filterRow}>
-                            {[
-                                { key: 'newest', label: 'Newest' },
-                                { key: 'liked', label: 'Most liked' },
-                                { key: 'comments', label: 'Most commented' },
-                            ].map(opt => (
-                                <TouchableOpacity
-                                    key={opt.key}
-                                    onPress={() => setPendingSortBy(opt.key)}
-                                    style={[styles.pill, pendingSortBy === opt.key && styles.pillActive]}
-                                >
-                                    <Text style={[styles.pillText, pendingSortBy === opt.key && styles.pillTextActive]}>
-                                        {opt.label}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
+                            <Text style={styles.filterLabel}>Sort by</Text>
+                            <View style={styles.filterRow}>
+                                {[
+                                    { key: 'newest', label: 'Newest' },
+                                    { key: 'liked', label: 'Most liked' },
+                                    { key: 'comments', label: 'Most commented' },
+                                ].map(opt => (
+                                    <TouchableOpacity
+                                        key={opt.key}
+                                        onPress={() => setPendingSortBy(opt.key)}
+                                        style={[styles.pill, pendingSortBy === opt.key && styles.pillActive]}
+                                    >
+                                        <Text style={[styles.pillText, pendingSortBy === opt.key && styles.pillTextActive]}>
+                                            {opt.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
 
-                        {/* --- Parks multi-select --- */}
-                        <Text style={styles.filterLabel}>Parks</Text>
+                            {/* --- Parks multi-select --- */}
+                            <Text style={styles.filterLabel}>Parks</Text>
 
-                        <View style={{ position: 'relative', marginTop: 6 }}>
-                            <TextInput
-                                placeholder="Search parks…"
-                                value={parkQuery}
-                                onChangeText={(t) => {
-                                    setParkQuery(t);
-                                    const hasQuery = !!t.trim();
-                                    setParkLoading(hasQuery);
-                                    if (!hasQuery) setParkResults([]);
-                                }}
-                                style={[
-                                    styles.parkSearch,
-                                    { paddingRight: 40, height: 44, paddingVertical: 0, textAlignVertical: 'center' }
-                                ]}
-                            />
-
-                            {!!parkQuery.trim() && (
-                                <TouchableOpacity
-                                    onPress={() => {
-                                        setParkQuery('');
-                                        setParkResults([]);
-                                        setParkLoading(false);
+                            <View style={{ position: 'relative', marginTop: 6 }}>
+                                <TextInput
+                                    placeholder="Search parks…"
+                                    value={parkQuery}
+                                    onChangeText={(t) => {
+                                        setParkQuery(t);
+                                        const hasQuery = !!t.trim();
+                                        setParkLoading(hasQuery);
+                                        if (!hasQuery) setParkResults([]);
                                     }}
-                                    style={{
-                                        position: 'absolute',
-                                        right: 10,
-                                        top: 0,
-                                        bottom: 0,
-                                        justifyContent: 'center',
-                                        alignItems: 'center',
-                                        width: 32,
-                                    }}
-                                    hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
-                                >
-                                    <Ionicons name="close-circle" size={20} color="#94a3b8" />
-                                </TouchableOpacity>
+                                    style={[
+                                        styles.parkSearch,
+                                        { paddingRight: 40, height: 44, paddingVertical: 0, textAlignVertical: 'center' }
+                                    ]}
+                                />
+
+                                {!!parkQuery.trim() && (
+                                    <TouchableOpacity
+                                        onPress={() => {
+                                            setParkQuery('');
+                                            setParkResults([]);
+                                            setParkLoading(false);
+                                        }}
+                                        style={{
+                                            position: 'absolute',
+                                            right: 10,
+                                            top: 0,
+                                            bottom: 0,
+                                            justifyContent: 'center',
+                                            alignItems: 'center',
+                                            width: 32,
+                                        }}
+                                        hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                                    >
+                                        <Ionicons name="close-circle" size={20} color="#94a3b8" />
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+
+                            {pendingParkIds.length > 0 && (
+                                <View style={styles.selectedChipsWrap}>
+                                    {pendingParkObjs.map(p => {
+                                        const id = String(p._id || p.id);
+                                        return (
+                                            <View key={id} style={styles.chip}>
+                                                <Text style={styles.chipText} numberOfLines={1}>{p.name}</Text>
+                                                <Pressable onPress={() => togglePendingPark(p)} style={{ paddingLeft: 6 }}>
+                                                    <Ionicons name="close" size={14} color="#7c2d12" />
+                                                </Pressable>
+                                            </View>
+                                        );
+                                    })}
+                                </View>
                             )}
-                        </View>
 
-                        {pendingParkIds.length > 0 && (
-                            <View style={styles.selectedChipsWrap}>
-                                {pendingParkObjs.map(p => {
+                            <ScrollView style={{ maxHeight: 220, marginTop: 8 }}>
+                                {parkResults.map(p => {
                                     const id = String(p._id || p.id);
+                                    const selected = pendingParkIds.some(x => String(x) === id);
                                     return (
-                                        <View key={id} style={styles.chip}>
-                                            <Text style={styles.chipText} numberOfLines={1}>{p.name}</Text>
-                                            <Pressable onPress={() => togglePendingPark(p)} style={{ paddingLeft: 6 }}>
-                                                <Ionicons name="close" size={14} color="#7c2d12" />
-                                            </Pressable>
-                                        </View>
+                                        <Pressable key={id} onPress={() => togglePendingPark(p)} style={styles.rowItem}>
+                                            <Ionicons
+                                                name={selected ? 'checkbox' : 'square-outline'}
+                                                size={20}
+                                                color={selected ? '#f28b02' : '#64748b'}
+                                            />
+                                            <View style={{ marginLeft: 10, flex: 1 }}>
+                                                <Text style={styles.rowTitle} numberOfLines={1}>{p.name}</Text>
+                                                {(p.city || p.state) ? (
+                                                    <Text style={styles.rowSub} numberOfLines={1}>
+                                                        {p.city}{p.city && p.state ? ', ' : ''}{p.state}
+                                                    </Text>
+                                                ) : null}
+                                            </View>
+                                        </Pressable>
                                     );
                                 })}
+                                {parkLoading ? (
+                                    <View style={styles.loadingRow}>
+                                        <Indicator />
+                                    </View>
+                                ) : parkQuery && parkResults.length === 0 ? (
+                                    <Text style={[styles.hintMuted, { marginTop: 8 }]}>No parks found</Text>
+                                ) : null}
+                            </ScrollView>
+
+                            <View style={styles.sheetButtons}>
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        setPendingFilter(null);
+                                        setPendingSortBy('newest');
+                                        setParkQuery('');
+                                        setPendingParkIds([]);
+                                        setPendingParkObjs([]);
+                                    }}
+                                    style={[styles.sheetBtn, styles.btnGhost]}
+                                >
+                                    <Text style={styles.btnGhostText}>Clear</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        if (pendingParkIds.length) {
+                                            setAppliedFilter({ type: 'parks', parkIds: pendingParkIds, parks: pendingParkObjs });
+                                        } else {
+                                            setAppliedFilter(null);
+                                        }
+                                        setAppliedSortBy(pendingSortBy);
+                                        navigation.setParams && navigation.setParams({ filter: undefined });
+                                        setFilterSheetOpen(false);
+                                    }}
+                                    style={[styles.sheetBtn, styles.btnPrimary]}
+                                >
+                                    <Text style={styles.btnPrimaryText}>Apply</Text>
+                                </TouchableOpacity>
                             </View>
-                        )}
-
-                        <ScrollView style={{ maxHeight: 220, marginTop: 8 }}>
-                            {parkResults.map(p => {
-                                const id = String(p._id || p.id);
-                                const selected = pendingParkIds.some(x => String(x) === id);
-                                return (
-                                    <Pressable key={id} onPress={() => togglePendingPark(p)} style={styles.rowItem}>
-                                        <Ionicons
-                                            name={selected ? 'checkbox' : 'square-outline'}
-                                            size={20}
-                                            color={selected ? '#f28b02' : '#64748b'}
-                                        />
-                                        <View style={{ marginLeft: 10, flex: 1 }}>
-                                            <Text style={styles.rowTitle} numberOfLines={1}>{p.name}</Text>
-                                            {(p.city || p.state) ? (
-                                                <Text style={styles.rowSub} numberOfLines={1}>
-                                                    {p.city}{p.city && p.state ? ', ' : ''}{p.state}
-                                                </Text>
-                                            ) : null}
-                                        </View>
-                                    </Pressable>
-                                );
-                            })}
-                            {parkLoading ? (
-                                <View style={styles.loadingRow}>
-                                    <ActivityIndicator />
-                                </View>
-                            ) : parkQuery && parkResults.length === 0 ? (
-                                <Text style={[styles.hintMuted, { marginTop: 8 }]}>No parks found</Text>
-                            ) : null}
-                        </ScrollView>
-
-                        <View style={styles.sheetButtons}>
-                            <TouchableOpacity
-                                onPress={() => {
-                                    setPendingFilter(null);
-                                    setPendingSortBy('newest');
-                                    setParkQuery('');
-                                    setPendingParkIds([]);
-                                    setPendingParkObjs([]);
-                                }}
-                                style={[styles.sheetBtn, styles.btnGhost]}
-                            >
-                                <Text style={styles.btnGhostText}>Clear</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                onPress={() => {
-                                    if (pendingParkIds.length) {
-                                        setAppliedFilter({ type: 'parks', parkIds: pendingParkIds, parks: pendingParkObjs });
-                                    } else {
-                                        setAppliedFilter(null);
-                                    }
-                                    setAppliedSortBy(pendingSortBy);
-                                    navigation.setParams && navigation.setParams({ filter: undefined });
-                                    setFilterSheetOpen(false);
-                                }}
-                                style={[styles.sheetBtn, styles.btnPrimary]}
-                            >
-                                <Text style={styles.btnPrimaryText}>Apply</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </Animated.View>
+                        </Animated.View>
+                    </KeyboardAvoidingView>
                 </Animated.View>
+
             </Modal>
 
             {

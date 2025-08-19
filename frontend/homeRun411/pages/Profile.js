@@ -35,7 +35,6 @@ export default function ProfilePage() {
       const res = await axios.get('/api/user/activity', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log('✅ Activity response:', res.data);
 
       const { posts = [], comments = [], likes = [] } = res.data || {};
       setActivity({ posts, comments, likes });
