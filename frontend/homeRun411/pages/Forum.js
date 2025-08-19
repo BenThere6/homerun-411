@@ -44,6 +44,7 @@ const PostHeader = ({
     onPressPark,
     onTogglePin,
     pinDisabled,
+    isAdmin,
 }) => {
     if (!post) return null;
     return (
@@ -136,16 +137,18 @@ const PostHeader = ({
                     <Text style={{ marginLeft: 6, color: '#333', fontWeight: '600' }}>{post.commentsCount ?? 0}</Text>
                 </View>
 
-                <TouchableOpacity
-                    disabled={pinDisabled}
-                    onPress={onTogglePin}
-                    style={[{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 8, borderRadius: 8, backgroundColor: '#f5f5f5' }, pinDisabled && { opacity: 0.5 }]}
-                >
-                    <Ionicons name="pin" size={16} color={pinDisabled ? '#aaa' : '#666'} />
-                    <Text style={{ marginLeft: 6, color: pinDisabled ? '#aaa' : '#666', fontWeight: '600' }}>
-                        {post.pinned ? 'Pinned' : 'Pin'}
-                    </Text>
-                </TouchableOpacity>
+                {isAdmin && (
+                    <TouchableOpacity
+                        disabled={pinDisabled}
+                        onPress={onTogglePin}
+                        style={[{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 8, borderRadius: 8, backgroundColor: '#f5f5f5' }, pinDisabled && { opacity: 0.5 }]}
+                    >
+                        <Ionicons name="pin" size={16} color={pinDisabled ? '#aaa' : '#666'} />
+                        <Text style={{ marginLeft: 6, color: pinDisabled ? '#aaa' : '#666', fontWeight: '600' }}>
+                            {post.pinned ? 'Unpin' : 'Pin'}
+                        </Text>
+                    </TouchableOpacity>
+                )}
             </View>
 
             {/* divider before comments */}
@@ -1175,6 +1178,7 @@ export default function ForumPage({ navigation }) {
                                         onPressPark={goToRealParkDetails}
                                         onTogglePin={onTogglePin}
                                         pinDisabled={pinDisabled}
+                                        isAdmin={isAdminAny}
                                     />
                                 }
                                 ListEmptyComponent={
