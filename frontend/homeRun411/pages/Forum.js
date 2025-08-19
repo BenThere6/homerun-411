@@ -158,7 +158,6 @@ export default function ForumPage({ navigation }) {
 
             <Text style={styles.commentText}>{item.content ?? item.text ?? ''}</Text>
 
-            {/* NEW: comment meta row (like) */}
             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
                 <TouchableOpacity
                     onPress={() => toggleCommentLike(item._id)}
@@ -850,8 +849,12 @@ export default function ForumPage({ navigation }) {
             return `${f}${l ? ' ' + l : ''}`.trim();
         }
 
-        // id-only shape
-        if (typeof a === 'string' && userId && a === String(userId)) return a?.firstName + ' ' + a?.lastName;
+        // id-only / string shape
+        if (typeof a === 'string') {
+            if (userId && a === String(userId)) return 'You';
+            return 'Anonymous';
+        }
+
         return 'Anonymous';
     };
 
@@ -1284,7 +1287,7 @@ export default function ForumPage({ navigation }) {
                                 );
                             })}
                             {parkLoading ? (
-                                <View className="loadingRow">
+                                <View style={styles.loadingRow}>
                                     <ActivityIndicator />
                                 </View>
                             ) : parkQuery && parkResults.length === 0 ? (
