@@ -235,6 +235,35 @@ async function geocode(address, city, state) {
   return [lng, lat]; // [lon, lat]
 }
 
+function hasAnyFieldData(row, i) {
+  const keys = [
+    `Field ${i} Name`,
+    `Field ${i} Location`,
+    `Field ${i} CF Fence Distance`,
+    `Field ${i} Fence Height`,
+    `Field ${i} Warning Track?`,
+    `Field ${i} Type`,
+    `Field ${i} Outfield Material`,
+    `Field ${i} Infield Material`,
+    `Field ${i} Mound Type`,
+    `Field ${i} Field Shade Description`,
+    `Field ${i} Parking Distance to Field`,
+    `Field ${i} Bleachers?`,
+    `Field ${i} Bleachers Description`,
+    `Field ${i} Backstop Material`,
+    `Field ${i} Backstop Distance (ft)`,
+    `Field ${i} Dugouts Covered?`,
+    `Field ${i} Dugouts Material`,
+    `Field ${i} Batting Cages?`,
+    `Field ${i} Bullpen Available?`,
+    `Field ${i} Bullpen Location`,
+    `Field ${i} Scoreboard Available?`,
+    `Field ${i} Scoreboard Type`,
+    `Field ${i} Dugout Coverage Material`,
+  ];
+  return keys.some(k => (row[k] != null && String(row[k]).trim() !== ''));
+}
+
 async function buildParkFromRow(row) {
   // minimal required fields
   if (!row.Name || !row.Address || !row.City || !row.State) return null;
@@ -309,10 +338,26 @@ async function buildParkFromRow(row) {
     });
   }
 
-  park.numberOfFields = safeInt(row['Number of Fields']) || 0;
-  for (let i = 1; i <= park.numberOfFields; i++) {
+  // Build fields from declared count AND any detected non-empty Field-i columns
+  const declared = safeInt(row['Number of Fields']) || 0;
+
+  // Find highest index that actually has any data (cap at 8 since your sheet goes to 8)
+  let maxIdx = declared;
+  for (let i = 1; i <= 8; i++) {
+    if (hasAnyFieldData(row, i)) {
+      if (i > maxIdx) maxIdx = i;
+    }
+  }
+
+  for (let i = 1; i <= maxIdx; i++) {
+    if (!hasAnyFieldData(row, i)) continue; // skip truly empty groups
+
+    // Fallback: if name is blank, synthesize "Field i"
+    const nameRaw = row[`Field ${i} Name`];
+    const name = (nameRaw && String(nameRaw).trim()) ? String(nameRaw).trim() : `Field ${i}`;
+
     const f = {
-      name: row[`Field ${i} Name`] || null,
+      name,
       location: row[`Field ${i} Location`] || null,
       fenceDistance: safeInt(row[`Field ${i} CF Fence Distance`]),
       fenceHeight: safeInt(row[`Field ${i} Fence Height`]),
@@ -336,7 +381,8 @@ async function buildParkFromRow(row) {
       dugoutCoverageMaterial: row[`Field ${i} Dugout Coverage Material`] || null,
       battingCages: toBool(row[`Field ${i} Batting Cages?`]),
     };
-    if (f.name) park.fields.push(f);
+
+    park.fields.push(f);
   }
 
   // Geocode
@@ -368,9 +414,31 @@ async function run() {
     rows.push(...await readCsvStreamToRows(fileStream));
   } else {
     console.log(`📡 Reading CSV from Google Drive Sheet: "${PARKS_SHEET_NAME}"${PARKS_SHEET_TAB ? ` (tab: ${PARKS_SHEET_TAB})` : ''}${PARKS_SHEET_PARENT ? ` in folder "${PARKS_SHEET_PARENT}"` : ''}`);
-    const { drive, sheets } = await getDriveClientInteractive();
 
-    const file = await findSingleSheetByName(drive, PARKS_SHEET_NAME, PARKS_SHEET_PARENT);
+    let drive, sheets;
+    try {
+      ({ drive, sheets } = await getDriveClientInteractive());
+    } catch (e) {
+      throw e; // initial auth failed before getting a token
+    }
+
+    let file;
+    try {
+      file = await findSingleSheetByName(drive, PARKS_SHEET_NAME, PARKS_SHEET_PARENT);
+    } catch (e) {
+      const err = e?.response?.data || e;
+      const isInvalidGrant = (err?.error === 'invalid_grant') || /invalid_grant/i.test(err?.error_description || e?.message || '');
+      if (isInvalidGrant) {
+        // wipe stale token and re-auth
+        try { fs.unlinkSync(GDRIVE_TOKEN); } catch { }
+        console.warn('⚠️ Google token expired/revoked; re-authorizing…');
+        ({ drive, sheets } = await getDriveClientInteractive());
+        file = await findSingleSheetByName(drive, PARKS_SHEET_NAME, PARKS_SHEET_PARENT);
+      } else {
+        throw e;
+      }
+    }
+
     if (!file) throw new Error(`Google Sheet "${PARKS_SHEET_NAME}" not found${PARKS_SHEET_PARENT ? ` in folder "${PARKS_SHEET_PARENT}"` : ''}.`);
     console.log(`🗂️  Found sheet: ${file.name} (id=${file.id})`);
 
@@ -420,11 +488,16 @@ async function run() {
     return;
   }
 
-  // Upsert to avoid duplicates (case-insensitive via collation)
+  // Upsert + update existing (case-insensitive via collation)
+  // NOTE: don't touch updatedAt unless inserting, so modifiedCount is accurate.
+  const now = new Date();
   const ops = parks.map(doc => ({
     updateOne: {
       filter: dupFilter(doc),
-      update: { $setOnInsert: doc },
+      update: {
+        $set: { ...doc },
+        $setOnInsert: { createdAt: now, updatedAt: now }
+      },
       upsert: true
     }
   }));
@@ -436,6 +509,7 @@ async function run() {
 
   console.log('📦 Import summary:');
   console.log(`  Upserted (new): ${result.upsertedCount || 0}`);
+  console.log(`  Updated (modified): ${result.modifiedCount || 0}`);
   console.log(`  Matched existing: ${result.matchedCount || 0}`);
 
   await mongoose.disconnect();
