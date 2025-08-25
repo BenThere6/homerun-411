@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useMemo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from '../utils/axiosInstance';
+import { buildSummaries } from '../utils/fieldSummaries';
+import { SpecRow, SpecSection } from '../components/SpecList';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, StyleSheet, ScrollView, ImageBackground, TouchableOpacity, Platform, Linking } from 'react-native';
 import { getWeather } from '../utils/getWeather';
@@ -152,6 +154,22 @@ export default function ParkDetails({ route, navigation }) {
     // Only re-run if the id changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [incomingId]);
+
+  // 2) ADD: compute summaries (auto-discovers every attribute)
+  const summaries = useMemo(() => {
+    const fields = park?.fields || [];
+    return fields.length ? buildSummaries(fields) : [];
+  }, [park?.fields]);
+
+  // Group for render convenience
+  const grouped = useMemo(() => {
+    const by = new Map();
+    for (const s of summaries) {
+      if (!by.has(s.group)) by.set(s.group, []);
+      by.get(s.group).push(s);
+    }
+    return by;
+  }, [summaries]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -546,61 +564,40 @@ export default function ParkDetails({ route, navigation }) {
 
 
           {/* Fields */}
-
+          {/* === Field Details (single white card, labeled) === */}
           <View style={styles.section}>
-            <TouchableOpacity onPress={() => toggleSection('fields')}>
-              <Text style={styles.sectionTitle}>⚾ Fields {showFields ? '▲' : '▼'}</Text>
-            </TouchableOpacity>
+            <Text style={styles.sectionTitle}>Field Details</Text>
 
-            {showFields && (
-              <>
-                {(() => {
-                  // ✅ Safely handle missing/undefined fields
-                  const grouped = (park.fields ?? []).reduce((acc, field) => {
-                    const name = field?.name || 'Unnamed Field';
-                    (acc[name] = acc[name] || []).push(field);
-                    return acc;
-                  }, {});
+            {['Surfaces', 'Dimensions', 'Amenities', 'Other'].map((g, i, arr) => {
+              const list = grouped.get(g);
+              if (!list || list.length === 0) return null;
+              return (
+                <React.Fragment key={g}>
+                  <SpecSection heading={g} collapsible defaultExpanded={false}>
+                    {list.map((s) => {
+                      // build subItems in step 3
+                      let subItems = null;
+                      if (s.tieAllDifferent) {
+                        subItems = s.exceptions?.map(e => `${e.fieldName}: ${e.display}`);
+                      } else if (s.exceptions?.length) {
+                        subItems = s.exceptions.map(e => `${e.fieldName}: ${e.display}`);
+                      }
+                      return (
+                        <SpecRow
+                          key={s.key}
+                          title={s.title}
+                          value={s.commonValueDisplay}
+                          subItems={subItems}   // ← step 3 uses this
+                        />
+                      );
+                    })}
+                  </SpecSection>
 
-                  const groups = Object.entries(grouped);
-
-                  if (groups.length === 0) {
-                    return <Text style={styles.text}>No field data</Text>;
-                  }
-
-                  return groups.map(([name, fields]) => (
-                    <View key={name} style={styles.fieldCard}>
-                      <Text style={styles.subtitle}>{name}</Text>
-                      {fields.map((field, idx) => (
-                        <View key={idx} style={{ marginBottom: 10 }}>
-                          <Text style={styles.subtitle}>📍 Location</Text>
-                          <Text style={styles.text}>{field?.location || 'No data available'}</Text>
-
-                          <Text style={styles.subtitle}>📏 Fence Distance</Text>
-                          <Text style={styles.text}>
-                            {field?.fenceDistance ? `${field.fenceDistance} ft` : 'No data available'}
-                          </Text>
-
-                          <Text style={styles.subtitle}>🧱 Fence Height</Text>
-                          <Text style={styles.text}>
-                            {field?.fenceHeight ? `${field.fenceHeight} ft` : 'No data available'}
-                          </Text>
-
-                          <Text style={styles.subtitle}>🌱 Outfield</Text>
-                          <Text style={styles.text}>{field?.outfieldMaterial || 'No data available'}</Text>
-
-                          <Text style={styles.subtitle}>🏔 Infield</Text>
-                          <Text style={styles.text}>{field?.infieldMaterial || 'No data available'}</Text>
-
-                          <Text style={styles.subtitle}>🧱 Backstop</Text>
-                          <Text style={styles.text}>{field?.backstopMaterial || 'No data available'}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  ));
-                })()}
-              </>
-            )}
+                  {/* divider between subheadings */}
+                  {i < arr.length - 1 ? <View style={styles.fieldsDivider} /> : null}
+                </React.Fragment>
+              );
+            })}
           </View>
 
         </View>
@@ -847,5 +844,10 @@ const styles = StyleSheet.create({
     color: '#1d4ed8',
     textDecorationLine: 'underline',
     alignSelf: 'flex-start',
+  },
+  fieldsDivider: {
+    height: 1,
+    backgroundColor: '#e5e7eb',
+    marginVertical: 10,
   },
 });
