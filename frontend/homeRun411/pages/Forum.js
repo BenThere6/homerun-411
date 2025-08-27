@@ -1566,7 +1566,7 @@ const styles = StyleSheet.create({
         height: '100%',
         backgroundColor: '#fff',
         borderRadius: 15,
-        overflow: 'hidden',   // <-- comment this out if keyboard animation clips
+        overflow: 'hidden',
         alignSelf: 'center',
     },
     modalFooter: {

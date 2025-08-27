@@ -15,6 +15,7 @@ import {
     ScrollView,
     Keyboard,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import jwtDecode from 'jwt-decode';
@@ -252,30 +253,45 @@ export default function NewPostForm({ route, navigation }) {
                     ) : !selectedCity ? (
                         <>
                             <View style={styles.modalHeader}>
-                                <TouchableOpacity onPress={goBackToState}>
-                                    <Text style={styles.backText}>← Back</Text>
-                                </TouchableOpacity>
-                                <Text style={styles.modalTitle}>Select City in {selectedState}</Text>
-                            </View>
-                            {cities.map((city) => (
                                 <TouchableOpacity
-                                    key={city}
-                                    onPress={() => {
-                                        setSelectedCity(city);
-                                        fetchParks(selectedState, city);
-                                    }}
+                                    onPress={goBackToState}
+                                    style={styles.backBtn}
+                                    hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
                                 >
-                                    <Text style={styles.option}>{city}</Text>
+                                    <Ionicons name="chevron-back" size={22} color="#334155" />
+                                    <Text style={styles.backLabel}>Back</Text>
                                 </TouchableOpacity>
-                            ))}
+                                <Text style={styles.modalHeaderTitle}>Select City in {selectedState}</Text>
+                            </View>
+
+                            <FlatList
+                                data={cities}
+                                keyExtractor={(c, i) => c ?? String(i)}
+                                renderItem={({ item }) => (
+                                    <TouchableOpacity
+                                        onPress={() => {
+                                            setSelectedCity(item);
+                                            fetchParks(selectedState, item);
+                                        }}
+                                    >
+                                        <Text style={styles.option}>{item}</Text>
+                                    </TouchableOpacity>
+                                )}
+                                contentContainerStyle={{ paddingBottom: 20 }}
+                            />
                         </>
                     ) : (
                         <>
                             <View style={styles.modalHeader}>
-                                <TouchableOpacity onPress={goBackToCity}>
-                                    <Text style={styles.backText}>← Back</Text>
+                                <TouchableOpacity
+                                    onPress={goBackToCity}
+                                    style={styles.backBtn}
+                                    hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                                >
+                                    <Ionicons name="chevron-back" size={22} color="#334155" />
+                                    <Text style={styles.backLabel}>Back</Text>
                                 </TouchableOpacity>
-                                <Text style={styles.modalTitle}>Select Park in {selectedCity}</Text>
+                                <Text style={styles.modalHeaderTitle}>Select Park in {selectedCity}</Text>
                             </View>
                             <FlatList
                                 data={parks}
@@ -424,15 +440,29 @@ const styles = StyleSheet.create({
         color: '#666',
     },
     modalHeader: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 15,
+        paddingVertical: 4,
+    },
+    backBtn: {
+        position: 'absolute',
+        left: 0,
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 15,
-        gap: 10,
+        paddingHorizontal: 4,
+        paddingVertical: 4,
     },
-    backText: {
-        color: '#555',
+    backLabel: {
+        color: '#334155',
         fontSize: 14,
-        marginRight: 6,
+        marginLeft: 2,
+    },
+    modalHeaderTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#333',
+        textAlign: 'center',
     },
     modalContainer: {
         flex: 1,
