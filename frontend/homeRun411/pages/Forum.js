@@ -4,7 +4,7 @@ import {
     ActivityIndicator, Image, RefreshControl, ScrollView, TextInput, Modal,
     Platform, LayoutAnimation, UIManager, useWindowDimensions,
     KeyboardAvoidingView, Alert, Pressable, Animated, Easing,
-    BackHandler, Keyboard
+    BackHandler, Keyboard, ActionSheetIOS
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons'
@@ -45,12 +45,14 @@ const PostHeader = ({
     onTogglePin,
     pinDisabled,
     isAdmin,
+    isOwner,       // NEW
+    onMore,        // NEW
 }) => {
     if (!post) return null;
     return (
         <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8 }}>
             {/* author + date (single line) */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6, position: 'relative' }}>
                 {post.author?.profile?.avatarUrl ? (
                     <Image source={{ uri: post.author.profile.avatarUrl }} style={{ width: 36, height: 36, borderRadius: 9, marginRight: 10 }} />
                 ) : (
@@ -66,6 +68,15 @@ const PostHeader = ({
                         </Text>
                     </View>
                 </View>
+                {isOwner && (
+                    <TouchableOpacity
+                        onPress={() => onMore?.(post)}
+                        style={styles.moreBtn}
+                        hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                    >
+                        <Ionicons name="ellipsis-vertical" size={18} color="#64748b" />
+                    </TouchableOpacity>
+                )}
             </View>
 
             {/* title */}
@@ -682,6 +693,11 @@ export default function ForumPage({ navigation }) {
                 navigation.setParams?.({ newPost: undefined });
             }
 
+            if (params.updatedPost) {
+                applyUpdatedPost(params.updatedPost);
+                navigation.setParams?.({ updatedPost: undefined });
+            }
+
             if (params.openPostId && forumPosts.length > 0) {
                 const match = forumPosts.find((p) => p._id === params.openPostId);
                 if (match) {
@@ -689,7 +705,7 @@ export default function ForumPage({ navigation }) {
                     navigation.setParams?.({ openPostId: undefined });
                 }
             }
-        }, [route.params?.newPost, route.params?.openPostId, forumPosts, insertNewPost])
+        }, [route.params?.newPost, route.params?.updatedPost, route.params?.openPostId, forumPosts, insertNewPost])
     );
 
     useFocusEffect(
@@ -1057,6 +1073,15 @@ export default function ForumPage({ navigation }) {
                                     {formatForumDate(item.createdAt)}
                                 </Text>
                             </View>
+                            {isOwner(item) && (
+                                <TouchableOpacity
+                                    onPress={() => openPostMenu(item)}
+                                    style={[styles.moreBtn, { top: -6 }]}
+                                    hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                                >
+                                    <Ionicons name="ellipsis-vertical" size={18} color="#64748b" />
+                                </TouchableOpacity>
+                            )}
                         </View>
                         <View style={styles.titleRow}>
                             <Text style={[styles.cardTitle, { flex: 1 }]} numberOfLines={2}>
@@ -1117,6 +1142,80 @@ export default function ForumPage({ navigation }) {
     );
 
     const commentsRef = useRef(null);
+
+    // --- ownership helpers ---
+    const authorIdOf = (p) => {
+        const a = p?.author;
+        if (!a) return null;
+        if (typeof a === 'string') return String(a);
+        return String(a._id || a.id || a.user || '');
+    };
+    const isOwner = (p) => userId && String(authorIdOf(p)) === String(userId);
+
+    // --- update list after edit ---
+    const applyUpdatedPost = (updated) => {
+        if (!updated?._id) return;
+        setForumPosts(prev =>
+            prev.map(p => (p._id === updated._id ? { ...p, ...updated } : p))
+        );
+        setSelectedPost(prev =>
+            prev && prev._id === updated._id ? { ...prev, ...updated } : prev
+        );
+    };
+
+    // --- delete handlers ---
+    const actuallyDeletePost = async (post) => {
+        try {
+            await axios.delete(`/api/post/${post._id}`);
+            setForumPosts(prev => prev.filter(p => p._id !== post._id));
+            if (selectedPost && selectedPost._id === post._id) closeModal();
+        } catch (e) {
+            const msg = e?.response?.data?.message || e.message || 'Delete failed';
+            Alert.alert('Delete Post', msg);
+        }
+    };
+
+    const confirmDeletePost = (post) => {
+        Alert.alert(
+            'Delete this post?',
+            'This action cannot be undone.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Delete', style: 'destructive', onPress: () => actuallyDeletePost(post) },
+            ]
+        );
+    };
+
+    const onEditPost = (post) => {
+        navigation.navigate('NewPostForm', { mode: 'edit', post });
+    };
+
+    const openPostMenu = (post) => {
+        if (!isOwner(post)) return;
+        const doEdit = () => onEditPost(post);
+        const doDelete = () => confirmDeletePost(post);
+
+        if (Platform.OS === 'ios') {
+            ActionSheetIOS.showActionSheetWithOptions(
+                {
+                    options: ['Cancel', 'Edit', 'Delete'],
+                    cancelButtonIndex: 0,
+                    destructiveButtonIndex: 2,
+                    userInterfaceStyle: 'light',
+                },
+                (idx) => {
+                    if (idx === 1) doEdit();
+                    if (idx === 2) doDelete();
+                }
+            );
+        } else {
+            Alert.alert('Post options', undefined, [
+                { text: 'Edit', onPress: doEdit },
+                { text: 'Delete', style: 'destructive', onPress: doDelete },
+                { text: 'Cancel', style: 'cancel' },
+            ]);
+        }
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -1181,6 +1280,8 @@ export default function ForumPage({ navigation }) {
                                         onTogglePin={onTogglePin}
                                         pinDisabled={pinDisabled}
                                         isAdmin={isAdminAny}
+                                        isOwner={isOwner(selectedPost)}
+                                        onMore={openPostMenu}
                                     />
                                 }
                                 ListEmptyComponent={
@@ -1420,7 +1521,7 @@ const styles = StyleSheet.create({
     },
     topRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
     avatar: { width: 44, height: 44, borderRadius: 10, marginRight: 10 },
-    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', position: 'relative', paddingRight: 28 },
     authorName: { fontSize: 14, fontWeight: 'bold', color: '#333', flex: 1 },
     cardDate: {
         fontSize: 12,
@@ -1434,6 +1535,7 @@ const styles = StyleSheet.create({
     headerRight: {
         alignItems: 'flex-end',
         marginLeft: 10,
+        marginRight: 22, // space for the absolute ellipsis button
     },
     titleRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2, gap: 8 },
     pinChip: {
@@ -1813,5 +1915,11 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         borderTopWidth: 1,
         borderTopColor: '#eee',
+    },
+    moreBtn: {
+        position: 'absolute',
+        right: 0,
+        top: -2,
+        padding: 4,
     },
 });

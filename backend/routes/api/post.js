@@ -307,8 +307,15 @@ router.get('/:id', getPost, (req, res) => {
   res.json(res.post);
 });
 
+function ensureOwnerOrAdmin(req, res, next) {
+  const level = req.user?.adminLevel;
+  const isOwner = String(res.post.author) === String(req.user.id);
+  if (isOwner || level === 0) return next();
+  return res.status(403).json({ message: 'You can only modify or delete your own post.' });
+}
+
 // Update post by ID
-router.patch('/:id', auth, getPost, async (req, res) => {
+router.patch('/:id', auth, getPost, ensureOwnerOrAdmin, async (req, res) => {
   const updateFields = ['title', 'content', 'tags', 'referencedPark'];
 
   updateFields.forEach(field => {
@@ -328,7 +335,7 @@ router.patch('/:id', auth, getPost, async (req, res) => {
 });
 
 // Delete post by ID
-router.delete('/:id', auth, getPost, async (req, res) => {
+router.delete('/:id', auth, getPost, ensureOwnerOrAdmin, async (req, res) => {
   try {
     const deletedPost = await Post.findByIdAndDelete(req.params.id);
     if (!deletedPost) {

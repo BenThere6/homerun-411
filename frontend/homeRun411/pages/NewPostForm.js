@@ -21,6 +21,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import jwtDecode from 'jwt-decode';
 import colors from '../assets/colors';
 import { BACKEND_URL } from '@env';
+import api from '../utils/axiosInstance';
 
 export default function NewPostForm({ route, navigation }) {
     const [title, setTitle] = useState('');
@@ -33,6 +34,25 @@ export default function NewPostForm({ route, navigation }) {
     const [selectedState, setSelectedState] = useState(null);
     const [selectedCity, setSelectedCity] = useState(null);
     const [contentPlaceholder, setContentPlaceholder] = useState('Content');
+
+    const isEdit = route?.params?.mode === 'edit';
+    const postToEdit = route?.params?.post || null;
+
+    useEffect(() => {
+        navigation.setOptions?.({ title: isEdit ? 'Edit Post' : 'New Post' });
+    }, [isEdit, navigation]);
+
+    useEffect(() => {
+        if (isEdit && postToEdit) {
+            setTitle(postToEdit.title || '');
+            setContent(postToEdit.content || '');
+            setSelectedPark(
+                postToEdit.referencedPark && typeof postToEdit.referencedPark === 'object'
+                    ? postToEdit.referencedPark
+                    : null
+            );
+        }
+    }, [isEdit, postToEdit]);
 
     // const navigation = useNavigation();
 
@@ -127,6 +147,18 @@ export default function NewPostForm({ route, navigation }) {
             const decodedToken = jwtDecode(token);
             const userId = decodedToken.id;
 
+            if (isEdit && postToEdit?._id) {
+                // PATCH update
+                const { data: updated } = await api.patch(`/api/post/${postToEdit._id}`, {
+                    title,
+                    content,
+                    referencedPark: selectedPark?._id || selectedPark || undefined,
+                });
+                navigation.navigate({ name: 'Forum', params: { updatedPost: updated }, merge: true });
+                return;
+            }
+
+            // CREATE
             const response = await fetch(`${BACKEND_URL}/api/post`, {
                 method: 'POST',
                 headers: {
@@ -148,8 +180,6 @@ export default function NewPostForm({ route, navigation }) {
                 return;
             }
 
-            // Enrich referencedPark for immediate list rendering (if API returned only an id)
-            // Grab whatever name you have in your token (or fall back to "You")
             const first = (decodedToken?.firstName || decodedToken?.given_name || '').trim();
             const last = (decodedToken?.lastName || decodedToken?.family_name || '').trim();
 
@@ -163,21 +193,13 @@ export default function NewPostForm({ route, navigation }) {
                         : created?.referencedPark || selectedPark || null,
                 author: (created?.author && typeof created.author === 'object')
                     ? created.author
-                    : {
-                        _id: userId,
-                        profile: { firstName: first || 'You', lastName: last || '' },
-                    },
+                    : { _id: userId, profile: { firstName: first || 'You', lastName: last || '' } },
             };
 
-            // send the created post back to Forum and merge into route params
-            navigation.navigate({
-                name: 'Forum',
-                params: { newPost: createdForList },
-                merge: true,
-            });
+            navigation.navigate({ name: 'Forum', params: { newPost: createdForList }, merge: true });
         } catch (error) {
-            console.error('Error creating post:', error);
-            Alert.alert('Error', 'An error occurred while creating the post.');
+            console.error('Error creating/updating post:', error);
+            Alert.alert('Error', 'An error occurred while saving the post.');
         }
     };
 
@@ -195,7 +217,7 @@ export default function NewPostForm({ route, navigation }) {
                     onScrollBeginDrag={Keyboard.dismiss}                                    // Android helper: dismiss when you start dragging
                 >
                     <View style={styles.card}>
-                        <Text style={styles.title}>Create a New Post</Text>
+                        <Text style={styles.title}>{isEdit ? 'Edit Post' : 'Create a New Post'}</Text>
 
                         <TextInput
                             style={styles.input}
@@ -226,7 +248,7 @@ export default function NewPostForm({ route, navigation }) {
                         )}
 
                         <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-                            <Text style={styles.buttonText}>Submit</Text>
+                            <Text style={styles.buttonText}>{isEdit ? 'Save Changes' : 'Submit'}</Text>
                         </TouchableOpacity>
                     </View>
                 </ScrollView>
