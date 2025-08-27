@@ -68,15 +68,13 @@ const PostHeader = ({
                         </Text>
                     </View>
                 </View>
-                {isOwner && (
-                    <TouchableOpacity
-                        onPress={() => onMore?.(post)}
-                        style={styles.moreBtn}
-                        hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
-                    >
-                        <Ionicons name="ellipsis-vertical" size={18} color="#64748b" />
-                    </TouchableOpacity>
-                )}
+                <TouchableOpacity
+                    onPress={() => onMore?.(post)}
+                    style={styles.moreBtn}
+                    hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                >
+                    <Ionicons name="ellipsis-vertical" size={18} color="#64748b" />
+                </TouchableOpacity>
             </View>
 
             {/* title */}
@@ -1073,15 +1071,13 @@ export default function ForumPage({ navigation }) {
                                     {formatForumDate(item.createdAt)}
                                 </Text>
                             </View>
-                            {isOwner(item) && (
-                                <TouchableOpacity
-                                    onPress={() => openPostMenu(item)}
-                                    style={[styles.moreBtn, { top: -6 }]}
-                                    hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
-                                >
-                                    <Ionicons name="ellipsis-vertical" size={18} color="#64748b" />
-                                </TouchableOpacity>
-                            )}
+                            <TouchableOpacity
+                                onPress={() => openPostMenu(item)}
+                                style={[styles.moreBtn, { top: -6 }]}
+                                hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                            >
+                                <Ionicons name="ellipsis-vertical" size={18} color="#64748b" />
+                            </TouchableOpacity>
                         </View>
                         <View style={styles.titleRow}>
                             <Text style={[styles.cardTitle, { flex: 1 }]} numberOfLines={2}>
@@ -1191,29 +1187,46 @@ export default function ForumPage({ navigation }) {
     };
 
     const openPostMenu = (post) => {
-        if (!isOwner(post)) return;
+        const owner = isOwner(post);
+
+        const doShare = () => {
+            // intentionally no-op for now
+            // (hook up Share API later)
+            // console.log('share post', post._id);
+        };
         const doEdit = () => onEditPost(post);
         const doDelete = () => confirmDeletePost(post);
 
         if (Platform.OS === 'ios') {
+            // Put Share at the top (common pattern), then Edit/Delete for owners
+            const options = ['Cancel', 'Share', ...(owner ? ['Edit', 'Delete'] : [])];
+            const cancelButtonIndex = 0;
+            const destructiveButtonIndex = owner ? options.indexOf('Delete') : undefined;
+
             ActionSheetIOS.showActionSheetWithOptions(
                 {
-                    options: ['Cancel', 'Edit', 'Delete'],
-                    cancelButtonIndex: 0,
-                    destructiveButtonIndex: 2,
+                    options,
+                    cancelButtonIndex,
+                    destructiveButtonIndex,
                     userInterfaceStyle: 'light',
                 },
                 (idx) => {
-                    if (idx === 1) doEdit();
-                    if (idx === 2) doDelete();
+                    if (idx === 1) doShare();
+                    if (owner && idx === 2) doEdit();
+                    if (owner && idx === 3) doDelete();
                 }
             );
         } else {
-            Alert.alert('Post options', undefined, [
-                { text: 'Edit', onPress: doEdit },
-                { text: 'Delete', style: 'destructive', onPress: doDelete },
+            // Android: buttons render top→bottom; keep Cancel last
+            const buttons = [
+                { text: 'Share', onPress: doShare },
+                ...(owner ? [
+                    { text: 'Edit', onPress: doEdit },
+                    { text: 'Delete', style: 'destructive', onPress: doDelete },
+                ] : []),
                 { text: 'Cancel', style: 'cancel' },
-            ]);
+            ];
+            Alert.alert('Post options', undefined, buttons);
         }
     };
 

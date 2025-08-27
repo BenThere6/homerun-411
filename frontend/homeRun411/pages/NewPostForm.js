@@ -39,7 +39,7 @@ export default function NewPostForm({ route, navigation }) {
     const postToEdit = route?.params?.post || null;
 
     useEffect(() => {
-        navigation.setOptions?.({ title: isEdit ? 'Edit Post' : 'New Post' });
+        navigation.setOptions?.({ title: isEdit ? 'Edit' : 'New Post' });
     }, [isEdit, navigation]);
 
     useEffect(() => {
