@@ -1250,7 +1250,7 @@ export default function ForumPage({ navigation }) {
 
                             <Text style={[styles.filterTitle, { paddingRight: 28 }]}>Filter posts</Text>
 
-                            <Text style={styles.filterLabel}>Sort by</Text>
+                            {/* <Text style={styles.filterLabel}>Sort by</Text>
                             <View style={styles.filterRow}>
                                 {[
                                     { key: 'newest', label: 'Newest' },
@@ -1267,7 +1267,7 @@ export default function ForumPage({ navigation }) {
                                         </Text>
                                     </TouchableOpacity>
                                 ))}
-                            </View>
+                            </View> */}
 
                             {/* --- Parks multi-select --- */}
                             <Text style={styles.filterLabel}>Parks</Text>
