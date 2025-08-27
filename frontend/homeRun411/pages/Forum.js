@@ -60,28 +60,25 @@ const PostHeader = ({
                     <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: '600', color: '#475569', flexShrink: 1, marginRight: 8 }}>
                         {fullName(post.author)}
                     </Text>
-                    <Text numberOfLines={1} style={{ fontSize: 12, color: '#94a3b8' }}>
-                        {formatForumDate(post.createdAt)}
-                    </Text>
+                    <View style={{ marginLeft: 'auto' }}>
+                        <Text numberOfLines={1} style={{ fontSize: 12, color: '#94a3b8' }}>
+                            {formatForumDate(post.createdAt)}
+                        </Text>
+                    </View>
                 </View>
             </View>
 
             {/* title */}
             {!!post.title && (
-                <Text style={{ fontSize: 17, fontWeight: '600', color: '#111', lineHeight: 22, marginBottom: 6 }}>
-                    {post.title}
-                </Text>
-            )}
-
-            {/* pinned */}
-            {post.pinned && (
-                <View style={{
-                    flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start',
-                    backgroundColor: '#fff7ed', borderColor: '#fed7aa', borderWidth: 1,
-                    paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginBottom: 6
-                }}>
-                    <Ionicons name="pin" size={12} color="#b45309" />
-                    <Text style={{ marginLeft: 4, fontSize: 12, color: '#b45309', fontWeight: '600' }}>Pinned</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 8 }}>
+                    <Text style={{ fontSize: 17, fontWeight: '600', color: '#111', lineHeight: 22, flex: 1 }}>
+                        {post.title}
+                    </Text>
+                    {post.pinned && (
+                        <View style={styles.pinChip}>
+                            <Ionicons name="pin" size={12} color="#b45309" />
+                        </View>
+                    )}
                 </View>
             )}
 
@@ -1055,17 +1052,22 @@ export default function ForumPage({ navigation }) {
                     <View style={{ flex: 1 }}>
                         <View style={styles.cardHeader}>
                             <Text style={styles.authorName}>{displayAuthor(item)}</Text>
-                            <Text numberOfLines={1} ellipsizeMode="tail" style={styles.cardDate}>
-                                {formatForumDate(item.createdAt)}
-                            </Text>
-                        </View>
-                        <Text style={styles.cardTitle}>{item.title}</Text>
-                        {item.pinned && (
-                            <View style={styles.pinnedBadge}>
-                                <Ionicons name="pin" size={12} color="#b45309" />
-                                <Text style={styles.pinnedText}>Pinned</Text>
+                            <View style={styles.headerRight}>
+                                <Text numberOfLines={1} ellipsizeMode="tail" style={styles.cardDate}>
+                                    {formatForumDate(item.createdAt)}
+                                </Text>
                             </View>
-                        )}
+                        </View>
+                        <View style={styles.titleRow}>
+                            <Text style={[styles.cardTitle, { flex: 1 }]} numberOfLines={2}>
+                                {item.title}
+                            </Text>
+                            {item.pinned && (
+                                <View style={styles.pinChip}>
+                                    <Ionicons name="pin" size={12} color="#b45309" />
+                                </View>
+                            )}
+                        </View>
                     </View>
                 </View>
 
@@ -1429,7 +1431,23 @@ const styles = StyleSheet.create({
         lineHeight: 14,
         flexShrink: 1,
     },
-    cardTitle: { fontSize: 15, fontWeight: '500', color: '#333', marginTop: 2 },
+    headerRight: {
+        alignItems: 'flex-end',
+        marginLeft: 10,
+    },
+    titleRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2, gap: 8 },
+    pinChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        alignSelf: 'flex-start',
+        backgroundColor: '#fff7ed',
+        borderColor: '#fed7aa',
+        borderWidth: 1,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
+    cardTitle: { fontSize: 15, fontWeight: '500', color: '#333' },
     tagContainer: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 6, marginBottom: 4 },
     tag: { color: colors.thirty, marginRight: 8, fontSize: 13 },
     cardContent: { fontSize: 14, color: '#666', marginBottom: 8, lineHeight: 20 },
