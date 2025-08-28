@@ -1,213 +1,142 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, Switch, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native'; 
+import { useNavigation } from '@react-navigation/native';
 import colors from '../assets/colors';
-import { useAuth } from '../AuthContext'; // Import the useAuth hook
+import axios from '../utils/axiosInstance';
+import { useAuth } from '../AuthContext';
+
+function Row({ title, right, onPress }) {
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={onPress ? 0.6 : 1} style={styles.row}>
+      <Text style={styles.rowTitle}>{title}</Text>
+      <View>{right}</View>
+    </TouchableOpacity>
+  );
+}
+
+function Group({ label, children }) {
+  return (
+    <View style={styles.group}>
+      <Text style={styles.groupLabel}>{label}</Text>
+      <View style={styles.card}>{children}</View>
+    </View>
+  );
+}
 
 export default function SettingsPage() {
-  const { setIsLoggedIn } = useAuth(); // Access setIsLoggedIn from context
   const navigation = useNavigation();
+  const { setIsLoggedIn } = useAuth();
 
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [privacyEnabled, setPrivacyEnabled] = useState(false);
-  const [darkTheme, setDarkTheme] = useState(false);
-  const [username, setUsername] = useState('Username');
-  const [email, setEmail] = useState('user@example.com');
-  const [profileImage, setProfileImage] = useState(null);
+  const [notifEnabled, setNotifEnabled] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadSettings = async () => {
-      const storedNotifications = await AsyncStorage.getItem('notificationsEnabled');
-      const storedPrivacy = await AsyncStorage.getItem('privacyEnabled');
-      const storedDarkTheme = await AsyncStorage.getItem('darkTheme');
-      const storedUsername = await AsyncStorage.getItem('username');
-      const storedEmail = await AsyncStorage.getItem('email');
-      const storedProfileImage = await AsyncStorage.getItem('profileImage');
-
-      if (storedNotifications !== null) setNotificationsEnabled(JSON.parse(storedNotifications));
-      if (storedPrivacy !== null) setPrivacyEnabled(JSON.parse(storedPrivacy));
-      if (storedDarkTheme !== null) setDarkTheme(JSON.parse(storedDarkTheme));
-      if (storedUsername) setUsername(storedUsername);
-      if (storedEmail) setEmail(storedEmail);
-      if (storedProfileImage) setProfileImage(storedProfileImage);
-    };
-
-    loadSettings();
+    (async () => {
+      try {
+        const token = await AsyncStorage.getItem('token');
+        const { data } = await axios.get('/api/user/settings', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setNotifEnabled(Boolean(data?.notifications));
+      } catch (e) {
+        console.error('Load settings failed', e?.response?.data || e.message);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
-  const pickImage = async () => {
-    const result = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (result.granted) {
-      const pickerResult = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 1,
+  const toggleNotifications = async (val) => {
+    setNotifEnabled(val);
+    try {
+      const token = await AsyncStorage.getItem('token');
+      await axios.patch('/api/user/settings', { notifications: val }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
-
-      if (!pickerResult.cancelled) {
-        setProfileImage(pickerResult.uri);
-        await AsyncStorage.setItem('profileImage', pickerResult.uri);
-      }
-    } else {
-      alert('Permission to access the gallery is required!');
+    } catch (e) {
+      console.error('Save notif failed', e?.response?.data || e.message);
+      Alert.alert('Error', 'Could not save notification preference.');
     }
   };
 
-  const handleSaveProfile = async () => {
-    await AsyncStorage.setItem('username', username);
-    await AsyncStorage.setItem('email', email);
-    Alert.alert('Profile Saved', 'Your profile information has been updated.');
-  };
-
   const handleLogout = async () => {
-    Alert.alert(
-      'Confirm Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          onPress: async () => {
-            try {
-              await AsyncStorage.removeItem('token');
-              setIsLoggedIn(false); // Log the user out
-              navigation.reset({
-                index: 0,
-                routes: [{ name: 'LoginPage' }],
-              });
-            } catch (error) {
-              console.error('Error during logout:', error);
-            }
-          },
-        },
-      ],
-      { cancelable: true }
-    );
+    Alert.alert('Confirm Logout', 'Are you sure you want to logout?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Logout',
+        style: 'destructive',
+        onPress: async () => {
+          await AsyncStorage.removeItem('token');
+          setIsLoggedIn(false);
+          navigation.reset({ index: 0, routes: [{ name: 'LoginPage' }] });
+        }
+      }
+    ]);
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <View style={styles.container}>
-        <View style={styles.profileContainer}>
-          <View style={styles.profileImageContainer}>
-            <TouchableOpacity onPress={pickImage}>
-              {profileImage ? (
-                <Image source={{ uri: profileImage }} style={styles.profileImage} />
-              ) : (
-                <View style={styles.defaultProfilePic}>
-                  <Text style={styles.defaultProfilePicText}>Add Image</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          </View>
-          <TextInput style={styles.input} value={username} onChangeText={setUsername} placeholder="Username" />
-          <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="Email" keyboardType="email-address" />
-          <TouchableOpacity style={styles.saveProfileButton} onPress={handleSaveProfile}>
-            <Text style={styles.saveProfileButtonText}>Save Profile</Text>
-          </TouchableOpacity>
-        </View>
+    <ScrollView contentContainerStyle={styles.scrollContainer} style={styles.screen}>
+      {/* Profile & Account */}
+      <Group label="Profile & Account">
+        <Row
+          title="Edit Profile"
+          onPress={() => navigation.navigate('EditProfile')}
+          right={<Text style={styles.chev}>{'>'}</Text>}
+        />
+      </Group>
 
-        <View style={styles.settingsItem}>
-          <Text style={styles.settingsText}>Notifications</Text>
-          <Switch value={notificationsEnabled} onValueChange={setNotificationsEnabled} />
-        </View>
+      {/* Notifications (stub: persisted boolean only) */}
+      <Group label="Notifications">
+        <Row
+          title="Allow Push Notifications"
+          right={<Switch value={notifEnabled} onValueChange={toggleNotifications} />}
+        />
+        <Row title="Channels & in-app preferences" right={<Text style={styles.soon}>Coming soon</Text>} />
+      </Group>
 
-        <View style={styles.settingsItem}>
-          <Text style={styles.settingsText}>Privacy Settings</Text>
-          <Switch value={privacyEnabled} onValueChange={setPrivacyEnabled} />
-        </View>
+      {/* Privacy (stubs) */}
+      <Group label="Privacy">
+        <Row title="Profile visibility" right={<Text style={styles.soon}>Coming soon</Text>} />
+        <Row title="Show favorites on profile" right={<Text style={styles.soon}>Coming soon</Text>} />
+      </Group>
 
-        <View style={styles.settingsItem}>
-          <Text style={styles.settingsText}>Dark Theme</Text>
-          <Switch value={darkTheme} onValueChange={setDarkTheme} />
-        </View>
+      {/* App */}
+      <Group label="App">
+        <Row title="Theme" right={<Text style={styles.soon}>Light (dark soon)</Text>} />
+      </Group>
 
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutButtonText}>Logout</Text>
+      {/* Danger / Login & Security */}
+      <Group label="Login & Security">
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+          <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
-      </View>
+      </Group>
+
+      {/* Spacer to ensure no gray gap */}
+      <View style={{ height: 24 }} />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: colors.sixty,
+  screen: { flex: 1, backgroundColor: colors.sixty },
+  scrollContainer: { padding: 16, paddingBottom: 32, flexGrow: 1 },
+  group: { marginBottom: 18 },
+  groupLabel: { fontSize: 13, color: colors.secondaryText, marginBottom: 8, marginLeft: 6 },
+  card: {
+    backgroundColor: '#fff', borderRadius: 14,
+    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, elevation: 2,
   },
-  scrollContainer: {
-    paddingBottom: 30,
+  row: {
+    paddingHorizontal: 14, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#eee',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'
   },
-  profileContainer: {
-    marginBottom: 30,
+  rowTitle: { fontSize: 16, color: colors.primaryText },
+  chev: { color: colors.secondaryText, fontSize: 16 },
+  soon: { color: colors.secondaryText, fontStyle: 'italic' },
+  logoutBtn: {
+    backgroundColor: '#eee', paddingVertical: 12, margin: 14, borderRadius: 10, alignItems: 'center'
   },
-  profileImageContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-  },
-  defaultProfilePic: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#e0e0e0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  defaultProfilePicText: {
-    color: colors.secondaryText,
-    fontSize: 12,
-  },
-  input: {
-    width: '100%',
-    padding: 10,
-    borderWidth: 1,
-    borderColor: colors.secondaryText,
-    borderRadius: 5,
-    marginBottom: 10,
-    color: colors.primaryText,
-  },
-  saveProfileButton: {
-    backgroundColor: colors.thirty,
-    padding: 15,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  saveProfileButtonText: {
-    color: colors.sixty,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  settingsItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  settingsText: {
-    fontSize: 16,
-    color: colors.primaryText,
-  },
-  logoutButton: {
-    backgroundColor: '#e0e0e0',
-    padding: 10,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  logoutButtonText: {
-    color: colors.primaryText,
-    fontSize: 14,
-  },
+  logoutText: { color: colors.primaryText, fontWeight: '600' },
 });

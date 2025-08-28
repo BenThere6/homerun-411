@@ -7,6 +7,17 @@ const zipcodes = require('zipcodes');
 const Park = require('../../models/Park');
 const Post = require('../../models/Post');
 const Comment = require('../../models/Comment');
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage() });
+const cloudinary = require('cloudinary').v2;
+
+// Ensure these env vars are set in your backend:
+// CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 // Middleware function to fetch a user by ID
 async function getUser(req, res, next) {
@@ -263,11 +274,6 @@ router.get('/profile', auth, async (req, res) => {
   }
 });
 
-// Get a specific user by ID
-router.get('/:id', auth, getUser, (req, res) => {
-  res.json(res.user);
-});
-
 // Get user settings
 router.get('/settings', auth, async (req, res) => {
   try {
@@ -280,6 +286,39 @@ router.get('/settings', auth, async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
+});
+
+// Update user settings
+router.patch('/settings', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (req.body.notifications !== undefined) {
+      user.settings.notifications = req.body.notifications;
+    }
+    if (req.body.theme !== undefined) {
+      user.settings.theme = req.body.theme;
+    }
+    if (req.body.shareLocation !== undefined) {
+      user.settings.shareLocation = req.body.shareLocation;
+    }
+    if (req.body.contentFilter !== undefined) {
+      user.settings.contentFilter = req.body.contentFilter;
+    }
+
+    const updatedUser = await user.save();
+    res.json(updatedUser);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// Get a specific user by ID
+router.get('/:id', auth, getUser, (req, res) => {
+  res.json(res.user);
 });
 
 // Update a specific user by ID
@@ -328,34 +367,6 @@ router.patch('/profile', auth, async (req, res) => {
   }
 });
 
-// Update user settings
-router.patch('/settings', auth, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    if (req.body.notifications !== undefined) {
-      user.settings.notifications = req.body.notifications;
-    }
-    if (req.body.theme !== undefined) {
-      user.settings.theme = req.body.theme;
-    }
-    if (req.body.shareLocation !== undefined) {
-      user.settings.shareLocation = req.body.shareLocation;
-    }
-    if (req.body.contentFilter !== undefined) {
-      user.settings.contentFilter = req.body.contentFilter;
-    }
-
-    const updatedUser = await user.save();
-    res.json(updatedUser);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-});
-
 // Record recently viewed park
 router.post('/recently-viewed/:parkId', auth, async (req, res) => {
   try {
@@ -385,6 +396,71 @@ router.post('/recently-viewed/:parkId', auth, async (req, res) => {
   } catch (error) {
     console.error('Failed to record recently viewed park:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// POST /api/user/upload-avatar
+router.post('/upload-avatar', auth, upload.single('avatar'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+
+    const uploadRes = await cloudinary.uploader.upload_stream(
+      { folder: 'hr411/avatars', resource_type: 'image', transformation: [{ width: 512, height: 512, crop: 'fill', gravity: 'face' }] },
+      (err, result) => {
+        if (err) {
+          console.error('Cloudinary error', err);
+          return res.status(500).json({ message: 'Upload failed' });
+        }
+        return res.json({ secureUrl: result.secure_url, publicId: result.public_id });
+      }
+    );
+
+    // Stream buffer to Cloudinary
+    const stream = uploadRes;
+    stream.end(req.file.buffer);
+  } catch (e) {
+    console.error('Upload avatar failed:', e);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update user profile
+router.patch('/profile', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const { firstName, lastName, avatarUrl, bio, zipCode } = req.body;
+
+    if (firstName !== undefined) user.profile.firstName = firstName;
+    if (lastName !== undefined) user.profile.lastName = lastName;
+    if (avatarUrl !== undefined) user.profile.avatarUrl = avatarUrl;
+    if (bio !== undefined) user.profile.bio = bio;
+
+    if (zipCode !== undefined && zipCode !== user.zipCode) {
+      const loc = zipcodes.lookup(zipCode);
+      if (!loc || typeof loc.latitude !== 'number' || typeof loc.longitude !== 'number') {
+        return res.status(400).json({ message: 'Invalid zip code. Please enter a valid zip code.' });
+      }
+      user.zipCode = zipCode;
+      user.location = {
+        type: 'Point',
+        coordinates: [loc.longitude, loc.latitude],
+      };
+    }
+
+    const updatedUser = await user.save();
+    res.json({
+      profile: updatedUser.profile,
+      zipCode: updatedUser.zipCode,
+      location: updatedUser.location,
+      createdAt: updatedUser.createdAt,
+      email: updatedUser.email,
+      role: updatedUser.role,
+    });
+  } catch (err) {
+    console.error('PATCH /profile error', err);
+    res.status(400).json({ message: err.message });
   }
 });
 

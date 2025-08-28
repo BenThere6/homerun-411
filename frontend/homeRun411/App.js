@@ -18,6 +18,7 @@ import LoginPage from './pages/Login';
 import RegisterPage from './pages/Register';
 import NewPostForm from './pages/NewPostForm';
 import MapScreen from './pages/MapScreen';
+import EditProfile from './pages/EditProfile';
 import colors from './assets/colors';
 import { AuthProvider, useAuth } from './AuthContext';
 import api, { setUnauthorizedHandler } from './utils/axiosInstance';
@@ -25,6 +26,8 @@ import HomePlateIcon from './components/icons/HomePlateIcon';
 import HomePlateIcon_Selected from './components/icons/HomePlateIcon_Selected';
 import { initUserLocation } from './utils/initUserLocation';
 import { connectSocket } from './utils/socket';
+import { TouchableOpacity } from 'react-native';
+
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -69,7 +72,29 @@ function TabsNavigator() {
           headerShown: true,
         }}
       />
-      <Tab.Screen name="Profile" component={ProfilePage} />
+      <Tab.Screen
+        name="Profile"
+        component={ProfilePage}
+        options={({ navigation }) => ({
+          headerShown: true,
+          headerTitle: 'Profile',
+          headerTitleAlign: 'center',
+          headerStyle: { backgroundColor: colors.sixty },
+          headerTintColor: colors.primaryText,
+          // the gear
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Settings')}
+              accessibilityLabel="Manage Account"
+              accessibilityRole="button"
+              style={{ marginRight: 16 }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="settings-outline" size={22} color={colors.primaryText} />
+            </TouchableOpacity>
+          ),
+        })}
+      />
     </Tab.Navigator>
   );
 }
@@ -190,6 +215,11 @@ function MainStack() {
           />
           <Stack.Screen name="Admin" component={AdminPage} />
           <Stack.Screen name="Settings" component={SettingsPage} />
+          <Stack.Screen
+            name="EditProfile"
+            component={EditProfile}
+            options={{ title: 'Edit Profile' }}
+          />
           <Stack.Screen
             name="NewPostForm"
             component={NewPostForm}
