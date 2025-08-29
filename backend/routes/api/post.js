@@ -13,7 +13,9 @@ const Notification = require('../../models/Notification');
 async function getPost(req, res, next) {
   let post;
   try {
-    post = await Post.findById(req.params.id);
+    post = await Post.findById(req.params.id)
+      .populate('author', 'profile.firstName profile.lastName profile.avatarUrl')
+      .populate('referencedPark', 'name city state');
     if (post == null) {
       return res.status(404).json({ message: 'Post not found' });
     }
@@ -40,6 +42,8 @@ router.post('/', auth, async (req, res) => {
     });
 
     const savedPost = await newPost.save();
+    await savedPost.populate('author', 'profile.firstName profile.lastName profile.avatarUrl');
+    await savedPost.populate('referencedPark', 'name city state');
     res.status(201).json(savedPost);
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -339,7 +343,10 @@ router.patch('/:id', auth, getPost, ensureOwnerOrAdmin, async (req, res) => {
 
   try {
     const updatedPost = await res.post.save();
+    await updatedPost.populate('author', 'profile.firstName profile.lastName profile.avatarUrl');
+    await updatedPost.populate('referencedPark', 'name city state');
     res.json(updatedPost);
+
   } catch (err) {
     res.status(400).json({ message: err.message });
   }

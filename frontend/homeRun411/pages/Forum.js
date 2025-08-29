@@ -1235,12 +1235,18 @@ export default function ForumPage({ navigation }) {
     // --- update list after edit ---
     const applyUpdatedPost = (updated) => {
         if (!updated?._id) return;
-        setForumPosts(prev =>
-            prev.map(p => (p._id === updated._id ? { ...p, ...updated } : p))
-        );
-        setSelectedPost(prev =>
-            prev && prev._id === updated._id ? { ...prev, ...updated } : prev
-        );
+
+        const merge = (oldPost) => {
+            const next = { ...oldPost, ...updated };
+            // keep populated author if the update only has an id string
+            if (updated.author && typeof updated.author !== 'object') {
+                next.author = oldPost.author ?? updated.author;
+            }
+            return next;
+        };
+
+        setForumPosts(prev => prev.map(p => (p._id === updated._id ? merge(p) : p)));
+        setSelectedPost(prev => (prev && prev._id === updated._id ? merge(prev) : prev));
     };
 
     // --- delete handlers ---
