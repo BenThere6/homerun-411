@@ -219,6 +219,12 @@ router.get('/', async (req, res) => {
       p.commentsCount = commentCounts[i] || 0;
     });
 
+    // Flag posts that have any edited comments so the client can show "(edited)"
+    const editedFlags = await Promise.all(
+      posts.map(p => Comment.exists({ referencedPost: p._id, editedAt: { $exists: true } }))
+    );
+    posts.forEach((p, i) => { p.anyEdited = !!editedFlags[i]; });
+
     // additional sorting (keeps pinned first)
     if (sort === 'liked' || sort === 'comments') {
       const key = sort === 'liked' ? 'likesCount' : 'commentsCount';
@@ -324,7 +330,9 @@ router.patch('/:id', auth, getPost, ensureOwnerOrAdmin, async (req, res) => {
     }
   });
 
-  res.post.updatedAt = Date.now();
+  const now = new Date();
+  res.post.updatedAt = now;
+  res.post.editedAt = now;
 
   try {
     const updatedPost = await res.post.save();
@@ -342,6 +350,43 @@ router.delete('/:id', auth, getPost, ensureOwnerOrAdmin, async (req, res) => {
       return res.status(404).json({ message: 'Post not found' });
     }
     res.json({ message: 'Post deleted successfully', deletedPost });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Edit a comment (owner only)
+router.put('/comment/:id', auth, async (req, res) => {
+  try {
+    const comment = await Comment.findById(req.params.id);
+    if (!comment) return res.status(404).json({ message: 'Comment not found' });
+    if (String(comment.author) !== String(req.user.id) && req.user.adminLevel !== 0) {
+      return res.status(403).json({ message: 'You can only edit your own comment.' });
+    }
+    const content = (req.body.content || '').trim();
+    if (!content) return res.status(400).json({ message: 'Content is required.' });
+
+    comment.content = content;
+    comment.editedAt = new Date();
+    await comment.save();
+
+    const populated = await comment.populate('author', 'profile.firstName profile.lastName');
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Delete a comment (owner or top admin)
+router.delete('/comment/:id', auth, async (req, res) => {
+  try {
+    const comment = await Comment.findById(req.params.id);
+    if (!comment) return res.status(404).json({ message: 'Comment not found' });
+    if (String(comment.author) !== String(req.user.id) && req.user.adminLevel !== 0) {
+      return res.status(403).json({ message: 'You can only delete your own comment.' });
+    }
+    await comment.deleteOne();
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

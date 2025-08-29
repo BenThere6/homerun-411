@@ -35,6 +35,14 @@ const fullName = (a) => {
     return n || 'Anonymous';
 };
 
+const commentOwnerId = (c) => {
+    const a = c?.author;
+    if (!a) return null;
+    if (typeof a === 'string') return String(a);
+    return String(a._id || a.id || a.user || '');
+};
+const isCommentOwner = (c) => userId && String(commentOwnerId(c)) === String(userId);
+
 /** --- Small helpers for the Post Details screen --- **/
 const PostHeader = ({
     post,
@@ -47,42 +55,49 @@ const PostHeader = ({
     isAdmin,
     isOwner,       // NEW
     onMore,        // NEW
+    showEdited,
 }) => {
     if (!post) return null;
     return (
         <View style={{ paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8 }}>
-            {/* author + date (single line) */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6, position: 'relative' }}>
+            {/* author · date · more (same as list) */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
                 {post.author?.profile?.avatarUrl ? (
-                    <Image source={{ uri: post.author.profile.avatarUrl }} style={{ width: 36, height: 36, borderRadius: 9, marginRight: 10 }} />
+                    <Image source={{ uri: post.author.profile.avatarUrl }} style={{ width: 44, height: 44, borderRadius: 10, marginRight: 10 }} />
                 ) : (
-                    <Image source={{ uri: 'https://cdn-icons-png.flaticon.com/512/149/149071.png' }} style={{ width: 36, height: 36, borderRadius: 9, marginRight: 10 }} />
+                    <Image source={{ uri: 'https://cdn-icons-png.flaticon.com/512/149/149071.png' }} style={{ width: 44, height: 44, borderRadius: 10, marginRight: 10 }} />
                 )}
-                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
-                    <Text numberOfLines={1} style={{ fontSize: 13, fontWeight: '600', color: '#475569', flexShrink: 1, marginRight: 8 }}>
-                        {fullName(post.author)}
-                    </Text>
-                    <View style={{ marginLeft: 'auto' }}>
-                        <Text numberOfLines={1} style={{ fontSize: 12, color: '#94a3b8' }}>
-                            {formatForumDate(post.createdAt)}
+
+                <View style={{ flex: 1 }}>
+                    <View style={styles.cardHeader}>
+                        <Text style={styles.authorName} numberOfLines={1}>
+                            {fullName(post.author)}
                         </Text>
+
+                        <View style={styles.headerRight}>
+                            <Text numberOfLines={1} style={styles.cardDate}>
+                                {formatForumDate(post.createdAt)}
+                            </Text>
+                        </View>
+
+                        <TouchableOpacity
+                            onPress={() => onMore?.(post)}
+                            style={[styles.moreBtn, { top: -6 }]}
+                            hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                        >
+                            <Ionicons name="ellipsis-vertical" size={18} color="#64748b" />
+                        </TouchableOpacity>
                     </View>
                 </View>
-                <TouchableOpacity
-                    onPress={() => onMore?.(post)}
-                    style={styles.moreBtn}
-                    hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
-                >
-                    <Ionicons name="ellipsis-vertical" size={18} color="#64748b" />
-                </TouchableOpacity>
             </View>
 
             {/* title */}
             {!!post.title && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 8 }}>
-                    <Text style={{ fontSize: 17, fontWeight: '600', color: '#111', lineHeight: 22, flex: 1 }}>
+                    <Text style={{ fontSize: 17, fontWeight: '600', color: '#111', lineHeight: 22, flexShrink: 1 }}>
                         {post.title}
                     </Text>
+                    {showEdited && <Text style={styles.editedTag}>(edited)</Text>}
                     {post.pinned && (
                         <View style={styles.pinChip}>
                             <Ionicons name="pin" size={12} color="#b45309" />
@@ -173,11 +188,19 @@ const PostHeader = ({
     );
 };
 
-const CommentRow = ({ comment, onToggleLike }) => (
+const CommentRow = ({ comment, onToggleLike, onMore }) => (
     <View style={{ paddingVertical: 10, paddingHorizontal: 16 }}>
-        <Text style={{ fontWeight: '600', color: '#0f172a', marginBottom: 2, fontSize: 13 }}>
-            {fullName(comment.author)} <Text style={{ color: '#94a3b8' }}>· {formatForumDate(comment.createdAt)}</Text>
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={{ fontWeight: '600', color: '#0f172a', fontSize: 13, flexShrink: 1 }}>
+                {fullName(comment.author)} <Text style={{ color: '#94a3b8' }}>· {formatForumDate(comment.createdAt)}</Text>
+                {!!comment?.editedAt && <Text style={styles.editedTag}> (edited)</Text>}
+            </Text>
+            {!!onMore && (
+                <TouchableOpacity onPress={() => onMore(comment)} style={{ marginLeft: 'auto', padding: 6 }} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+                    <Ionicons name="ellipsis-vertical" size={16} color="#64748b" />
+                </TouchableOpacity>
+            )}
+        </View>
         <Text style={{ color: '#334155', lineHeight: 20, fontSize: 14 }}>
             {comment.content ?? comment.text ?? ''}
         </Text>
@@ -273,6 +296,8 @@ export default function ForumPage({ navigation }) {
     const [refreshing, setRefreshing] = useState(false);
     const [selectedPost, setSelectedPost] = useState(null);
     const [comments, setComments] = useState([]);
+    const [editingCommentId, setEditingCommentId] = useState(null);
+    const [editingText, setEditingText] = useState('');
     const [commentText, setCommentText] = useState('');
     const [hasLiked, setHasLiked] = useState(false);
     const [likesCount, setLikesCount] = useState(0);
@@ -422,6 +447,53 @@ export default function ForumPage({ navigation }) {
         } finally {
             setLoading(false);
             setRefreshing(false);
+        }
+    };
+
+    const saveEditedComment = async () => {
+        const id = editingCommentId;
+        const text = editingText?.trim();
+        if (!id || !text) { setEditingCommentId(null); return; }
+        try {
+            const token = await AsyncStorage.getItem('token');
+            if (!token) return;
+
+            const { data } = await axios.put(`/api/comment/${id}`, { content: text });
+            // mark comment as edited (trust server's editedAt; fallback to now)
+            const editedAt = data?.editedAt || new Date().toISOString();
+
+            setComments(prev => prev.map(c =>
+                c._id === id ? { ...c, content: text, editedAt } : c
+            ));
+
+            // Make the list card show (edited) even outside details
+            setForumPosts(prev => prev.map(p =>
+                p._id === selectedPost?._id ? { ...p, anyEdited: true } : p
+            ));
+            setSelectedPost(prev => prev ? { ...prev, anyEdited: true } : prev);
+
+        } catch (e) {
+            Alert.alert('Edit comment', e?.response?.data?.message || e.message || 'Failed to edit comment.');
+        } finally {
+            setEditingCommentId(null);
+            setEditingText('');
+        }
+    };
+
+    const actuallyDeleteComment = async (id) => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            if (!token) return;
+            await axios.delete(`/api/comment/${id}`);
+
+            setComments(prev => {
+                const next = prev.filter(c => c._id !== id);
+                // keep counts in sync with the list/selected post
+                syncCountsToList(undefined, next.length);
+                return next;
+            });
+        } catch (e) {
+            Alert.alert('Delete comment', e?.response?.data?.message || e.message || 'Failed to delete comment.');
         }
     };
 
@@ -1080,9 +1152,10 @@ export default function ForumPage({ navigation }) {
                             </TouchableOpacity>
                         </View>
                         <View style={styles.titleRow}>
-                            <Text style={[styles.cardTitle, { flex: 1 }]} numberOfLines={2}>
+                            <Text style={[styles.cardTitle]} numberOfLines={2}>
                                 {item.title}
                             </Text>
+                            {(item.editedAt || item.anyEdited) && <Text style={styles.editedTag}>(edited)</Text>}
                             {item.pinned && (
                                 <View style={styles.pinChip}>
                                     <Ionicons name="pin" size={12} color="#b45309" />
@@ -1230,6 +1303,47 @@ export default function ForumPage({ navigation }) {
         }
     };
 
+    const openCommentMenu = (comment) => {
+        if (!isCommentOwner(comment, userId)) return;
+
+        const startEdit = () => {
+            setEditingCommentId(comment._id);
+            setEditingText(comment.content ?? comment.text ?? '');
+        };
+
+        const confirmDelete = () => {
+            Alert.alert(
+                'Delete comment?',
+                'This action cannot be undone.',
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Delete', style: 'destructive', onPress: () => actuallyDeleteComment(comment._id) },
+                ]
+            );
+        };
+
+        if (Platform.OS === 'ios') {
+            ActionSheetIOS.showActionSheetWithOptions(
+                {
+                    options: ['Cancel', 'Edit', 'Delete'],
+                    cancelButtonIndex: 0,
+                    destructiveButtonIndex: 2,
+                    userInterfaceStyle: 'light',
+                },
+                (idx) => {
+                    if (idx === 1) startEdit();
+                    if (idx === 2) confirmDelete();
+                }
+            );
+        } else {
+            Alert.alert('Comment options', undefined, [
+                { text: 'Edit', onPress: startEdit },
+                { text: 'Delete', style: 'destructive', onPress: confirmDelete },
+                { text: 'Cancel', style: 'cancel' },
+            ]);
+        }
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             {loading ? (
@@ -1281,8 +1395,38 @@ export default function ForumPage({ navigation }) {
                                 data={comments}
                                 keyExtractor={(c, i) => c?._id ?? String(i)}
                                 renderItem={({ item }) => (
-                                    <CommentRow comment={item} onToggleLike={() => toggleCommentLike(item._id)} />
+                                    <CommentRow
+                                        comment={item}
+                                        onToggleLike={() => toggleCommentLike(item._id)}
+                                        onMore={(c) => openCommentMenu(c)}
+                                    />
                                 )}
+                                ListFooterComponent={
+                                    editingCommentId ? (
+                                        <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
+                                            <TextInput
+                                                value={editingText}
+                                                onChangeText={setEditingText}
+                                                placeholder="Edit your comment…"
+                                                style={{
+                                                    borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10,
+                                                    paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#fff'
+                                                }}
+                                                multiline
+                                            />
+                                            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 8, gap: 10 }}>
+                                                <TouchableOpacity onPress={() => { setEditingCommentId(null); setEditingText(''); }}
+                                                    style={[styles.sheetBtn, styles.btnGhost, { paddingVertical: 8, width: 100, alignItems: 'center' }]}>
+                                                    <Text style={styles.btnGhostText}>Cancel</Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity onPress={saveEditedComment}
+                                                    style={[styles.sheetBtn, styles.btnPrimary, { paddingVertical: 8, width: 100, alignItems: 'center' }]}>
+                                                    <Text style={styles.btnPrimaryText}>Save</Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                        </View>
+                                    ) : null
+                                }
                                 ListHeaderComponent={
                                     <PostHeader
                                         post={selectedPost}
@@ -1295,6 +1439,7 @@ export default function ForumPage({ navigation }) {
                                         isAdmin={isAdminAny}
                                         isOwner={isOwner(selectedPost)}
                                         onMore={openPostMenu}
+                                        showEdited={!!selectedPost?.editedAt || comments.some(c => !!c?.editedAt)}
                                     />
                                 }
                                 ListEmptyComponent={
@@ -1562,6 +1707,7 @@ const styles = StyleSheet.create({
         paddingVertical: 2,
         borderRadius: 6,
     },
+    editedTag: { color: '#94a3b8', fontSize: 12, marginLeft: 6 },
     cardTitle: { fontSize: 15, fontWeight: '500', color: '#333' },
     tagContainer: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 6, marginBottom: 4 },
     tag: { color: colors.thirty, marginRight: 8, fontSize: 13 },
@@ -1932,7 +2078,7 @@ const styles = StyleSheet.create({
     moreBtn: {
         position: 'absolute',
         right: 0,
-        top: -2,
+        top: -6,
         padding: 4,
     },
 });
