@@ -18,6 +18,7 @@ const postSchema = new mongoose.Schema({
     type: [String],
     default: [],
   },
+  editedAt: { type: Date },
   likes: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

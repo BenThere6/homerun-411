@@ -48,29 +48,39 @@ router.get('/:id', getComment, (req, res) => {
   res.json(res.comment);
 });
 
-// Update a specific comment by ID
-router.patch('/:id', auth, getComment, async (req, res) => {
-  if (req.body.content != null) {
-    res.comment.content = req.body.content;
-  }
-  res.comment.updatedAt = Date.now();
+// owner or top-admin can edit; set editedAt so the UI shows "(edited)"
+const canEditOrTopAdmin = (comment, user) =>
+  String(comment.author) === String(user.id) || user.adminLevel === 0;
 
-  try {
-    const updatedComment = await res.comment.save();
-    res.json(updatedComment);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
+async function applyCommentEdit(req, res) {
+  const content = (req.body.content || '').trim();
+  if (!content) return res.status(400).json({ message: 'Content is required.' });
+
+  if (!canEditOrTopAdmin(res.comment, req.user)) {
+    return res.status(403).json({ message: 'You can only edit your own comment.' });
   }
-});
+
+  res.comment.content = content;
+  res.comment.editedAt = new Date(); // <-- important for the UI
+  await res.comment.save();
+
+  const populated = await res.comment.populate('author', 'profile.firstName profile.lastName');
+  res.json(populated);
+}
+
+router.patch('/:id', auth, getComment, applyCommentEdit);
+router.put('/:id', auth, getComment, applyCommentEdit); // accept PUT too
 
 // Delete a specific comment by ID
 router.delete('/:id', auth, getComment, async (req, res) => {
+  const isOwner = String(res.comment.author) === String(req.user.id);
+  const isTopAdmin = req.user.adminLevel === 0;
+  if (!isOwner && !isTopAdmin) {
+    return res.status(403).json({ message: 'You can only delete your own comment.' });
+  }
   try {
-    const deletedComment = await Comment.findByIdAndDelete(req.params.id);
-    if (!deletedComment) {
-      return res.status(404).json({ message: 'Comment not found' });
-    }
-    res.json({ message: 'Comment deleted successfully', deletedComment });
+    await res.comment.deleteOne();
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

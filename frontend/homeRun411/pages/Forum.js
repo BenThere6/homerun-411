@@ -41,7 +41,8 @@ const commentOwnerId = (c) => {
     if (typeof a === 'string') return String(a);
     return String(a._id || a.id || a.user || '');
 };
-const isCommentOwner = (c) => userId && String(commentOwnerId(c)) === String(userId);
+// pass the current user id explicitly
+const isCommentOwner = (c, uid) => uid && String(commentOwnerId(c)) === String(uid);
 
 /** --- Small helpers for the Post Details screen --- **/
 const PostHeader = ({
@@ -193,7 +194,9 @@ const CommentRow = ({ comment, onToggleLike, onMore }) => (
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Text style={{ fontWeight: '600', color: '#0f172a', fontSize: 13, flexShrink: 1 }}>
                 {fullName(comment.author)} <Text style={{ color: '#94a3b8' }}>· {formatForumDate(comment.createdAt)}</Text>
-                {!!comment?.editedAt && <Text style={styles.editedTag}> (edited)</Text>}
+                {new Date(comment.updatedAt) > new Date(comment.createdAt) && (
+                    <Text style={styles.editedTag}> (edited)</Text>
+                )}
             </Text>
             {!!onMore && (
                 <TouchableOpacity onPress={() => onMore(comment)} style={{ marginLeft: 'auto', padding: 6 }} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
@@ -454,24 +457,29 @@ export default function ForumPage({ navigation }) {
         const id = editingCommentId;
         const text = editingText?.trim();
         if (!id || !text) { setEditingCommentId(null); return; }
+
         try {
             const token = await AsyncStorage.getItem('token');
             if (!token) return;
 
-            const { data } = await axios.put(`/api/comment/${id}`, { content: text });
-            // mark comment as edited (trust server's editedAt; fallback to now)
+            // saveEditedComment
+            const { data } = await axios.patch(
+                `/api/comment/${id}`,
+                { content: text },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
             const editedAt = data?.editedAt || new Date().toISOString();
 
             setComments(prev => prev.map(c =>
                 c._id === id ? { ...c, content: text, editedAt } : c
             ));
 
-            // Make the list card show (edited) even outside details
+            // flag the post so “(edited)” shows on the card
             setForumPosts(prev => prev.map(p =>
                 p._id === selectedPost?._id ? { ...p, anyEdited: true } : p
             ));
-            setSelectedPost(prev => prev ? { ...prev, anyEdited: true } : prev);
-
+            setSelectedPost(prev => (prev ? { ...prev, anyEdited: true } : prev));
         } catch (e) {
             Alert.alert('Edit comment', e?.response?.data?.message || e.message || 'Failed to edit comment.');
         } finally {
@@ -484,11 +492,14 @@ export default function ForumPage({ navigation }) {
         try {
             const token = await AsyncStorage.getItem('token');
             if (!token) return;
-            await axios.delete(`/api/comment/${id}`);
+
+            await axios.delete(
+                `/api/comment/${id}`,                 // use /api/comment, not /api/post/comment
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
 
             setComments(prev => {
                 const next = prev.filter(c => c._id !== id);
-                // keep counts in sync with the list/selected post
                 syncCountsToList(undefined, next.length);
                 return next;
             });
@@ -1439,7 +1450,10 @@ export default function ForumPage({ navigation }) {
                                         isAdmin={isAdminAny}
                                         isOwner={isOwner(selectedPost)}
                                         onMore={openPostMenu}
-                                        showEdited={!!selectedPost?.editedAt || comments.some(c => !!c?.editedAt)}
+                                        showEdited={
+                                            !!selectedPost?.editedAt ||
+                                            comments.some(c => new Date(c.updatedAt) > new Date(c.createdAt))
+                                        }
                                     />
                                 }
                                 ListEmptyComponent={

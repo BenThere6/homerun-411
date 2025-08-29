@@ -15,13 +15,13 @@ const commentSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
-
-  // NEW: users who liked this comment
   likes: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
   }],
-
+  editedAt: {
+    type: Date,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -35,6 +35,12 @@ const commentSchema = new mongoose.Schema({
 // Optional: small performance boost when querying likes
 commentSchema.index({ referencedPost: 1 });
 commentSchema.index({ author: 1 });
+
+// Keep updatedAt correct on edits
+commentSchema.pre('save', function (next) {
+  this.updatedAt = new Date();
+  next();
+});
 
 const Comment = mongoose.model('Comment', commentSchema);
 
