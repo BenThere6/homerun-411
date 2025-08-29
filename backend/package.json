@@ -23,6 +23,7 @@
     "googleapis": "^156.0.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.17.1",
+    "multer": "^2.0.2",
     "node-fetch": "^2.7.0",
     "zipcodes": "^8.0.0"
   },
