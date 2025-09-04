@@ -63,6 +63,7 @@ router.post('/', auth, isAdmin, async (req, res) => {
       playground,
       spectatorConditions,
       fieldTypes,
+      isPetFriendly,
     } = req.body;
 
     const newPark = new Park({
@@ -94,6 +95,7 @@ router.post('/', auth, isAdmin, async (req, res) => {
       playground,
       spectatorConditions,
       fieldTypes,
+      isPetFriendly,
     });
 
     const savedPark = await newPark.save();
@@ -285,6 +287,7 @@ router.patch('/:id', auth, isAdmin, getPark, async (req, res) => {
     'playground',
     'spectatorConditions',
     'fieldTypes',
+    'isPetFriendly',
   ];
 
   updateFields.forEach((field) => {

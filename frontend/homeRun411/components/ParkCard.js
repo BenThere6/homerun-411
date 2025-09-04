@@ -24,6 +24,16 @@ export default function ParkCard({ park, isFavorited, onToggleFavorite, distance
                     <View style={styles.parkContent}>
                         <Text style={styles.parkName}>{park.name}</Text>
 
+                        {/* Pet Friendly Paw */}
+                        {park.isPetFriendly && (
+                            <Ionicons
+                                name="paw"
+                                size={20}
+                                color="#fff"
+                                style={{ position: 'absolute', top: 10, right: 10 }}
+                            />
+                        )}
+
                         {/* Favorite Star */}
                         <TouchableOpacity
                             style={styles.favoriteIcon}

@@ -446,6 +446,8 @@ export default function ParkDetails({ route, navigation }) {
           {/* Amenities & Features */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Amenities & Features</Text>
+            <Text style={styles.subtitle}>Pet Friendly</Text>
+            <Text style={styles.text}>{park.isPetFriendly ? 'Yes' : 'No'}</Text>
             <Text style={styles.subtitle}>Entrance Fee</Text>
             <Text style={styles.text}>{park.gateEntranceFee ? 'Yes' : 'No'}</Text>
             <Text style={styles.subtitle}>Playground</Text>

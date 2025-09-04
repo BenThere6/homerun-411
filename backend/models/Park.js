@@ -64,6 +64,10 @@ const parkSchema = new Schema({
     embedUrl: { type: String }, // Google Maps Embed URL
     apiData: { type: Map, of: String }, // Google Maps API Data
   },
+  isPetFriendly: {
+    type: Boolean,
+    default: null,
+  },
   closestParkingToField: { type: String }, // Closest Parking to Field
   parking: {
     locations: [{ type: String }], // Parking Locations

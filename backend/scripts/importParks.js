@@ -146,6 +146,13 @@ async function findSingleSheetByName(drive, name, parentName = null) {
   return res.data.files?.[0] || null;
 }
 
+function toBoolLoose(v) {
+  if (v === true || v === false) return v;
+  if (v == null) return false; // or return null if using 3-state
+  const s = String(v).trim().toLowerCase();
+  return ['true', 't', 'yes', 'y', '1'].includes(s);
+}
+
 // Export whole sheet (first tab) as CSV via Drive, or a specific tab via Sheets API
 async function getCsvStreamFromSheet({ drive, sheets, fileId, tabName = null }) {
   if (!tabName) {
@@ -281,6 +288,7 @@ async function buildParkFromRow(row) {
     address: normalizeAddress(row.Address),
     city: String(row.City || '').trim(),
     state: String(row.State || '').trim().toUpperCase(),
+    isPetFriendly: toBool(row['Is pet friendly?']),
     coolersAllowed: toBool(row['Coolers Allowed?']),
     canopiesAllowed: toBool(row['Canopies Allowed?']),
     battingCages: {

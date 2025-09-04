@@ -14,7 +14,7 @@ import WeatherWidget from '../components/WeatherWidget';
 import zipcodes from 'zipcodes'; // You may need to `npm install zipcodes`
 
 const quickLinks = [
-  { id: '1', icon: 'location', label: 'Nearby Facilities', screen: 'Facilities' },
+  // { id: '1', icon: 'location', label: 'Nearby Facilities', screen: 'Facilities' },
   { id: '2', icon: 'book', label: 'Baseball Etiquette', screen: 'Etiquette' },
   { id: '3', icon: 'briefcase', label: 'Game Day Necessities', screen: 'GameDay' },
   { id: '4', icon: 'cog', label: 'Settings', screen: 'Settings' },
