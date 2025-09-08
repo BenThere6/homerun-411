@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useLayoutEffect, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from '../utils/axiosInstance';
 import { buildSummaries } from '../utils/fieldSummaries';
 import { SpecRow, SpecSection } from '../components/SpecList';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, StyleSheet, ScrollView, ImageBackground, TouchableOpacity, Platform, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ImageBackground, TouchableOpacity, Platform, Linking, TextInput, Animated } from 'react-native';
 import { getWeather } from '../utils/getWeather';
 import WeatherWidget from '../components/WeatherWidget';
 import * as Clipboard from 'expo-clipboard';
@@ -31,6 +31,34 @@ export default function ParkDetails({ route, navigation }) {
   const [postsPreview, setPostsPreview] = useState([]);
   const [postsCount, setPostsCount] = useState(0);
   const [loadingPosts, setLoadingPosts] = useState(false);
+
+  // --- In-page search state/refs ---
+  const scrollRef = useRef(null);
+  const [query, setQuery] = useState('');
+  const [sectionYs, setSectionYs] = useState({}); // { key: yOffset }
+  const rememberY = (key, y) =>
+    setSectionYs(prev => (prev[key] === y ? prev : { ...prev, [key]: y }));
+
+  // brief highlight “flash” values
+  const flashVals = useRef({
+    amenities: new Animated.Value(0),
+    details: new Animated.Value(0),
+    // targeted flashes inside "Additional Park Details"
+    details_parkingLocation: new Animated.Value(0),
+    details_handicapSpots: new Animated.Value(0),
+
+    restrooms: new Animated.Value(0),
+    concessions: new Animated.Value(0),
+    fields: new Animated.Value(0),
+    qa: new Animated.Value(0),
+  }).current;
+
+  const flash = (key) => {
+    const v = flashVals[key];
+    if (!v) return;
+    v.setValue(1);
+    Animated.timing(v, { toValue: 0, duration: 900, useNativeDriver: true }).start();
+  };
 
   const ASK_TIP_KEY = 'seenAskAboutParkTooltip';
   const TOOLTIP_EXPIRY_DAYS = 30;
@@ -116,6 +144,15 @@ export default function ParkDetails({ route, navigation }) {
     }
   }, [navigation, park?.name]);
 
+  // Optional: jump directly when arriving with a param like { jumpTo: 'concessions' }
+  useEffect(() => {
+    const key = findTargetKey(route.params?.jumpTo);
+    if (key) {
+      const t = setTimeout(() => scrollToSection(key), 450); // wait for layout
+      return () => clearTimeout(t);
+    }
+  }, [route.params?.jumpTo, sectionYs]);
+
   // If we only received a skinny park from Forum, fetch the full record by id.
   useEffect(() => {
     const loadFullParkIfNeeded = async () => {
@@ -170,6 +207,47 @@ export default function ParkDetails({ route, navigation }) {
     }
     return by;
   }, [summaries]);
+
+  // Map user words → section keys
+  const sectionIndex = useMemo(() => ([
+    { key: 'amenities', title: 'Amenities & Features', kw: ['amenities', 'features', 'pet', 'playground'] },
+    { key: 'details', title: 'Additional Park Details', kw: ['parking', 'handicap', 'outlets', 'electrical', 'sidewalk', 'stairs', 'hills', 'spectator'] },
+    { key: 'restrooms', title: 'Restrooms', kw: ['restroom', 'bathroom', 'toilet', 'changing table', 'water'] },
+    { key: 'concessions', title: 'Concessions', kw: ['concessions', 'food', 'snack', 'drink', 'payment'] },
+    { key: 'fields', title: 'Field Details', kw: ['field', 'dimensions', 'surface', 'dugout', 'amenities'] },
+    { key: 'qa', title: 'Park Q&A', kw: ['q&a', 'questions', 'posts', 'forum'] },
+  ]), []);
+
+  const findTargetKey = (q) => {
+    const s = (q || '').trim().toLowerCase();
+    if (!s) return null;
+    for (const sec of sectionIndex) {
+      if (sec.title.toLowerCase().startsWith(s) || sec.kw.some(k => k.startsWith(s))) return sec.key;
+    }
+    for (const sec of sectionIndex) {
+      if (sec.title.toLowerCase().includes(s) || sec.kw.some(k => k.includes(s))) return sec.key;
+    }
+    return null;
+  };
+
+  const scrollToKeys = (keys = [], opts = { flash: true }) => {
+    const ks = Array.isArray(keys) ? keys : [keys];
+
+    // auto-expand if needed
+    if (ks.includes('restrooms') && !showRestrooms) setShowRestrooms(true);
+
+    requestAnimationFrame(() => {
+      const ys = ks.map(k => sectionYs[k]).filter(y => y != null);
+      const targetY = ys.length ? Math.min(...ys) : sectionYs[ks[0]];
+      if (targetY != null && scrollRef.current) {
+        scrollRef.current.scrollTo({ y: Math.max(targetY - 12, 0), animated: true });
+        if (opts.flash !== false) ks.forEach(k => flash(k));
+      }
+    });
+  };
+
+  // keep API compatibility
+  const scrollToSection = (key) => scrollToKeys(key);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -290,7 +368,12 @@ export default function ParkDetails({ route, navigation }) {
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollContainer} contentContainerStyle={{ paddingBottom: 60 }}>
+      <ScrollView
+        ref={scrollRef}
+        style={styles.scrollContainer}
+        contentContainerStyle={{ paddingBottom: 60 }}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.contentContainer}>
           {/* Main Park Image */}
           <ImageBackground
@@ -330,6 +413,77 @@ export default function ParkDetails({ route, navigation }) {
             )}
 
           </ImageBackground>
+
+          {/* In-page search */}
+          <View style={{ marginTop: 10, marginBottom: 8 }}>
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              onSubmitEditing={() => {
+                const q = (query || '').trim().toLowerCase();
+                const parkingWords = ['parking', 'handicap', 'handicapped', 'handicap spots', 'accessible parking'];
+                if (parkingWords.some(w => q.includes(w))) {
+                  // same behavior as the Parking chip
+                  scrollToKeys(['details'], { flash: false });
+                  flash('details_parkingLocation');
+                  flash('details_handicapSpots');
+                } else {
+                  scrollToSection(findTargetKey(query));
+                }
+              }}
+              placeholder="Search this page (e.g., parking, concessions, restrooms)"
+              returnKeyType="search"
+              style={{
+                backgroundColor: '#fff',
+                borderRadius: 10,
+                paddingVertical: 10,
+                paddingHorizontal: 12,
+                borderWidth: 1, borderColor: '#e5e7eb',
+                fontSize: 14,
+              }}
+            />
+            <View style={{ flexDirection: 'row', marginTop: 8 }}>
+              {['Concessions', 'Parking', 'Restrooms', 'Fields'].map((label, idx) => {
+                const keysMap = {
+                  Concessions: ['concessions'],
+                  // scroll to the whole section, but *also* flash two sub-rows
+                  Parking: ['details'],
+                  Restrooms: ['restrooms'],
+                  Fields: ['fields'],
+                };
+                return (
+                  <TouchableOpacity
+                    key={label}
+                    onPress={() => {
+                      if (label === 'Parking') {
+                        // scroll to "Additional Park Details" without flashing the whole card
+                        scrollToKeys(['details'], { flash: false });
+                        // flash only the relevant sub-rows
+                        flash('details_parkingLocation');
+                        flash('details_handicapSpots');
+                      } else {
+                        scrollToKeys(keysMap[label]);
+                      }
+                    }}
+                    style={{
+                      flex: 1,
+                      backgroundColor: '#f1f5f9',
+                      borderWidth: 1,
+                      borderColor: '#e5e7eb',
+                      borderRadius: 14,
+                      paddingVertical: 8,
+                      alignItems: 'center',
+                      marginRight: idx < 3 ? 8 : 0, // edges hug left/right, even spacing
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Jump to ${label}`}
+                  >
+                    <Text style={{ fontSize: 12, color: '#0f172a' }}>{label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
 
           <WeatherWidget
             weather={weather}
@@ -395,7 +549,10 @@ export default function ParkDetails({ route, navigation }) {
           </View>
 
           {/* Community Q&A (park-related posts) */}
-          <View style={styles.qaCard}>
+          <View
+            onLayout={e => rememberY('qa', e.nativeEvent.layout.y)}
+            style={styles.qaCard}
+          >
             <View style={styles.qaHeader}>
               <Text style={styles.qaTitle}>Park Q&A</Text>
               {loadingPosts ? (
@@ -444,7 +601,17 @@ export default function ParkDetails({ route, navigation }) {
           </View>
 
           {/* Amenities & Features */}
-          <View style={styles.section}>
+          <Animated.View
+            onLayout={e => rememberY('amenities', e.nativeEvent.layout.y)}
+            style={[styles.section, { position: 'relative' }]}
+          >
+            <Animated.View
+              pointerEvents="none"
+              style={{
+                position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+                backgroundColor: '#fde68a', opacity: flashVals.amenities, borderRadius: 12
+              }}
+            />
             <Text style={styles.sectionTitle}>Amenities & Features</Text>
             <Text style={styles.subtitle}>Pet Friendly</Text>
             <Text style={styles.text}>{park.isPetFriendly ? 'Yes' : 'No'}</Text>
@@ -456,19 +623,53 @@ export default function ParkDetails({ route, navigation }) {
             <Text style={styles.text}>{park.playground?.location || 'No data available'}</Text>
             <Text style={styles.subtitle}>Shared Batting Cages</Text>
             <Text style={styles.text}>{park.battingCages?.shared ? 'Yes' : 'No'}</Text>
-          </View>
+          </Animated.View>
 
           {/* Additional Park Details */}
-          <View style={styles.section}>
+          <Animated.View
+            onLayout={e => rememberY('details', e.nativeEvent.layout.y)}
+            style={[styles.section, { position: 'relative' }]}
+          >
+            <Animated.View
+              pointerEvents="none"
+              style={{
+                position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+                backgroundColor: '#fde68a', opacity: flashVals.details, borderRadius: 12
+              }}
+            />
             <Text style={styles.sectionTitle}>Additional Park Details</Text>
             <Text style={styles.subtitle}>Shared Batting Cage Description</Text>
             <Text style={styles.text}>{park.battingCages?.description || 'No data available'}</Text>
 
-            <Text style={styles.subtitle}>Parking Location</Text>
-            <Text style={styles.text}>{park.closestParkingToField || 'No data available'}</Text>
+            <Animated.View
+              onLayout={e => rememberY('details_parkingLocation', e.nativeEvent.layout.y)}
+              style={{ position: 'relative', borderRadius: 8 }}
+            >
+              <Animated.View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+                  backgroundColor: '#fde68a', opacity: flashVals.details_parkingLocation, borderRadius: 8
+                }}
+              />
+              <Text style={styles.subtitle}>Parking Location</Text>
+              <Text style={styles.text}>{park.closestParkingToField || 'No data available'}</Text>
+            </Animated.View>
 
-            <Text style={styles.subtitle}>Number of Handicap Spots</Text>
-            <Text style={styles.text}>{park.parking?.handicapSpots || 'No data available'}</Text>
+            <Animated.View
+              onLayout={e => rememberY('details_handicapSpots', e.nativeEvent.layout.y)}
+              style={{ position: 'relative', borderRadius: 8 }}
+            >
+              <Animated.View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+                  backgroundColor: '#fde68a', opacity: flashVals.details_handicapSpots, borderRadius: 8
+                }}
+              />
+              <Text style={styles.subtitle}>Number of Handicap Spots</Text>
+              <Text style={styles.text}>{park.parking?.handicapSpots || 'No data available'}</Text>
+            </Animated.View>
 
             <Text style={styles.subtitle}>Electrical Outlets for Public Use</Text>
             <Text style={styles.text}>{park.electricalOutletsForPublicUse ? 'Yes' : 'No'}</Text>
@@ -491,41 +692,66 @@ export default function ParkDetails({ route, navigation }) {
                 ? park.spectatorConditions.locationTypes.join(', ')
                 : 'No data available'}
             </Text>
-          </View>
+          </Animated.View>
 
           {/* Restrooms */}
-          {park.restrooms?.length > 0 && (
-            <View style={styles.section}>
-              <TouchableOpacity onPress={() => toggleSection('restrooms')}>
-                <Text style={styles.sectionTitle}>🚻 Restrooms {showRestrooms ? '▲' : '▼'}</Text>
-              </TouchableOpacity>
-              {showRestrooms && park.restrooms.map((restroom, idx) => (
-                <View key={idx} style={{ marginBottom: 10 }}>
-                  <Text style={styles.subtitle}>📍 Location</Text>
-                  <Text style={styles.text}>{restroom.location || 'No data available'}</Text>
+          <Animated.View
+            onLayout={e => rememberY('restrooms', e.nativeEvent.layout.y)}
+            style={[styles.section, { position: 'relative' }]}
+          >
+            <Animated.View
+              pointerEvents="none"
+              style={{
+                position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+                backgroundColor: '#fde68a', opacity: flashVals.restrooms, borderRadius: 12
+              }}
+            />
+            <TouchableOpacity onPress={() => toggleSection('restrooms')}>
+              <Text style={styles.sectionTitle}>🚻 Restrooms {showRestrooms ? '▲' : '▼'}</Text>
+            </TouchableOpacity>
 
-                  <Text style={styles.subtitle}>🚿 Running Water</Text>
-                  <Text style={styles.text}>{restroom.runningWater ? 'Yes' : 'No'}</Text>
+            {showRestrooms && (
+              park.restrooms?.length > 0 ? (
+                park.restrooms.map((restroom, idx) => (
+                  <View key={idx} style={{ marginBottom: 10 }}>
+                    <Text style={styles.subtitle}>📍 Location</Text>
+                    <Text style={styles.text}>{restroom.location || 'No data available'}</Text>
 
-                  <Text style={styles.subtitle}>🧷 Changing Table</Text>
-                  <Text style={styles.text}>
-                    {typeof restroom.changingTable === 'boolean'
-                      ? restroom.changingTable ? 'Yes' : 'No'
-                      : restroom.changingTable || 'No data available'}
-                  </Text>
+                    <Text style={styles.subtitle}>🚿 Running Water</Text>
+                    <Text style={styles.text}>{restroom.runningWater ? 'Yes' : 'No'}</Text>
 
-                  <Text style={styles.subtitle}>🚺 Women's Stalls</Text>
-                  <Text style={styles.text}>{restroom.womensStalls ?? 'No data available'}</Text>
+                    <Text style={styles.subtitle}>🧷 Changing Table</Text>
+                    <Text style={styles.text}>
+                      {typeof restroom.changingTable === 'boolean'
+                        ? restroom.changingTable ? 'Yes' : 'No'
+                        : restroom.changingTable || 'No data available'}
+                    </Text>
 
-                  <Text style={styles.subtitle}>🚹 Men's Stalls/Urinals</Text>
-                  <Text style={styles.text}>{restroom.mensStalls ?? 'No data available'}</Text>
-                </View>
-              ))}
-            </View>
-          )}
+                    <Text style={styles.subtitle}>🚺 Women's Stalls</Text>
+                    <Text style={styles.text}>{restroom.womensStalls ?? 'No data available'}</Text>
+
+                    <Text style={styles.subtitle}>🚹 Men's Stalls/Urinals</Text>
+                    <Text style={styles.text}>{restroom.mensStalls ?? 'No data available'}</Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.text}>No restroom information yet.</Text>
+              )
+            )}
+          </Animated.View>
 
           {/* Concessions */}
-          <View style={styles.section}>
+          <Animated.View
+            onLayout={e => rememberY('concessions', e.nativeEvent.layout.y)}
+            style={[styles.section, { position: 'relative' }]}
+          >
+            <Animated.View
+              pointerEvents="none"
+              style={{
+                position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+                backgroundColor: '#fde68a', opacity: flashVals.concessions, borderRadius: 12
+              }}
+            />
             {concessionsMainImage && (
               <ImageBackground
                 source={{ uri: concessionsMainImage.url }}
@@ -562,12 +788,21 @@ export default function ParkDetails({ route, navigation }) {
                 ? park.concessions.paymentMethods.join(', ')
                 : 'No data available'}
             </Text>
-          </View>
-
+          </Animated.View>
 
           {/* Fields */}
           {/* === Field Details (single white card, labeled) === */}
-          <View style={styles.section}>
+          <Animated.View
+            onLayout={e => rememberY('fields', e.nativeEvent.layout.y)}
+            style={[styles.section, { position: 'relative' }]}
+          >
+            <Animated.View
+              pointerEvents="none"
+              style={{
+                position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+                backgroundColor: '#fde68a', opacity: flashVals.fields, borderRadius: 12
+              }}
+            />
             <Text style={styles.sectionTitle}>Field Details</Text>
 
             {['Surfaces', 'Dimensions', 'Amenities', 'Other'].map((g, i, arr) => {
@@ -600,7 +835,7 @@ export default function ParkDetails({ route, navigation }) {
                 </React.Fragment>
               );
             })}
-          </View>
+          </Animated.View>
 
         </View>
       </ScrollView>
