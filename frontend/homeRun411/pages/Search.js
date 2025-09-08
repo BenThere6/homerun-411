@@ -27,6 +27,7 @@ export default function SearchPage() {
   const navigation = useNavigation();
   const route = useRoute();
   const scrollRef = useRef(null);
+  const [headerHeight, setHeaderHeight] = useState(96); // default avoids overlap
 
   const [parks, setParks] = useState([]);
   const [recentSearches, setRecentSearches] = useState([]);
@@ -37,19 +38,36 @@ export default function SearchPage() {
   const [displayedQuery, setDisplayedQuery] = useState('');
   const [searchKind, setSearchKind] = useState('text'); // 'zip' | 'city' | 'state' | 'park' | 'text'
 
-  const stateNameToAbbreviation = {
+  // --- State helpers ---
+  const STATE_MAP = {
     Alabama: 'AL', Alaska: 'AK', Arizona: 'AZ', Arkansas: 'AR', California: 'CA',
     Colorado: 'CO', Connecticut: 'CT', Delaware: 'DE', Florida: 'FL', Georgia: 'GA',
     Hawaii: 'HI', Idaho: 'ID', Illinois: 'IL', Indiana: 'IN', Iowa: 'IA',
     Kansas: 'KS', Kentucky: 'KY', Louisiana: 'LA', Maine: 'ME', Maryland: 'MD',
     Massachusetts: 'MA', Michigan: 'MI', Minnesota: 'MN', Mississippi: 'MS',
-    Missouri: 'MO', Montana: 'MT', Nebraska: 'NE', Nevada: 'NV', "New Hampshire": 'NH',
-    "New Jersey": 'NJ', "New Mexico": 'NM', "New York": 'NY', "North Carolina": 'NC',
-    "North Dakota": 'ND', Ohio: 'OH', Oklahoma: 'OK', Oregon: 'OR', Pennsylvania: 'PA',
-    "Rhode Island": 'RI', "South Carolina": 'SC', "South Dakota": 'SD', Tennessee: 'TN',
+    Missouri: 'MO', Montana: 'MT', Nebraska: 'NE', Nevada: 'NV', 'New Hampshire': 'NH',
+    'New Jersey': 'NJ', 'New Mexico': 'NM', 'New York': 'NY', 'North Carolina': 'NC',
+    'North Dakota': 'ND', Ohio: 'OH', Oklahoma: 'OK', Oregon: 'OR', Pennsylvania: 'PA',
+    'Rhode Island': 'RI', 'South Carolina': 'SC', 'South Dakota': 'SD', Tennessee: 'TN',
     Texas: 'TX', Utah: 'UT', Vermont: 'VT', Virginia: 'VA', Washington: 'WA',
-    "West Virginia": 'WV', Wisconsin: 'WI', Wyoming: 'WY',
+    'West Virginia': 'WV', Wisconsin: 'WI', Wyoming: 'WY',
   };
+
+  function resolveState(input) {
+    const t = String(input || '').trim();
+    if (!t) return null;
+    // If it's already 2 letters, treat as abbr
+    if (/^[A-Za-z]{2}$/.test(t)) {
+      const abbr = t.toUpperCase();
+      // find full name for display
+      const name = Object.keys(STATE_MAP).find(k => STATE_MAP[k] === abbr) || abbr;
+      return { abbr, name };
+    }
+    // Try full name (case-insensitive)
+    const name = Object.keys(STATE_MAP).find(k => k.toLowerCase() === t.toLowerCase());
+    if (name) return { abbr: STATE_MAP[name], name };
+    return null;
+  }
 
   // --- query classification helpers ---
   const normalize = (s) => (s || '').toLowerCase().trim();
@@ -59,11 +77,11 @@ export default function SearchPage() {
   const parseCityState = (text, abbrMap) => {
     const t = String(text || '').trim();
     if (!t) return null;
-    const m = t.match(/^(.+),\s*([A-Za-z]{2}|[A-Za-z .'\-]+)$/);
+    const m = t.match(/^(.+?)[,\s]+([A-Za-z]{2}|[A-Za-z .'\-]+)$/);
     if (!m) return null;
     const city = m[1].trim();
     const st = m[2].trim();
-    const abbr = st.length === 2 ? st.toUpperCase() : (abbrMap[st] || null);
+    const abbr = st.length === 2 ? st.toUpperCase() : (abbrMap ? abbrMap[st] : null);
     return { city, state: abbr };
   };
 
@@ -264,7 +282,7 @@ export default function SearchPage() {
     }
 
     // 3) City, ST (or "City, StateName")?
-    const parsed = parseCityState(trimmed, stateNameToAbbreviation);
+    const parsed = parseCityState(trimmed, STATE_MAP);
     if (parsed) {
       // Try to center the nearby search near where our dataset places that city
       const parksInCity = parks.filter(
@@ -297,24 +315,26 @@ export default function SearchPage() {
       return;
     }
 
-    // 4) Standalone state name?
-    const stateAbbr = stateNameToAbbreviation[capitalized];
-    if (stateAbbr) {
-      const loc = locationCoords || await waitForLocation();
-      try {
-        const res = await axios.get('/api/park/searchByCityWithNearby', {
-          params: {
-            city: stateAbbr, // backend may treat this as a broader filter; adjust if you add a state param server-side
-            lat: loc?.latitude,
-            lon: loc?.longitude,
-          },
-        });
-        setSearchResults({ inCity: res.data.cityMatches, nearby: res.data.nearbyParks });
-      } catch (err) {
-        console.error('Error in state search:', err);
-        setSearchResults({ inCity: [], nearby: [] });
-      }
-      setDisplayedQuery(stateAbbr);
+    // 4) Standalone state search (full name or 2-letter code)
+    const stateInfo = resolveState(trimmed);
+    if (stateInfo) {
+      // Client-side filter (we already have all parks)
+      const inState = parks.filter(
+        p => String(p?.state || '').toUpperCase() === stateInfo.abbr
+      );
+
+      // Optional: sort by distance if available; otherwise by city then name
+      const sorted = [...inState].sort((a, b) => {
+        const da = a.distanceInMiles ?? Infinity;
+        const db = b.distanceInMiles ?? Infinity;
+        if (da !== db) return da - db;
+        const ac = (a.city || '').localeCompare(b.city || '');
+        if (ac !== 0) return ac;
+        return (a.name || '').localeCompare(b.name || '');
+      });
+
+      setSearchResults({ inCity: sorted, nearby: [] });
+      setDisplayedQuery(stateInfo.name);   // show "Arizona" instead of "AZ"
       setSearchKind('state');
       setSearchConfirmed(true);
       scrollRef.current?.scrollTo({ y: 0, animated: true });
@@ -364,7 +384,10 @@ export default function SearchPage() {
         style={styles.blurFade}
       /> */}
 
-      <View style={[styles.searchHeader, { paddingTop: insets.top }]}>
+      <View
+        style={[styles.searchHeader, { paddingTop: insets.top }]}
+        onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
+      >
         <View style={styles.searchBar}>
           <Ionicons name="search" size={20} color={colors.primaryText} style={styles.searchIcon} />
           <TextInput
@@ -414,7 +437,7 @@ export default function SearchPage() {
           <ScrollView
             ref={scrollRef}
             keyboardShouldPersistTaps="handled"
-            contentContainerStyle={styles.scrollContainer}
+            contentContainerStyle={[styles.scrollContainer, { paddingTop: headerHeight + 8 }]}
             onScroll={handleScroll}
             scrollEventThrottle={16}
           >
@@ -424,9 +447,7 @@ export default function SearchPage() {
             {searchConfirmed ? (
               <View style={styles.allParksContainer}>
                 <Text style={styles.sectionTitle}>
-                  {searchKind === 'park'
-                    ? 'Park'
-                    : `Parks in ${displayedQuery.charAt(0).toUpperCase() + displayedQuery.slice(1)}`}
+                  {searchKind === 'park' ? 'Park' : `Parks in ${displayedQuery}`}
                 </Text>
                 {(searchResults.inCity?.length || 0) > 0 ? (
                   searchResults.inCity.map((park) => (
@@ -443,7 +464,7 @@ export default function SearchPage() {
                 )}
 
                 <Text style={styles.sectionTitle}>
-                  Parks near {displayedQuery.charAt(0).toUpperCase() + displayedQuery.slice(1)}
+                  Parks near {displayedQuery}
                 </Text>
 
                 {(searchResults.nearby?.length || 0) > 0 ? (
@@ -470,7 +491,7 @@ export default function SearchPage() {
                         <View key={index} style={styles.searchItem}>
                           <TouchableOpacity
                             style={{ flexDirection: 'row', flex: 1, alignItems: 'center' }}
-                            onPress={() => handleSearch(recentSearch, false)}
+                            onPress={() => { setQuery(recentSearch); handleSearch(recentSearch, false); }}
                           >
                             <Ionicons name="search" size={20} color={colors.secondaryText} style={styles.recentSearchIcon} />
                             <Text style={styles.searchText}>{recentSearch}</Text>
@@ -552,7 +573,6 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     paddingBottom: 60,
-    paddingTop: 80, // adjust based on search bar height
   },
   recentSearchesContainer: { marginBottom: 20, paddingHorizontal: 20 },
   searchItem: {
