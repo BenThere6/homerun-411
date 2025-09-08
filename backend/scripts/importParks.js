@@ -246,7 +246,10 @@ function hasAnyFieldData(row, i) {
   const keys = [
     `Field ${i} Name`,
     `Field ${i} Location`,
+    `Field ${i} LF Fence Distance`,
     `Field ${i} CF Fence Distance`,
+    `Field ${i} RF Fence Distance`,
+    `Field ${i} Fence Distance`, // legacy generic; we treat as CF downstream
     `Field ${i} Fence Height`,
     `Field ${i} Warning Track?`,
     `Field ${i} Type`,
@@ -367,7 +370,9 @@ async function buildParkFromRow(row) {
     const f = {
       name,
       location: row[`Field ${i} Location`] || null,
-      fenceDistance: safeInt(row[`Field ${i} CF Fence Distance`]),
+      leftFieldDistance: safeInt(row[`Field ${i} LF Fence Distance`]),
+      centerFieldDistance: safeInt(row[`Field ${i} CF Fence Distance`]) ?? safeInt(row[`Field ${i} Fence Distance`]),
+      rightFieldDistance: safeInt(row[`Field ${i} RF Fence Distance`]),
       fenceHeight: safeInt(row[`Field ${i} Fence Height`]),
       fieldType: enumOrNull(row[`Field ${i} Type`], validFieldTypes),
       outfieldMaterial: enumOrNull(row[`Field ${i} Outfield Material`], validOutfieldMaterials),

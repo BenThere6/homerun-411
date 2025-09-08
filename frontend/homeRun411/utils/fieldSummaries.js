@@ -13,6 +13,7 @@ const IGNORE_KEYS = new Set([
     'id', '_id', 'uuid',
     'name', 'fieldName', 'label',
     'createdAt', 'updatedAt', '__v',
+    'fenceDistance', // legacy single distance (we map it to CF below)
 ]);
 
 function isIgnorableKey(k) {
@@ -193,13 +194,23 @@ export function discoverAttributeKeys(fields = []) {
     return Array.from(keys);
 }
 
+function normalizeLegacyFieldDistances(f) {
+    if (!f || typeof f !== 'object') return f;
+    // If old single distance exists and CF is missing, copy it into CF
+    if (f.centerFieldDistance == null && f.fenceDistance != null) {
+        return { ...f, centerFieldDistance: f.fenceDistance };
+    }
+    return f;
+}
+
 // Build all summaries, grouped & sorted, ready for UI
 export function buildSummaries(fields = [], opts = {}) {
-    const keys = discoverAttributeKeys(fields);
+    const normFields = Array.isArray(fields) ? fields.map(normalizeLegacyFieldDistances) : [];
+    const keys = discoverAttributeKeys(normFields);
 
     const list = [];
     for (const k of keys) {
-        const s = summarizeAttribute(k, fields, opts);
+        const s = summarizeAttribute(k, normFields, opts);
         if (s) list.push(s);
     }
 

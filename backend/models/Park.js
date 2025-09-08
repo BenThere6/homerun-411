@@ -4,7 +4,9 @@ const Schema = mongoose.Schema;
 const fieldSchema = new Schema({
   name: { type: String }, // Field Name
   location: { type: String }, // Field Location
-  fenceDistance: { type: Number }, // Fence Distance (ft)
+  leftFieldDistance: { type: Number }, // LF Fence Distance (ft)
+  centerFieldDistance: { type: Number }, // CF Fence Distance (ft)
+  rightFieldDistance: { type: Number }, // RF Fence Distance (ft)
   fieldType: { type: String, enum: ['baseball', 'softball', 'both', 't-ball'] }, // Baseball, Softball, Both
   outfieldMaterial: { type: String, enum: ['grass', 'turf'] }, // Grass, Turf
   infieldMaterial: { type: String, enum: ['grass', 'dirt'] }, // Grass, Dirt
@@ -81,7 +83,6 @@ const parkSchema = new Schema({
   canopiesAllowed: { type: Boolean }, // Canopies Allowed?
   surfaceMaterial: { type: String }, // Surface Material
   lights: { type: Boolean }, // Lights Available?
-  fenceDistance: { type: Number }, // Fence Distance (ft)
   powerAccess: {
     available: { type: Boolean }, // Power Access Available?
     locations: [{ type: String }], // Power Locations

@@ -51,7 +51,6 @@ router.post('/', auth, isAdmin, async (req, res) => {
       surfaceMaterial,
       lights,
       restrooms,
-      fenceDistance,
       powerAccess, // Use power access
       electricalOutletsForPublicUse,
       electricalOutletsLocation,
@@ -83,7 +82,6 @@ router.post('/', auth, isAdmin, async (req, res) => {
       surfaceMaterial,
       lights,
       restrooms,
-      fenceDistance,
       powerAccess, // Save power access
       electricalOutletsForPublicUse,
       electricalOutletsLocation,
@@ -277,7 +275,6 @@ router.patch('/:id', auth, isAdmin, getPark, async (req, res) => {
     'surfaceMaterial',
     'lights',
     'restrooms',
-    'fenceDistance',
     'powerAccess', // Update power access
     'sidewalks',
     'gravelPaths',
