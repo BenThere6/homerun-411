@@ -2,13 +2,16 @@
   "expo": {
     "name": "HomeRun411",
     "slug": "homeRun411",
+    "scheme": "homerun411",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "privacy": "public",
-    "runtimeVersion": { "policy": "sdkVersion" },
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -16,7 +19,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.benthere7.homeRun411"
+      "bundleIdentifier": "com.benthere7.homeRun411",
+      "buildNumber": "1.0.0",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "We use your location to show nearby parks and distances.",
+        "NSCameraUsageDescription": "We use your camera to take profile photos or attach images.",
+        "NSPhotoLibraryUsageDescription": "We use your photo library for selecting profile pictures and attachments.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {

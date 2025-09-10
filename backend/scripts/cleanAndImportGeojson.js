@@ -217,11 +217,25 @@ async function pickGeojsonsFromDriveAll() {
     for (const folder of parkFolders) {
         console.log(`  • Folder: ${folder.name}`);
         const files = await listChildren(drive, folder.id);
-        const geojsons = files.filter(f => /\.geojson$/i.test(f.name));
-        if (!geojsons.length) {
+        const geojsonsRaw = files.filter(f => /\.geojson$/i.test(f.name));
+        if (!geojsonsRaw.length) {
             console.warn(`    ↳ (skip) no .geojson in this folder`);
             continue;
         }
+
+        // Dedupe by filename, keep newest
+        const byName = new Map();
+        for (const f of geojsonsRaw) {
+            const k = f.name.toLowerCase();
+            const prev = byName.get(k);
+            const fTime = new Date(f.modifiedTime || f.createdTime || 0);
+            const pTime = prev ? new Date(prev.modifiedTime || prev.createdTime || 0) : 0;
+            if (!prev || fTime > pTime) byName.set(k, f);
+        }
+        const geojsons = Array.from(byName.values())
+            .sort((a, b) => new Date(b.modifiedTime || b.createdTime || 0) - new Date(a.modifiedTime || a.createdTime || 0));
+
+        // Prefer a name-matched file if present; else the newest
         const preferred =
             geojsons.find(f => norm(f.name.replace(/\.geojson$/i, '')) === norm(folder.name)) ||
             geojsons[0];
@@ -263,8 +277,8 @@ async function findSingleFolderByName(drive, name, parentId = null) {
 
 async function listChildren(drive, parentId) {
     const res = await drive.files.list({
-        q: [`'${parentId}' in parents`, 'trashed = false'].join(' and '),
-        fields: 'files(id,name,mimeType,driveId)',
+        q: [`'${parentId}' in parents`, 'trashed = false', `mimeType != 'application/vnd.google-apps.shortcut'`].join(' and '),
+        fields: 'files(id,name,mimeType,modifiedTime,createdTime,shortcutDetails,driveId)',
         pageSize: 200,
         includeItemsFromAllDrives: true,
         supportsAllDrives: true,
@@ -275,7 +289,7 @@ async function listChildren(drive, parentId) {
 async function promptPick(title, items, labelFn = x => x) {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
     console.log(`\n${title}`);
-    items.forEach((it, i) => console.log(`  [${i + 1}] ${labelFn(it)}`));
+    items.forEach((it, i) => console.log(`  [${i + 1}] ${labelFn(it, i)}`)); // <-- pass i
     const answer = await new Promise(res => rl.question('\nChoose a number: ', a => { rl.close(); res(a); }));
     const idx = parseInt(answer, 10) - 1;
     if (Number.isNaN(idx) || idx < 0 || idx >= items.length) {
@@ -315,12 +329,35 @@ async function pickGeojsonFromDrive(allowAll = true) {
 
     // Pick a .geojson in that folder
     const files = await listChildren(drive, pickedFolder.id);
-    const geojsons = files.filter(f => /\.geojson$/i.test(f.name));
-    if (!geojsons.length) { console.error(`No .geojson files found in "${parkName}".`); process.exit(1); }
 
-    const pickedFile = geojsons.length === 1
+    // 1) Only .geojsons
+    const geojsonsRaw = files.filter(f => /\.geojson$/i.test(f.name));
+
+    // 2) Dedupe by filename, keep the newest by modifiedTime/createdTime
+    const byName = new Map();
+    for (const f of geojsonsRaw) {
+        const k = f.name.toLowerCase();
+        const prev = byName.get(k);
+        const fTime = new Date(f.modifiedTime || f.createdTime || 0);
+        const pTime = prev ? new Date(prev.modifiedTime || prev.createdTime || 0) : 0;
+        if (!prev || fTime > pTime) byName.set(k, f);
+    }
+    const geojsons = Array.from(byName.values())
+        .sort((a, b) => new Date(b.modifiedTime || b.createdTime || 0) - new Date(a.modifiedTime || a.createdTime || 0));
+
+    if (!geojsons.length) {
+        console.error(`No .geojson files found in "${parkName}".`);
+        process.exit(1);
+    }
+
+    // 3) If we effectively have one candidate, auto-pick it; otherwise show list and tag newest
+    const pickedFile = (geojsons.length === 1)
         ? geojsons[0]
-        : await promptPick(`Pick a GeoJSON in "${parkName}":`, geojsons, f => f.name);
+        : await promptPick(
+            `Pick a GeoJSON in "${parkName}":`,
+            geojsons,
+            (f, i) => i === 0 ? `${f.name} (new)` : f.name
+        );
 
     // Download file content
     const res = await drive.files.get({ fileId: pickedFile.id, alt: 'media' }, { responseType: 'arraybuffer' });
