@@ -7,6 +7,13 @@ export function normalizeText(raw) {
     return s || null;
 }
 
+// Add: safe for descriptive strings (does NOT collapse "1st baseline" to 1)
+export function toDisplayText(v) {
+    const s = v == null ? '' : String(v).trim();
+    if (!s) return '';
+    return titleCase(s); // or just: return s;
+}
+
 export function titleCase(raw) {
     if (raw == null) return '';
     const s = String(raw).trim().replace(/\s+/g, ' ');

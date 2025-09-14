@@ -192,6 +192,12 @@ export default function ParkDetails({ route, navigation }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [incomingId]);
 
+  console.log('FIELDS RAW', park.fields?.map(f => ({
+    name: f.name,
+    bleachersAvailable: f.bleachersAvailable,
+    bleachersDescription: f.bleachersDescription
+  })));
+
   // 2) ADD: compute summaries (auto-discovers every attribute)
   const summaries = useMemo(() => {
     const fields = park?.fields || [];
@@ -811,23 +817,59 @@ export default function ParkDetails({ route, navigation }) {
               return (
                 <React.Fragment key={g}>
                   <SpecSection heading={g} collapsible defaultExpanded={false}>
-                    {list.map((s) => {
-                      // build subItems in step 3
-                      let subItems = null;
-                      if (s.tieAllDifferent) {
-                        subItems = s.exceptions?.map(e => `${e.fieldName}: ${e.display}`);
-                      } else if (s.exceptions?.length) {
-                        subItems = s.exceptions.map(e => `${e.fieldName}: ${e.display}`);
-                      }
-                      return (
-                        <SpecRow
-                          key={s.key}
-                          title={s.title}
-                          value={s.commonValueDisplay}
-                          subItems={subItems}   // ← step 3 uses this
-                        />
-                      );
-                    })}
+                    {(() => {
+                      // For 'Dimensions', sort to: Left → Center → Right (others keep their relative order)
+                      const order = { 'Left Field Distance': 1, 'Center Field Distance': 2, 'Right Field Distance': 3 };
+                      const items =
+                        g === 'Dimensions'
+                          ? [...list].sort((a, b) => {
+                            const ra = order[a.title] ?? 50;
+                            const rb = order[b.title] ?? 50;
+                            // keep stable-ish order for non-L/C/R by secondary title sort
+                            return ra - rb || a.title.localeCompare(b.title);
+                          })
+                          : list;
+
+                      return items.map((s) => {
+                        // build subItems (prefix pure-numeric field names with "Field ")
+                        const prettyName = (n) =>
+                          (typeof n === 'number' || /^\s*\d+\s*$/.test(String(n)))
+                            ? `Field ${String(n).trim()}`
+                            : n;
+
+                        let subItems = null;
+                        if (s.tieAllDifferent) {
+                          subItems = s.exceptions?.map(e => `${prettyName(e.fieldName)}: ${e.display}`);
+                        } else if (s.exceptions?.length) {
+                          subItems = s.exceptions.map(e => `${prettyName(e.fieldName)}: ${e.display}`);
+                        }
+                        // only add " ft" for the Dimensions group
+                        const isDimensions = g === 'Dimensions';
+
+                        // helper to append " ft" if the token is purely numeric (int or decimal)
+                        const addFt = (val) => {
+                          if (val == null) return val;
+                          const str = String(val).trim();
+                          return /^\d+(\.\d+)?$/.test(str) ? `${str} ft` : str;
+                        };
+
+                        return (
+                          <SpecRow
+                            key={s.key}
+                            title={s.title}
+                            value={isDimensions ? addFt(s.commonValueDisplay) : s.commonValueDisplay}
+                            subItems={
+                              isDimensions
+                                ? subItems?.map(line => {
+                                  const [field, raw] = line.split(':').map(x => x.trim());
+                                  return /^\d+(\.\d+)?$/.test(raw) ? `${field}: ${raw} ft` : line;
+                                })
+                                : subItems
+                            }
+                          />
+                        );
+                      });
+                    })()}
                   </SpecSection>
 
                   {/* divider between subheadings */}

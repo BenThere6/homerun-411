@@ -3,6 +3,7 @@ import {
     extractNumber,
     normalizeText,
     toDisplay,
+    toDisplayText,
     clusterNumeric,
     displayClusterCenter,
     titleCase,
@@ -61,7 +62,7 @@ export function summarizeAttribute(attrKey, fields, {
     absTol = 5,         // feet tolerance for numeric clustering
     pctTol = 0.02,      // ±2% also considered
     tolByKey = {},
-    dominanceThreshold = 0.65,
+    dominanceThreshold = 0.50,
 } = {}) {
     const keyTol = tolByKey?.[attrKey] || {};
     const effAbsTol = Number.isFinite(keyTol.absTol) ? keyTol.absTol : absTol;
@@ -82,11 +83,19 @@ export function summarizeAttribute(attrKey, fields, {
     if (presentCount === 0) return null; // all missing -> skip row
 
     // Decide if we should treat as numeric: at least 2 fields with a parsable number.
-    const numericCandidates = presentItems
-        .map(it => ({ ...it, num: extractNumber(it.raw) }))
-        .filter(it => typeof it.num === 'number' && !Number.isNaN(it.num));
+    const group = groupForKey(attrKey);
+    const isPureNumber = v => /^\s*\d+(\.\d+)?\s*$/.test(String(v ?? ''));
 
-    if (numericCandidates.length >= 2) {
+    // Only consider numeric for Dimensions, and only when values are pure numbers
+    const numericCandidates =
+        group === 'Dimensions'
+            ? presentItems
+                .filter(it => isPureNumber(it.raw))
+                .map(it => ({ ...it, num: extractNumber(it.raw) }))
+                .filter(it => typeof it.num === 'number' && !Number.isNaN(it.num))
+            : [];
+
+    if (group === 'Dimensions' && numericCandidates.length >= 2) {
         const { clusters } = clusterNumeric(numericCandidates, { absTol: effAbsTol, pctTol: effPctTol });
 
         let maxSize = 0, mainClusterIdx = -1;
@@ -101,10 +110,10 @@ export function summarizeAttribute(attrKey, fields, {
 
         if (!hasDominant || tieLargest) {
             // No dominant value at ≥65% -> treat as "Varies by field"
-            const subtextList = presentItems.map(it => ({ fieldName: it.fieldName, display: toDisplay(it.raw) }));
+            const subtextList = presentItems.map(it => ({ fieldName: it.fieldName, display: toDisplayText(it.raw) }));
             return {
                 key: attrKey, title: humanizeKey(attrKey), type: 'numeric', group: groupForKey(attrKey),
-                tieAllDifferent: true, commonValueDisplay: 'Varies by field', exceptions: subtextList
+                tieAllDifferent: true, commonValueDisplay: '', exceptions: subtextList
             };
         }
 
@@ -115,7 +124,7 @@ export function summarizeAttribute(attrKey, fields, {
         const mainSet = new Set(mainCluster.items.map(it => it.fieldName));
         const exceptions = presentItems
             .filter(it => !mainSet.has(it.fieldName))
-            .map(it => ({ fieldName: it.fieldName, display: toDisplay(it.raw) }));
+            .map(it => ({ fieldName: it.fieldName, display: toDisplayText(it.raw) }));
 
         return {
             key: attrKey, title: humanizeKey(attrKey), type: 'numeric', group: groupForKey(attrKey),
@@ -150,7 +159,7 @@ export function summarizeAttribute(attrKey, fields, {
         // No dominant value at the required threshold → list all present values
         const subtextList = presentText.map(it => ({
             fieldName: it.fieldName,
-            display: toDisplay(it.raw),
+            display: toDisplayText(it.raw),
         }));
         return {
             key: attrKey,
@@ -158,18 +167,18 @@ export function summarizeAttribute(attrKey, fields, {
             type: 'text',
             group: groupForKey(attrKey),
             tieAllDifferent: true,
-            commonValueDisplay: 'Varies by field',
+            commonValueDisplay: '',
             exceptions: subtextList,
         };
     }
 
     // Dominant winner exists → common value + exceptions
     const sampleWinner = presentText.find(it => it.norm === topNorm)?.raw ?? topNorm;
-    const commonValueDisplay = toDisplay(sampleWinner);
+    const commonValueDisplay = toDisplayText(sampleWinner);
 
     const exceptions = presentText
         .filter(it => it.norm !== topNorm)
-        .map(it => ({ fieldName: it.fieldName, display: toDisplay(it.raw) }));
+        .map(it => ({ fieldName: it.fieldName, display: toDisplayText(it.raw) }));
 
     return {
         key: attrKey,

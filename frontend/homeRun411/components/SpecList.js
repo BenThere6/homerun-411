@@ -14,7 +14,11 @@ export function SpecRow({ title, value, subtext, subItems }) {
             <View style={styles.rowHeaderWrap}>
                 <Text style={styles.rowHeader}>{title}</Text>
             </View>
-            <Text style={styles.value}>{value}</Text>
+            {value != null &&
+                String(value).trim() !== '' &&
+                String(value).trim().toLowerCase() !== 'varies by field' ? (
+                <Text style={styles.value}>{value}</Text>
+            ) : null}
 
             {/* NEW: multi-line subtext */}
             {Array.isArray(subItems) && subItems.length > 0 ? (
