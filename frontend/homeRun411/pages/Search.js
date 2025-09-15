@@ -161,6 +161,26 @@ export default function SearchPage() {
   }, []);
 
   useEffect(() => {
+    const id = route.params?.removeParkId;
+    if (!id) return;
+
+    // Remove from master list
+    setParks(prev => prev.filter(p => p._id !== id));
+
+    // Remove from current search results (both sections)
+    setSearchResults(prev => ({
+      inCity: (prev?.inCity || []).filter(p => p._id !== id),
+      nearby: (prev?.nearby || []).filter(p => p._id !== id),
+    }));
+
+    // Also clear from favorites if present
+    setFavoriteIds(prev => prev.filter(pid => pid !== id));
+
+    // clear the param so it doesn't run again on re-render
+    navigation.setParams({ removeParkId: undefined });
+  }, [route.params?.removeParkId]);
+
+  useEffect(() => {
     const loadRecentSearches = async () => {
       const stored = await AsyncStorage.getItem('recentSearches');
       if (stored) setRecentSearches(JSON.parse(stored));

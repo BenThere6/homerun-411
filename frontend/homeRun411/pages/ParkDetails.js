@@ -405,7 +405,11 @@ export default function ParkDetails({ route, navigation }) {
       });
 
       Alert.alert('Park deleted', 'The park has been deleted.');
-      navigation.goBack();
+      navigation.navigate({
+        name: 'Search', // <-- use your actual route name for this screen
+        params: { removeParkId: park._id, bump: Date.now() },
+        merge: true,
+      });
     } catch (e) {
       Alert.alert('Failed to delete', e?.response?.data?.message || e.message || 'Unknown error');
     }
