@@ -64,6 +64,29 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
+    // --- SUPER-ADMIN ALLOWLIST: auto-persist adminLevel 0 for allowlisted emails ---
+    const __SUPER_SET = new Set(
+      String(process.env.TOP_ADMIN_EMAILS || process.env.SUPER_ADMIN_EMAILS || '')
+        .split(/[,\s]+/)
+        .map(e => e.trim().toLowerCase())
+        .filter(Boolean)
+    );
+    if (__SUPER_SET.has(user.email.toLowerCase()) && user.adminLevel !== 0) {
+      user.adminLevel = 0;
+      await user.save();
+    }
+
+    const buildAllow = () => new Set(
+      String(process.env.TOP_ADMIN_EMAILS || process.env.SUPER_ADMIN_EMAILS || '')
+        .split(/[,\s]+/)
+        .map(e => e.trim().toLowerCase())
+        .filter(Boolean)
+    );
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('TOP_ADMIN_EMAILS ->', process.env.TOP_ADMIN_EMAILS);
+    }
+
     const refreshToken = jwt.sign(
       {
         id: user._id,
@@ -137,12 +160,22 @@ app.post('/api/auth/register', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    const __SUPER_SET = new Set(
+      String(process.env.TOP_ADMIN_EMAILS || process.env.SUPER_ADMIN_EMAILS || '')
+        .split(/[,\s]+/)
+        .map(e => e.trim().toLowerCase())
+        .filter(Boolean)
+    );
+    const adminLevelToSet =
+      __SUPER_SET.has(email.toLowerCase()) ? 0 :
+        (adminLevel !== undefined ? adminLevel : 2);
+
     const newUser = new User({
       email,
       passwordHash: hashedPassword,
       zipCode,
       profile: { firstName, lastName },
-      adminLevel: adminLevel !== undefined ? adminLevel : 2,
+      adminLevel: adminLevelToSet,
       location: {
         type: 'Point',
         coordinates: [loc.longitude, loc.latitude],
@@ -219,21 +252,40 @@ app.patch('/api/admin/demote/:userId', authenticate, isTopAdmin, async (req, res
   }
 });
 
-// Get user profile
+// Get user profile (self-healing for adminLevel + allowlist auto-promotion)
 app.get('/api/auth/profile', authenticate, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const allow = buildAllow();
+    const emailLc = (user.email || '').toLowerCase();
+    let changed = false;
+
+    // If they’re on the allowlist but not marked top-admin, promote now.
+    if (emailLc && allow.has(emailLc) && Number(user.adminLevel) !== 0) {
+      user.adminLevel = 0;
+      changed = true;
     }
+
+    // If adminLevel is missing entirely, give it the default 2 (regular user).
+    if (user.adminLevel === undefined || user.adminLevel === null) {
+      user.adminLevel = 2;
+      changed = true;
+    }
+
+    if (changed) await user.save();
 
     res.json({
       email: user.email,
       firstName: user.profile.firstName,
       lastName: user.profile.lastName,
-      createdAt: user.createdAt, // Ensure this field exists in the schema
+      adminLevel: user.adminLevel,
+      isTopAdmin: Number(user.adminLevel) === 0,
+      createdAt: user.createdAt,
     });
   } catch (err) {
+    console.error('profile error', err);
     res.status(500).json({ message: 'Server error' });
   }
 });

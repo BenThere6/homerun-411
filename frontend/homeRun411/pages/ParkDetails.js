@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from '../utils/axiosInstance';
 import { buildSummaries } from '../utils/fieldSummaries';
 import { SpecRow, SpecSection } from '../components/SpecList';
-import { View, Text, StyleSheet, ScrollView, ImageBackground, TouchableOpacity, Platform, Linking, TextInput, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ImageBackground, TouchableOpacity, Platform, Linking, TextInput, Animated, Alert, ActionSheetIOS } from 'react-native';
 import useInPageSearch from '../utils/useInPageSearch';
 import { getWeather } from '../utils/getWeather';
 import WeatherWidget from '../components/WeatherWidget';
@@ -32,6 +32,7 @@ export default function ParkDetails({ route, navigation }) {
   const [postsPreview, setPostsPreview] = useState([]);
   const [postsCount, setPostsCount] = useState(0);
   const [loadingPosts, setLoadingPosts] = useState(false);
+  const [isTopAdmin, setIsTopAdmin] = useState(false);
 
   const scrollRef = useRef(null);
 
@@ -298,6 +299,24 @@ export default function ParkDetails({ route, navigation }) {
   // Run once we have a real park id (works whether it came from params or the fetch above)
   useEffect(() => {
     const run = async () => {
+      // 1) check admin level & log
+      try {
+        const token = await AsyncStorage.getItem('token');
+        if (token) {
+          const { data } = await axios.get('/api/auth/profile', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const top = Number(data?.adminLevel) === 0 || data?.isTopAdmin === true;
+          setIsTopAdmin(top);
+          console.log('🔐 profile:', { email: data?.email, adminLevel: data?.adminLevel, isTopAdmin: top });
+        } else {
+          console.log('🔐 no token found; not logged in');
+        }
+      } catch (e) {
+        console.log('🔐 profile fetch failed', e?.response?.data || e.message);
+      }
+
+      // 2) keep existing work
       await checkIfFavorited();
 
       const lat = park?.coordinates?.coordinates?.[1];
@@ -340,6 +359,55 @@ export default function ParkDetails({ route, navigation }) {
       setIsFavorited(favoriteIds.includes(park._id));
     } catch (err) {
       console.error('Failed to check favorite status:', err.message);
+    }
+  };
+
+  // --- Admin-only: more menu + delete flow ---
+  const openMoreMenu = () => {
+    if (!isTopAdmin) return;
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancel', 'Delete Park'],
+          destructiveButtonIndex: 1,
+          cancelButtonIndex: 0,
+          userInterfaceStyle: 'light',
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) confirmDelete();
+        }
+      );
+    } else {
+      // Android/others: go straight to confirm dialog
+      confirmDelete();
+    }
+  };
+
+  const confirmDelete = () => {
+    Alert.alert(
+      'Delete this park?',
+      'This action cannot be undone. All park data will be permanently removed.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: deletePark },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const deletePark = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token || !park?._id) return;
+
+      await axios.delete(`/api/park/${park._id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      Alert.alert('Park deleted', 'The park has been deleted.');
+      navigation.goBack();
+    } catch (e) {
+      Alert.alert('Failed to delete', e?.response?.data?.message || e.message || 'Unknown error');
     }
   };
 
@@ -417,6 +485,18 @@ export default function ParkDetails({ route, navigation }) {
                 color={isFavorited ? '#FFD700' : '#fff'}
               />
             </TouchableOpacity>
+
+            {/* Admin "More" (3 dots) */}
+            {isTopAdmin && (
+              <TouchableOpacity
+                style={styles.moreIcon}
+                onPress={openMoreMenu}
+                accessibilityRole="button"
+                accessibilityLabel="More options"
+              >
+                <Ionicons name="ellipsis-vertical" size={22} color="#fff" />
+              </TouchableOpacity>
+            )}
 
             {/* Address pill */}
             {(park.address || park.city || park.state) && (
@@ -1043,6 +1123,15 @@ const styles = StyleSheet.create({
     right: 10,
     backgroundColor: 'rgba(0,0,0,0.4)',
     borderRadius: 15,
+    padding: 6,
+    zIndex: 2,
+  },
+  moreIcon: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderRadius: 16,
     padding: 6,
     zIndex: 2,
   },
