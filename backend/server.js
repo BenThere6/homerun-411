@@ -14,6 +14,17 @@ const PORT = process.env.PORT || 4000;
 
 const cloudinary = require("cloudinary").v2;
 
+const buildAllow = () => new Set(
+  String(process.env.TOP_ADMIN_EMAILS || process.env.SUPER_ADMIN_EMAILS || '')
+    .split(/[,\s]+/)
+    .map(e => e.trim().toLowerCase())
+    .filter(Boolean)
+);
+
+if (process.env.NODE_ENV !== 'production') {
+  console.log('TOP_ADMIN_EMAILS ->', process.env.TOP_ADMIN_EMAILS);
+}
+
 // Configure Cloudinary with environment variables
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -74,17 +85,6 @@ app.post('/api/auth/login', async (req, res) => {
     if (__SUPER_SET.has(user.email.toLowerCase()) && user.adminLevel !== 0) {
       user.adminLevel = 0;
       await user.save();
-    }
-
-    const buildAllow = () => new Set(
-      String(process.env.TOP_ADMIN_EMAILS || process.env.SUPER_ADMIN_EMAILS || '')
-        .split(/[,\s]+/)
-        .map(e => e.trim().toLowerCase())
-        .filter(Boolean)
-    );
-
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('TOP_ADMIN_EMAILS ->', process.env.TOP_ADMIN_EMAILS);
     }
 
     const refreshToken = jwt.sign(
