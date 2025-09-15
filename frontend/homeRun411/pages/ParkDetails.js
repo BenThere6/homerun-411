@@ -38,20 +38,8 @@ export default function ParkDetails({ route, navigation }) {
   const [showFields, setShowFields] = useState(true);
   const [showRestrooms, setShowRestrooms] = useState(true);
 
-  // hook centralizing search/highlight/scroll logic
-  const {
-    query, setQuery,
-    onLayoutFor,
-    flashOpacity,
-    handleSubmit,
-    chipPress,
-    scrollToSection,
-    resolveKeyForQuery,
-  } = useInPageSearch({
-    scrollRef,
-    // auto-expand sections if needed before scrolling to them
-    expanders: { restrooms: () => { if (!showRestrooms) setShowRestrooms(true); } },
-  });
+  // NEW: controlled open state for Field sub-sections (Surfaces/Dimensions/Amenities/Other)
+  const [openGroup, setOpenGroup] = useState({});
 
   const ASK_TIP_KEY = 'seenAskAboutParkTooltip';
   const TOOLTIP_EXPIRY_DAYS = 30;
@@ -176,11 +164,11 @@ export default function ParkDetails({ route, navigation }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [incomingId]);
 
-  console.log('FIELDS RAW', park.fields?.map(f => ({
-    name: f.name,
-    bleachersAvailable: f.bleachersAvailable,
-    bleachersDescription: f.bleachersDescription
-  })));
+  // console.log('FIELDS RAW', park.fields?.map(f => ({
+  //   name: f.name,
+  //   bleachersAvailable: f.bleachersAvailable,
+  //   bleachersDescription: f.bleachersDescription
+  // })));
 
   // 2) ADD: compute summaries (auto-discovers every attribute)
   const summaries = useMemo(() => {
@@ -197,6 +185,88 @@ export default function ParkDetails({ route, navigation }) {
     }
     return by;
   }, [summaries]);
+
+  // Build expanders so search opens the right Field sub-section before scrolling
+  const searchExpanders = useMemo(() => {
+    const ex = {
+      // keep restrooms auto-expander
+      restrooms: () => setShowRestrooms(true),
+    };
+    // for each field row, map its key to an opener for its parent group
+    ['Surfaces', 'Dimensions', 'Amenities', 'Other'].forEach(g => {
+      const list = grouped.get(g);
+      if (!list) return;
+      for (const s of list) {
+        const key = `fields_${s.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+        ex[key] = () => setOpenGroup(prev => (prev[g] ? prev : { ...prev, [g]: true }));
+      }
+    });
+    return ex;
+  }, [grouped, setShowRestrooms]);
+
+  // hook centralizing search/highlight/scroll logic (now with dynamic expanders)
+  const {
+    query, setQuery,
+    onLayoutFor,
+    flashOpacity,
+    handleSubmit,
+    chipPress,
+    scrollToSection,
+    resolveKeyForQuery,
+    addAliases,
+    clearAliases,
+  } = useInPageSearch({
+    scrollRef,
+    expanders: searchExpanders,
+  });
+
+  // Register searchable aliases for subsections & field rows
+  useEffect(() => {
+    const entries = [];
+
+    // Additional Park Details: targeted subsections
+    entries.push(
+      { term: 'batting cage', keys: ['details_battingCagesDescription'] },
+      { term: 'batting cages', keys: ['details_battingCagesDescription'] },
+      { term: 'cage', keys: ['details_battingCagesDescription'] },
+
+      { term: 'sidewalk', keys: ['details_sidewalks'] },
+      { term: 'sidewalks', keys: ['details_sidewalks'] },
+
+      { term: 'stairs', keys: ['details_stairsDescription'] },
+      { term: 'stair', keys: ['details_stairsDescription'] },
+
+      { term: 'hill', keys: ['details_hillsDescription'] },
+      { term: 'hills', keys: ['details_hillsDescription'] },
+
+      { term: 'spectator', keys: ['details_spectatorConditions'] },
+      { term: 'spectator location', keys: ['details_spectatorConditions'] },
+      { term: 'spectator conditions', keys: ['details_spectatorConditions'] },
+
+      { term: 'electrical outlet', keys: ['details_electricalOutletsForPublicUse'] },
+      { term: 'electrical outlets', keys: ['details_electricalOutletsForPublicUse'] },
+      { term: 'outlets', keys: ['details_electricalOutletsForPublicUse'] },
+      { term: 'outlet location', keys: ['details_electricalOutletsLocation'] },
+      { term: 'electrical outlets location', keys: ['details_electricalOutletsLocation'] }
+    );
+
+    // Field rows: make each row searchable by its title (and a slug)
+    for (const s of summaries) {
+      const slug = s.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const k = `fields_${slug}`;
+      entries.push({ term: s.title.toLowerCase(), keys: [k] });
+
+      // simple plurals/synonyms for common cases
+      if (s.title.toLowerCase().includes('cage')) {
+        entries.push({ term: 'batting cage', keys: [k] });
+        entries.push({ term: 'batting cages', keys: [k] });
+        entries.push({ term: 'cage', keys: [k] });
+      }
+    }
+
+    clearAliases();
+    addAliases(entries);
+  }, [summaries, addAliases, clearAliases]);
 
   useEffect(() => {
     const key = resolveKeyForQuery(route.params?.jumpTo);
@@ -564,11 +634,23 @@ export default function ParkDetails({ route, navigation }) {
               }}
             />
             <Text style={styles.sectionTitle}>Additional Park Details</Text>
-            <Text style={styles.subtitle}>Shared Batting Cage Description</Text>
-            <Text style={styles.text}>{park.battingCages?.description || 'No data available'}</Text>
+            <Animated.View
+              onLayout={onLayoutFor('details_battingCagesDescription', { offsetKey: 'details' })}
+              style={{ position: 'relative', borderRadius: 8 }}
+            >
+              <Animated.View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+                  backgroundColor: '#fde68a', opacity: flashOpacity('details_battingCagesDescription'), borderRadius: 8
+                }}
+              />
+              <Text style={styles.subtitle}>Shared Batting Cage Description</Text>
+              <Text style={styles.text}>{park.battingCages?.description || 'No data available'}</Text>
+            </Animated.View>
 
             <Animated.View
-              onLayout={onLayoutFor('details_parkingLocation')}
+              onLayout={onLayoutFor('details_parkingLocation', { offsetKey: 'details' })}
               style={{ position: 'relative', borderRadius: 8 }}
             >
               <Animated.View
@@ -583,7 +665,7 @@ export default function ParkDetails({ route, navigation }) {
             </Animated.View>
 
             <Animated.View
-              onLayout={onLayoutFor('details_handicapSpots')}
+              onLayout={onLayoutFor('details_handicapSpots', { offsetKey: 'details' })}
               style={{ position: 'relative', borderRadius: 8 }}
             >
               <Animated.View
@@ -597,27 +679,99 @@ export default function ParkDetails({ route, navigation }) {
               <Text style={styles.text}>{park.parking?.handicapSpots || 'No data available'}</Text>
             </Animated.View>
 
-            <Text style={styles.subtitle}>Electrical Outlets for Public Use</Text>
-            <Text style={styles.text}>{park.electricalOutletsForPublicUse ? 'Yes' : 'No'}</Text>
+            <Animated.View
+              onLayout={onLayoutFor('details_electricalOutletsForPublicUse', { offsetKey: 'details' })}
+              style={{ position: 'relative', borderRadius: 8 }}
+            >
+              <Animated.View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+                  backgroundColor: '#fde68a', opacity: flashOpacity('details_electricalOutletsForPublicUse'), borderRadius: 8
+                }}
+              />
+              <Text style={styles.subtitle}>Electrical Outlets for Public Use</Text>
+              <Text style={styles.text}>{park.electricalOutletsForPublicUse ? 'Yes' : 'No'}</Text>
+            </Animated.View>
 
-            <Text style={styles.subtitle}>Location of Electrical Outlets</Text>
-            <Text style={styles.text}>{park.electricalOutletsLocation || 'No data available'}</Text>
+            <Animated.View
+              onLayout={onLayoutFor('details_electricalOutletsLocation', { offsetKey: 'details' })}
+              style={{ position: 'relative', borderRadius: 8 }}
+            >
+              <Animated.View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+                  backgroundColor: '#fde68a', opacity: flashOpacity('details_electricalOutletsLocation'), borderRadius: 8
+                }}
+              />
+              <Text style={styles.subtitle}>Location of Electrical Outlets</Text>
+              <Text style={styles.text}>{park.electricalOutletsLocation || 'No data available'}</Text>
+            </Animated.View>
 
-            <Text style={styles.subtitle}>Sidewalks</Text>
-            <Text style={styles.text}>{park.sidewalks || 'No data available'}</Text>
+            <Animated.View
+              onLayout={onLayoutFor('details_sidewalks', { offsetKey: 'details' })}
+              style={{ position: 'relative', borderRadius: 8 }}
+            >
+              <Animated.View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+                  backgroundColor: '#fde68a', opacity: flashOpacity('details_sidewalks'), borderRadius: 8
+                }}
+              />
+              <Text style={styles.subtitle}>Sidewalks</Text>
+              <Text style={styles.text}>{park.sidewalks || 'No data available'}</Text>
+            </Animated.View>
 
-            <Text style={styles.subtitle}>Stairs Description</Text>
-            <Text style={styles.text}>{park.stairsDescription || 'No data available'}</Text>
+            <Animated.View
+              onLayout={onLayoutFor('details_stairsDescription', { offsetKey: 'details' })}
+              style={{ position: 'relative', borderRadius: 8 }}
+            >
+              <Animated.View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+                  backgroundColor: '#fde68a', opacity: flashOpacity('details_stairsDescription'), borderRadius: 8
+                }}
+              />
+              <Text style={styles.subtitle}>Stairs Description</Text>
+              <Text style={styles.text}>{park.stairsDescription || 'No data available'}</Text>
+            </Animated.View>
 
-            <Text style={styles.subtitle}>Hills Description</Text>
-            <Text style={styles.text}>{park.hillsDescription || 'No data available'}</Text>
+            <Animated.View
+              onLayout={onLayoutFor('details_hillsDescription', { offsetKey: 'details' })}
+              style={{ position: 'relative', borderRadius: 8 }}
+            >
+              <Animated.View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+                  backgroundColor: '#fde68a', opacity: flashOpacity('details_hillsDescription'), borderRadius: 8
+                }}
+              />
+              <Text style={styles.subtitle}>Hills Description</Text>
+              <Text style={styles.text}>{park.hillsDescription || 'No data available'}</Text>
+            </Animated.View>
 
-            <Text style={styles.subtitle}>Spectator Location Conditions</Text>
-            <Text style={styles.text}>
-              {park.spectatorConditions?.locationTypes?.length > 0
-                ? park.spectatorConditions.locationTypes.join(', ')
-                : 'No data available'}
-            </Text>
+            <Animated.View
+              onLayout={onLayoutFor('details_spectatorConditions', { offsetKey: 'details' })}
+              style={{ position: 'relative', borderRadius: 8 }}
+            >
+              <Animated.View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+                  backgroundColor: '#fde68a', opacity: flashOpacity('details_spectatorConditions'), borderRadius: 8
+                }}
+              />
+              <Text style={styles.subtitle}>Spectator Location Conditions</Text>
+              <Text style={styles.text}>
+                {park.spectatorConditions?.locationTypes?.length > 0
+                  ? park.spectatorConditions.locationTypes.join(', ')
+                  : 'No data available'}
+              </Text>
+            </Animated.View>
           </Animated.View>
 
           {/* Restrooms */}
@@ -736,7 +890,12 @@ export default function ParkDetails({ route, navigation }) {
               if (!list || list.length === 0) return null;
               return (
                 <React.Fragment key={g}>
-                  <SpecSection heading={g} collapsible defaultExpanded={false}>
+                  <SpecSection
+                    heading={g}
+                    collapsible
+                    defaultExpanded={!!openGroup[g]}
+                    key={`spec-${g}-${openGroup[g] ? 'open' : 'closed'}`}
+                  >
                     {(() => {
                       // For 'Dimensions', sort to: Left → Center → Right (others keep their relative order)
                       const order = { 'Left Field Distance': 1, 'Center Field Distance': 2, 'Right Field Distance': 3 };
@@ -774,19 +933,33 @@ export default function ParkDetails({ route, navigation }) {
                         };
 
                         return (
-                          <SpecRow
+                          <Animated.View
                             key={s.key}
-                            title={s.title}
-                            value={isDimensions ? addFt(s.commonValueDisplay) : s.commonValueDisplay}
-                            subItems={
-                              isDimensions
-                                ? subItems?.map(line => {
-                                  const [field, raw] = line.split(':').map(x => x.trim());
-                                  return /^\d+(\.\d+)?$/.test(raw) ? `${field}: ${raw} ft` : line;
-                                })
-                                : subItems
-                            }
-                          />
+                            onLayout={onLayoutFor(`fields_${s.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`, { offsetKey: 'fields' })}
+                            style={{ position: 'relative', borderRadius: 6 }}
+                          >
+                            <Animated.View
+                              pointerEvents="none"
+                              style={{
+                                position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+                                backgroundColor: '#fde68a',
+                                opacity: flashOpacity(`fields_${s.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`),
+                                borderRadius: 6
+                              }}
+                            />
+                            <SpecRow
+                              title={s.title}
+                              value={isDimensions ? addFt(s.commonValueDisplay) : s.commonValueDisplay}
+                              subItems={
+                                isDimensions
+                                  ? subItems?.map(line => {
+                                    const [field, raw] = line.split(':').map(x => x.trim());
+                                    return /^\d+(\.\d+)?$/.test(raw) ? `${field}: ${raw} ft` : line;
+                                  })
+                                  : subItems
+                              }
+                            />
+                          </Animated.View>
                         );
                       });
                     })()}

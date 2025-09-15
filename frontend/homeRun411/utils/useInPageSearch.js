@@ -35,8 +35,10 @@ export default function useInPageSearch({ scrollRef, expanders = {} } = {}) {
         if (cur !== y) sectionYsRef.current = { ...sectionYsRef.current, [key]: y };
     }, []);
 
-    const onLayoutFor = useCallback((key) => (e) => {
-        rememberY(key, e?.nativeEvent?.layout?.y);
+    const onLayoutFor = useCallback((key, opts = {}) => (e) => {
+        const y = e?.nativeEvent?.layout?.y ?? 0;
+        const base = opts.offsetKey ? (sectionYsRef.current[opts.offsetKey] ?? 0) : 0;
+        rememberY(key, y + base);
     }, [rememberY]);
 
     // --- flash registry (lazy) ---
@@ -57,6 +59,23 @@ export default function useInPageSearch({ scrollRef, expanders = {} } = {}) {
 
     const flashOpacity = useCallback((key) => getFlashVal(key), [getFlashVal]);
 
+    // --- alias index (terms -> one or more keys) ---
+    const aliasesRef = useRef(new Map()); // Map<string, Set<string>>
+    const addAliases = useCallback((entries = []) => {
+        // entries: Array<{ term: string, keys: string[] }>
+        const m = aliasesRef.current;
+        for (const { term, keys } of entries) {
+            if (!term || !keys?.length) continue;
+            const t = term.trim().toLowerCase();
+            if (!m.has(t)) m.set(t, new Set());
+            const set = m.get(t);
+            keys.forEach(k => set.add(k));
+        }
+    }, []);
+    const clearAliases = useCallback(() => {
+        aliasesRef.current = new Map();
+    }, []);
+
     // --- keyword index (mirrors your current config) ---
     const sectionIndex = useMemo(() => ([
         { key: 'amenities', title: 'Amenities & Features', kw: ['amenities', 'features', 'pet', 'playground'] },
@@ -70,12 +89,23 @@ export default function useInPageSearch({ scrollRef, expanders = {} } = {}) {
     const resolveKeyForQuery = useCallback((raw) => {
         const s = (raw || '').trim().toLowerCase();
         if (!s) return null;
+
+        // 1) aliases first (prefer precise sub-rows)
+        for (const [term, keys] of aliasesRef.current.entries()) {
+            if (term.startsWith(s)) return Array.from(keys);
+        }
+        for (const [term, keys] of aliasesRef.current.entries()) {
+            if (term.includes(s)) return Array.from(keys);
+        }
+
+        // 2) fallback to section titles & keywords
         for (const sec of sectionIndex) {
             if (sec.title.toLowerCase().startsWith(s) || sec.kw.some(k => k.startsWith(s))) return sec.key;
         }
         for (const sec of sectionIndex) {
             if (sec.title.toLowerCase().includes(s) || sec.kw.some(k => k.includes(s))) return sec.key;
         }
+
         return null;
     }, [sectionIndex]);
 
@@ -83,19 +113,25 @@ export default function useInPageSearch({ scrollRef, expanders = {} } = {}) {
     const scrollToKeys = useCallback((keys = [], opts = { flash: true }) => {
         const ks = Array.isArray(keys) ? keys : [keys];
 
-        // run any expanders first (e.g., auto-expand restrooms)
+        // run any expanders first (e.g., auto-expand restrooms or field groups)
         ks.forEach(k => {
             if (expanders[k]) try { expanders[k](); } catch { }
         });
 
-        requestAnimationFrame(() => {
+        let tries = 0;
+        const tryScroll = () => {
+            tries += 1;
             const ys = ks.map(k => sectionYsRef.current[k]).filter(y => y != null);
             const targetY = ys.length ? Math.min(...ys) : sectionYsRef.current[ks[0]];
             if (targetY != null && scrollRef?.current?.scrollTo) {
                 scrollRef.current.scrollTo({ y: Math.max(targetY - 12, 0), animated: true });
                 if (opts.flash !== false) ks.forEach(k => flash(k));
+                return;
             }
-        });
+            if (tries < 4) requestAnimationFrame(tryScroll);
+        };
+
+        requestAnimationFrame(tryScroll);
     }, [scrollRef, flash, expanders]);
 
     const scrollToSection = useCallback((key) => scrollToKeys(key), [scrollToKeys]);
@@ -107,16 +143,20 @@ export default function useInPageSearch({ scrollRef, expanders = {} } = {}) {
 
         const parkingWords = ['parking', 'handicap', 'handicapped', 'handicap spots', 'accessible parking'];
         if (parkingWords.some(w => q.includes(w))) {
-            // go to details section, but only flash targeted sub-rows
             scrollToKeys(['details'], { flash: false });
             flash('details_parkingLocation');
             flash('details_handicapSpots');
             return;
         }
 
-        const key = resolveKeyForQuery(q);
-        if (key) scrollToSection(key);
-    }, [query, resolveKeyForQuery, scrollToKeys, scrollToSection, flash]);
+        const target = resolveKeyForQuery(q);
+        if (!target) return;
+
+        // target may be a single key or an array of keys from aliases
+        const keys = Array.isArray(target) ? target : [target];
+        scrollToKeys(keys, { flash: false });
+        keys.forEach(k => flash(k));
+    }, [query, resolveKeyForQuery, scrollToKeys, flash]);
 
     // --- chip shortcuts ---
     const chipPress = useCallback((label) => {
@@ -149,5 +189,7 @@ export default function useInPageSearch({ scrollRef, expanders = {} } = {}) {
         scrollToSection,
         scrollToKeys,
         resolveKeyForQuery,
+        addAliases,
+        clearAliases,
     };
 }
