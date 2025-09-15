@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from '../utils/axiosInstance';
 import { buildSummaries } from '../utils/fieldSummaries';
 import { SpecRow, SpecSection } from '../components/SpecList';
-import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, StyleSheet, ScrollView, ImageBackground, TouchableOpacity, Platform, Linking, TextInput, Animated } from 'react-native';
+import useInPageSearch from '../utils/useInPageSearch';
 import { getWeather } from '../utils/getWeather';
 import WeatherWidget from '../components/WeatherWidget';
 import * as Clipboard from 'expo-clipboard';
@@ -32,33 +33,25 @@ export default function ParkDetails({ route, navigation }) {
   const [postsCount, setPostsCount] = useState(0);
   const [loadingPosts, setLoadingPosts] = useState(false);
 
-  // --- In-page search state/refs ---
   const scrollRef = useRef(null);
-  const [query, setQuery] = useState('');
-  const [sectionYs, setSectionYs] = useState({}); // { key: yOffset }
-  const rememberY = (key, y) =>
-    setSectionYs(prev => (prev[key] === y ? prev : { ...prev, [key]: y }));
 
-  // brief highlight “flash” values
-  const flashVals = useRef({
-    amenities: new Animated.Value(0),
-    details: new Animated.Value(0),
-    // targeted flashes inside "Additional Park Details"
-    details_parkingLocation: new Animated.Value(0),
-    details_handicapSpots: new Animated.Value(0),
+  const [showFields, setShowFields] = useState(true);
+  const [showRestrooms, setShowRestrooms] = useState(true);
 
-    restrooms: new Animated.Value(0),
-    concessions: new Animated.Value(0),
-    fields: new Animated.Value(0),
-    qa: new Animated.Value(0),
-  }).current;
-
-  const flash = (key) => {
-    const v = flashVals[key];
-    if (!v) return;
-    v.setValue(1);
-    Animated.timing(v, { toValue: 0, duration: 900, useNativeDriver: true }).start();
-  };
+  // hook centralizing search/highlight/scroll logic
+  const {
+    query, setQuery,
+    onLayoutFor,
+    flashOpacity,
+    handleSubmit,
+    chipPress,
+    scrollToSection,
+    resolveKeyForQuery,
+  } = useInPageSearch({
+    scrollRef,
+    // auto-expand sections if needed before scrolling to them
+    expanders: { restrooms: () => { if (!showRestrooms) setShowRestrooms(true); } },
+  });
 
   const ASK_TIP_KEY = 'seenAskAboutParkTooltip';
   const TOOLTIP_EXPIRY_DAYS = 30;
@@ -144,15 +137,6 @@ export default function ParkDetails({ route, navigation }) {
     }
   }, [navigation, park?.name]);
 
-  // Optional: jump directly when arriving with a param like { jumpTo: 'concessions' }
-  useEffect(() => {
-    const key = findTargetKey(route.params?.jumpTo);
-    if (key) {
-      const t = setTimeout(() => scrollToSection(key), 450); // wait for layout
-      return () => clearTimeout(t);
-    }
-  }, [route.params?.jumpTo, sectionYs]);
-
   // If we only received a skinny park from Forum, fetch the full record by id.
   useEffect(() => {
     const loadFullParkIfNeeded = async () => {
@@ -214,46 +198,13 @@ export default function ParkDetails({ route, navigation }) {
     return by;
   }, [summaries]);
 
-  // Map user words → section keys
-  const sectionIndex = useMemo(() => ([
-    { key: 'amenities', title: 'Amenities & Features', kw: ['amenities', 'features', 'pet', 'playground'] },
-    { key: 'details', title: 'Additional Park Details', kw: ['parking', 'handicap', 'outlets', 'electrical', 'sidewalk', 'stairs', 'hills', 'spectator'] },
-    { key: 'restrooms', title: 'Restrooms', kw: ['restroom', 'bathroom', 'toilet', 'changing table', 'water'] },
-    { key: 'concessions', title: 'Concessions', kw: ['concessions', 'food', 'snack', 'drink', 'payment'] },
-    { key: 'fields', title: 'Field Details', kw: ['field', 'dimensions', 'surface', 'dugout', 'amenities'] },
-    { key: 'qa', title: 'Park Q&A', kw: ['q&a', 'questions', 'posts', 'forum'] },
-  ]), []);
-
-  const findTargetKey = (q) => {
-    const s = (q || '').trim().toLowerCase();
-    if (!s) return null;
-    for (const sec of sectionIndex) {
-      if (sec.title.toLowerCase().startsWith(s) || sec.kw.some(k => k.startsWith(s))) return sec.key;
+  useEffect(() => {
+    const key = resolveKeyForQuery(route.params?.jumpTo);
+    if (key) {
+      const t = setTimeout(() => scrollToSection(key), 450);
+      return () => clearTimeout(t);
     }
-    for (const sec of sectionIndex) {
-      if (sec.title.toLowerCase().includes(s) || sec.kw.some(k => k.includes(s))) return sec.key;
-    }
-    return null;
-  };
-
-  const scrollToKeys = (keys = [], opts = { flash: true }) => {
-    const ks = Array.isArray(keys) ? keys : [keys];
-
-    // auto-expand if needed
-    if (ks.includes('restrooms') && !showRestrooms) setShowRestrooms(true);
-
-    requestAnimationFrame(() => {
-      const ys = ks.map(k => sectionYs[k]).filter(y => y != null);
-      const targetY = ys.length ? Math.min(...ys) : sectionYs[ks[0]];
-      if (targetY != null && scrollRef.current) {
-        scrollRef.current.scrollTo({ y: Math.max(targetY - 12, 0), animated: true });
-        if (opts.flash !== false) ks.forEach(k => flash(k));
-      }
-    });
-  };
-
-  // keep API compatibility
-  const scrollToSection = (key) => scrollToKeys(key);
+  }, [route.params?.jumpTo, resolveKeyForQuery, scrollToSection]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -364,9 +315,6 @@ export default function ParkDetails({ route, navigation }) {
     (img) => img.label?.toLowerCase() === 'concessions' && img.isCategoryMain
   );
 
-  const [showFields, setShowFields] = useState(true);
-  const [showRestrooms, setShowRestrooms] = useState(true);
-
   const toggleSection = (section) => {
     if (section === 'fields') setShowFields(!showFields);
     if (section === 'restrooms') setShowRestrooms(!showRestrooms);
@@ -425,18 +373,7 @@ export default function ParkDetails({ route, navigation }) {
             <TextInput
               value={query}
               onChangeText={setQuery}
-              onSubmitEditing={() => {
-                const q = (query || '').trim().toLowerCase();
-                const parkingWords = ['parking', 'handicap', 'handicapped', 'handicap spots', 'accessible parking'];
-                if (parkingWords.some(w => q.includes(w))) {
-                  // same behavior as the Parking chip
-                  scrollToKeys(['details'], { flash: false });
-                  flash('details_parkingLocation');
-                  flash('details_handicapSpots');
-                } else {
-                  scrollToSection(findTargetKey(query));
-                }
-              }}
+              onSubmitEditing={handleSubmit}
               placeholder="Search this page (e.g., parking, concessions, restrooms)"
               returnKeyType="search"
               style={{
@@ -450,27 +387,10 @@ export default function ParkDetails({ route, navigation }) {
             />
             <View style={{ flexDirection: 'row', marginTop: 8 }}>
               {['Concessions', 'Parking', 'Restrooms', 'Fields'].map((label, idx) => {
-                const keysMap = {
-                  Concessions: ['concessions'],
-                  // scroll to the whole section, but *also* flash two sub-rows
-                  Parking: ['details'],
-                  Restrooms: ['restrooms'],
-                  Fields: ['fields'],
-                };
                 return (
                   <TouchableOpacity
                     key={label}
-                    onPress={() => {
-                      if (label === 'Parking') {
-                        // scroll to "Additional Park Details" without flashing the whole card
-                        scrollToKeys(['details'], { flash: false });
-                        // flash only the relevant sub-rows
-                        flash('details_parkingLocation');
-                        flash('details_handicapSpots');
-                      } else {
-                        scrollToKeys(keysMap[label]);
-                      }
-                    }}
+                    onPress={() => chipPress(label)}
                     style={{
                       flex: 1,
                       backgroundColor: '#f1f5f9',
@@ -556,7 +476,7 @@ export default function ParkDetails({ route, navigation }) {
 
           {/* Community Q&A (park-related posts) */}
           <View
-            onLayout={e => rememberY('qa', e.nativeEvent.layout.y)}
+            onLayout={onLayoutFor('qa')}
             style={styles.qaCard}
           >
             <View style={styles.qaHeader}>
@@ -608,14 +528,14 @@ export default function ParkDetails({ route, navigation }) {
 
           {/* Amenities & Features */}
           <Animated.View
-            onLayout={e => rememberY('amenities', e.nativeEvent.layout.y)}
+            onLayout={onLayoutFor('amenities')}
             style={[styles.section, { position: 'relative' }]}
           >
             <Animated.View
               pointerEvents="none"
               style={{
                 position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
-                backgroundColor: '#fde68a', opacity: flashVals.amenities, borderRadius: 12
+                backgroundColor: '#fde68a', opacity: flashOpacity('amenities'), borderRadius: 12
               }}
             />
             <Text style={styles.sectionTitle}>Amenities & Features</Text>
@@ -633,14 +553,14 @@ export default function ParkDetails({ route, navigation }) {
 
           {/* Additional Park Details */}
           <Animated.View
-            onLayout={e => rememberY('details', e.nativeEvent.layout.y)}
+            onLayout={onLayoutFor('details')}
             style={[styles.section, { position: 'relative' }]}
           >
             <Animated.View
               pointerEvents="none"
               style={{
                 position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
-                backgroundColor: '#fde68a', opacity: flashVals.details, borderRadius: 12
+                backgroundColor: '#fde68a', opacity: flashOpacity('details'), borderRadius: 12
               }}
             />
             <Text style={styles.sectionTitle}>Additional Park Details</Text>
@@ -648,14 +568,14 @@ export default function ParkDetails({ route, navigation }) {
             <Text style={styles.text}>{park.battingCages?.description || 'No data available'}</Text>
 
             <Animated.View
-              onLayout={e => rememberY('details_parkingLocation', e.nativeEvent.layout.y)}
+              onLayout={onLayoutFor('details_parkingLocation')}
               style={{ position: 'relative', borderRadius: 8 }}
             >
               <Animated.View
                 pointerEvents="none"
                 style={{
                   position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
-                  backgroundColor: '#fde68a', opacity: flashVals.details_parkingLocation, borderRadius: 8
+                  backgroundColor: '#fde68a', opacity: flashOpacity('details_parkingLocation'), borderRadius: 8
                 }}
               />
               <Text style={styles.subtitle}>Parking Location</Text>
@@ -663,14 +583,14 @@ export default function ParkDetails({ route, navigation }) {
             </Animated.View>
 
             <Animated.View
-              onLayout={e => rememberY('details_handicapSpots', e.nativeEvent.layout.y)}
+              onLayout={onLayoutFor('details_handicapSpots')}
               style={{ position: 'relative', borderRadius: 8 }}
             >
               <Animated.View
                 pointerEvents="none"
                 style={{
                   position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
-                  backgroundColor: '#fde68a', opacity: flashVals.details_handicapSpots, borderRadius: 8
+                  backgroundColor: '#fde68a', opacity: flashOpacity('details_handicapSpots'), borderRadius: 8
                 }}
               />
               <Text style={styles.subtitle}>Number of Handicap Spots</Text>
@@ -702,14 +622,14 @@ export default function ParkDetails({ route, navigation }) {
 
           {/* Restrooms */}
           <Animated.View
-            onLayout={e => rememberY('restrooms', e.nativeEvent.layout.y)}
+            onLayout={onLayoutFor('restrooms')}
             style={[styles.section, { position: 'relative' }]}
           >
             <Animated.View
               pointerEvents="none"
               style={{
                 position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
-                backgroundColor: '#fde68a', opacity: flashVals.restrooms, borderRadius: 12
+                backgroundColor: '#fde68a', opacity: flashOpacity('restrooms'), borderRadius: 12
               }}
             />
             <TouchableOpacity onPress={() => toggleSection('restrooms')}>
@@ -748,14 +668,14 @@ export default function ParkDetails({ route, navigation }) {
 
           {/* Concessions */}
           <Animated.View
-            onLayout={e => rememberY('concessions', e.nativeEvent.layout.y)}
+            onLayout={onLayoutFor('concessions')}
             style={[styles.section, { position: 'relative' }]}
           >
             <Animated.View
               pointerEvents="none"
               style={{
                 position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
-                backgroundColor: '#fde68a', opacity: flashVals.concessions, borderRadius: 12
+                backgroundColor: '#fde68a', opacity: flashOpacity('concessions'), borderRadius: 12
               }}
             />
             {concessionsMainImage && (
@@ -799,14 +719,14 @@ export default function ParkDetails({ route, navigation }) {
           {/* Fields */}
           {/* === Field Details (single white card, labeled) === */}
           <Animated.View
-            onLayout={e => rememberY('fields', e.nativeEvent.layout.y)}
+            onLayout={onLayoutFor('fields')}
             style={[styles.section, { position: 'relative' }]}
           >
             <Animated.View
               pointerEvents="none"
               style={{
                 position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
-                backgroundColor: '#fde68a', opacity: flashVals.fields, borderRadius: 12
+                backgroundColor: '#fde68a', opacity: flashOpacity('fields'), borderRadius: 12
               }}
             />
             <Text style={styles.sectionTitle}>Field Details</Text>
