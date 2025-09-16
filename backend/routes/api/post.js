@@ -30,13 +30,13 @@ async function getPost(req, res, next) {
 // Create a new post
 router.post('/', auth, async (req, res) => {
   try {
-    const { title, content, author, tags, referencedPark } = req.body;
+    const { title, content, tags, referencedPark } = req.body;
     const referencedParkId = referencedPark && (referencedPark._id || referencedPark);
 
     const newPost = new Post({
       title,
       content,
-      author,
+      author: req.user.id, // enforce authenticated user as author
       tags,
       referencedPark: referencedParkId || undefined,
     });
@@ -321,9 +321,15 @@ router.get('/:id', getPost, (req, res) => {
 });
 
 function ensureOwnerOrAdmin(req, res, next) {
-  const level = req.user?.adminLevel;
-  const isOwner = String(res.post.author) === String(req.user.id);
+  const level = Number(req.user?.adminLevel);
+  // res.post.author may be an ObjectId or a populated object
+  const authorId = res.post?.author?._id
+    ? String(res.post.author._id)
+    : String(res.post.author);
+
+  const isOwner = authorId === String(req.user.id);
   if (isOwner || level === 0) return next();
+
   return res.status(403).json({ message: 'You can only modify or delete your own post.' });
 }
 
@@ -355,13 +361,19 @@ router.patch('/:id', auth, getPost, ensureOwnerOrAdmin, async (req, res) => {
 // Delete post by ID
 router.delete('/:id', auth, getPost, ensureOwnerOrAdmin, async (req, res) => {
   try {
-    const deletedPost = await Post.findByIdAndDelete(req.params.id);
-    if (!deletedPost) {
-      return res.status(404).json({ message: 'Post not found' });
-    }
-    res.json({ message: 'Post deleted successfully', deletedPost });
+    // Delete the post, and all related comments + notifications at the same time
+    await Promise.all([
+      res.post.deleteOne(),
+      Comment.deleteMany({ referencedPost: res.post._id }),
+      Notification.deleteMany({ post: res.post._id }),
+    ]);
+
+    return res.json({ 
+      message: 'Post and related data deleted successfully', 
+      deletedPostId: res.post._id 
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    return res.status(500).json({ message: err.message });
   }
 });
 
