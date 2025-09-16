@@ -1047,6 +1047,11 @@ export default function ParkDetails({ route, navigation }) {
                         );
                       });
                     })()}
+                    {g === 'Dimensions' && (
+                      <Text style={styles.dimNote}>
+                        * Distance measurements are approximate
+                      </Text>
+                    )}
                   </SpecSection>
 
                   {/* divider between subheadings */}
@@ -1314,5 +1319,11 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#e5e7eb',
     marginVertical: 10,
+  },
+  dimNote: {
+    marginTop: 6,
+    fontSize: 12,
+    color: '#6b7280', // gray-500-ish
+    fontStyle: 'italic',
   },
 });
