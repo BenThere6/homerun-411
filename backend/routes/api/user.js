@@ -93,7 +93,9 @@ router.post('/favorite-parks/:parkId', auth, async (req, res) => {
 // Return Favorite, Recently Viewed, and Nearby Parks
 
 function calculateDistanceInMiles(userCoords, parkCoords) {
-  if (!parkCoords || parkCoords.length !== 2) return null;
+  // Guard both sides
+  if (!Array.isArray(userCoords) || userCoords.length !== 2) return null;
+  if (!Array.isArray(parkCoords) || parkCoords.length !== 2) return null;
 
   const [lon1, lat1] = userCoords;
   const [lon2, lat2] = parkCoords;
@@ -118,11 +120,16 @@ router.get('/home-parks', auth, async (req, res) => {
       .populate('favoriteParks')
       .populate('recentlyViewedParks.park');
 
-    const overrideLat = parseFloat(req.query.lat);
-    const overrideLon = parseFloat(req.query.lon);
-    const userCoords = (overrideLat && overrideLon)
-      ? [overrideLon, overrideLat]  // [lon, lat]
-      : user.location?.coordinates;
+    const overrideLat = Number.parseFloat(req.query.lat);
+    const overrideLon = Number.parseFloat(req.query.lon);
+    const hasOverride =
+      Number.isFinite(overrideLat) && Number.isFinite(overrideLon);
+
+    const userCoords = hasOverride
+      ? [overrideLon, overrideLat] // [lon, lat]
+      : (Array.isArray(user.location?.coordinates) ? user.location.coordinates : null);
+
+    console.log('📨 Received override coords:', overrideLat, overrideLon, '→ using', userCoords);
 
     console.log('📨 Received override coords:', overrideLat, overrideLon);
 
@@ -143,7 +150,8 @@ router.get('/home-parks', auth, async (req, res) => {
       .sort((a, b) => new Date(b.viewedAt) - new Date(a.viewedAt))
       .slice(0, 3)
       .map(entry => {
-        const park = entry.park;
+        const park = entry?.park;
+        if (!park) return null; // guard deleted/unpopulated parks
         const distance = calculateDistanceInMiles(
           userCoords,
           park.coordinates?.coordinates
@@ -152,7 +160,8 @@ router.get('/home-parks', auth, async (req, res) => {
           ...park.toObject(),
           distanceInMiles: distance,
         };
-      });
+      })
+      .filter(Boolean);
 
     // Nearby Parks (if user has location)
     const miles = 30;

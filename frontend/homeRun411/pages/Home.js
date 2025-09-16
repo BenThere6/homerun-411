@@ -131,11 +131,10 @@ export default function Homepage() {
     React.useCallback(() => {
       const loadHomeParks = async () => {
         try {
-          let url = '/api/user/home-parks';
-          if (userCoords) {
-            url += `?lat=${userCoords.lat}&lon=${userCoords.lon}`;
-          }
+          // Skip the very first call until we either have GPS or you decide to fetch without it.
+          if (!userCoords) return;
 
+          const url = `/api/user/home-parks?lat=${userCoords.lat}&lon=${userCoords.lon}`;
           const res = await axios.get(url);
           setFavoriteParks(res.data.favorites || []);
           setNearbyParks(res.data.nearby || []);
