@@ -1252,7 +1252,10 @@ export default function ForumPage({ navigation }) {
     // --- delete handlers ---
     const actuallyDeletePost = async (post) => {
         try {
-            await axios.delete(`/api/post/${post._id}`);
+            const token = await AsyncStorage.getItem('token');
+            await axios.delete(`/api/post/${post._id}`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+            });
             setForumPosts(prev => prev.filter(p => p._id !== post._id));
             if (selectedPost && selectedPost._id === post._id) closeModal();
         } catch (e) {
@@ -1278,6 +1281,11 @@ export default function ForumPage({ navigation }) {
 
     const openPostMenu = (post) => {
         const owner = isOwner(post);
+        const isTopAdmin = adminLevel === 0;
+        const canEdit = owner;
+
+        // Delete is allowed for owners or top admins
+        const canDelete = owner || isTopAdmin;
 
         const doShare = () => {
             // intentionally no-op for now
@@ -1289,31 +1297,31 @@ export default function ForumPage({ navigation }) {
 
         if (Platform.OS === 'ios') {
             // Put Share at the top (common pattern), then Edit/Delete for owners
-            const options = ['Cancel', 'Share', ...(owner ? ['Edit', 'Delete'] : [])];
+            const opts = ['Cancel', 'Share'];
+            const actions = [
+                { key: 'cancel' },
+                { key: 'share', fn: doShare },
+            ];
+
+            if (canEdit) { opts.push('Edit'); actions.push({ key: 'edit', fn: doEdit }); }
+            if (canDelete) { opts.push('Delete'); actions.push({ key: 'delete', fn: doDelete, destructive: true }); }
+
             const cancelButtonIndex = 0;
-            const destructiveButtonIndex = owner ? options.indexOf('Delete') : undefined;
+            const destructiveButtonIndex = opts.indexOf('Delete') !== -1 ? opts.indexOf('Delete') : undefined;
 
             ActionSheetIOS.showActionSheetWithOptions(
-                {
-                    options,
-                    cancelButtonIndex,
-                    destructiveButtonIndex,
-                    userInterfaceStyle: 'light',
-                },
+                { options: opts, cancelButtonIndex, destructiveButtonIndex, userInterfaceStyle: 'light' },
                 (idx) => {
-                    if (idx === 1) doShare();
-                    if (owner && idx === 2) doEdit();
-                    if (owner && idx === 3) doDelete();
+                    const action = actions[idx];
+                    action?.fn?.();
                 }
             );
         } else {
             // Android: buttons render top→bottom; keep Cancel last
             const buttons = [
                 { text: 'Share', onPress: doShare },
-                ...(owner ? [
-                    { text: 'Edit', onPress: doEdit },
-                    { text: 'Delete', style: 'destructive', onPress: doDelete },
-                ] : []),
+                ...(canEdit ? [{ text: 'Edit', onPress: doEdit }] : []),
+                ...(canDelete ? [{ text: 'Delete', style: 'destructive', onPress: doDelete }] : []),
                 { text: 'Cancel', style: 'cancel' },
             ];
             Alert.alert('Post options', undefined, buttons);
