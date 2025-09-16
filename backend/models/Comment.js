@@ -19,28 +19,12 @@ const commentSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
   }],
-  editedAt: {
-    type: Date,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
+  editedAt: { type: Date },
+}, { timestamps: true }); // createdAt/updatedAt managed by Mongoose
 
-// Optional: small performance boost when querying likes
+// Optional: small performance boost when querying
 commentSchema.index({ referencedPost: 1 });
 commentSchema.index({ author: 1 });
-
-// Keep updatedAt correct on edits
-commentSchema.pre('save', function (next) {
-  this.updatedAt = new Date();
-  next();
-});
 
 const Comment = mongoose.model('Comment', commentSchema);
 

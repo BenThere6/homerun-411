@@ -194,7 +194,7 @@ const CommentRow = ({ comment, onToggleLike, onMore }) => (
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Text style={{ fontWeight: '600', color: '#0f172a', fontSize: 13, flexShrink: 1 }}>
                 {fullName(comment.author)} <Text style={{ color: '#94a3b8' }}>· {formatForumDate(comment.createdAt)}</Text>
-                {new Date(comment.updatedAt) > new Date(comment.createdAt) && (
+                {!!comment.editedAt && (
                     <Text style={styles.editedTag}> (edited)</Text>
                 )}
             </Text>
@@ -1466,7 +1466,7 @@ export default function ForumPage({ navigation }) {
                                         onMore={openPostMenu}
                                         showEdited={
                                             !!selectedPost?.editedAt ||
-                                            comments.some(c => new Date(c.updatedAt) > new Date(c.createdAt))
+                                            comments.some(c => !!c.editedAt)
                                         }
                                     />
                                 }

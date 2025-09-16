@@ -227,7 +227,7 @@ router.get('/', async (req, res) => {
     const editedFlags = await Promise.all(
       posts.map(p => Comment.exists({
         referencedPost: p._id,
-        $expr: { $gt: ['$updatedAt', '$createdAt'] }
+        editedAt: { $exists: true, $ne: null }
       }))
     );
     posts.forEach((p, i) => { p.anyEdited = !!editedFlags[i]; });
@@ -368,9 +368,9 @@ router.delete('/:id', auth, getPost, ensureOwnerOrAdmin, async (req, res) => {
       Notification.deleteMany({ post: res.post._id }),
     ]);
 
-    return res.json({ 
-      message: 'Post and related data deleted successfully', 
-      deletedPostId: res.post._id 
+    return res.json({
+      message: 'Post and related data deleted successfully',
+      deletedPostId: res.post._id
     });
   } catch (err) {
     return res.status(500).json({ message: err.message });
