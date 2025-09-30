@@ -1075,7 +1075,8 @@ export default function ParkDetails({ route, navigation }) {
                                 isDimensions
                                   ? subItems?.map(line => {
                                     const [field, raw] = line.split(':').map(x => x.trim());
-                                    return /^\d+(\.\d+)?$/.test(raw) ? `${field}: ${raw} ft` : line;
+                                    const val = /^\d+(\.\d+)?$/.test(raw) ? `${field}: ${raw} ft` : line;
+                                    return <Text key={line} style={styles.exceptionText}>{val}</Text>;
                                   })
                                   : subItems
                               }
@@ -1387,5 +1388,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6b7280',
     fontStyle: 'italic',
+  },
+  exceptionText: {
+    fontSize: 13,
+    color: '#374151', // darker gray than notes
+    marginBottom: 2,
   },
 });
