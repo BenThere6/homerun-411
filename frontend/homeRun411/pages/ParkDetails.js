@@ -47,6 +47,12 @@ export default function ParkDetails({ route, navigation }) {
   const [showAskTip, setShowAskTip] = useState(false);
   const TIP_BG = 'rgba(54, 65, 82, 0.8)';
 
+  // simple presence check for strings/arrays (keeps 0/false as present)
+  const has = (v) =>
+    !(v == null ||
+      (typeof v === 'string' && v.trim() === '') ||
+      (Array.isArray(v) && v.length === 0));
+
   const copyAddress = async () => {
     const line1 = park.address || '';
     const line2 = [park.city, park.state].filter(Boolean).join(', ');
@@ -457,6 +463,19 @@ export default function ParkDetails({ route, navigation }) {
     (img) => img.label?.toLowerCase() === 'concessions' && img.isCategoryMain
   );
 
+  // Should we show the "Additional Park Details" section at all?
+  const showAdditionalDetails =
+    has(park?.battingCages?.description) ||
+    has(park?.closestParkingToField) ||
+    // keep handicapSpots if it's a number (including 0)
+    (park?.parking && (typeof park.parking.handicapSpots === 'number')) ||
+    has(park?.electricalOutletsLocation) ||
+    has(park?.sidewalks) ||
+    has(park?.stairsDescription) ||
+    has(park?.hillsDescription) ||
+    (Array.isArray(park?.spectatorConditions?.locationTypes) &&
+      park.spectatorConditions.locationTypes.length > 0);
+
   const toggleSection = (section) => {
     if (section === 'fields') setShowFields(!showFields);
     if (section === 'restrooms') setShowRestrooms(!showRestrooms);
@@ -699,164 +718,200 @@ export default function ParkDetails({ route, navigation }) {
             <Text style={styles.text}>{park.gateEntranceFee ? 'Yes' : 'No'}</Text>
             <Text style={styles.subtitle}>Playground</Text>
             <Text style={styles.text}>{park.playground?.available ? 'Yes' : 'No'}</Text>
-            <Text style={styles.subtitle}>Playground Location</Text>
-            <Text style={styles.text}>{park.playground?.location || 'No data available'}</Text>
+            {has(park.playground?.location) && (
+              <>
+                <Text style={styles.subtitle}>Playground Location</Text>
+                <Text style={styles.text}>{park.playground.location}</Text>
+              </>
+            )}
             <Text style={styles.subtitle}>Shared Batting Cages</Text>
             <Text style={styles.text}>{park.battingCages?.shared ? 'Yes' : 'No'}</Text>
           </Animated.View>
 
           {/* Additional Park Details */}
-          <Animated.View
-            onLayout={onLayoutFor('details')}
-            style={[styles.section, { position: 'relative' }]}
-          >
+          {showAdditionalDetails && (
             <Animated.View
-              pointerEvents="none"
-              style={{
-                position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
-                backgroundColor: '#fde68a', opacity: flashOpacity('details'), borderRadius: 12
-              }}
-            />
-            <Text style={styles.sectionTitle}>Additional Park Details</Text>
-            <Animated.View
-              onLayout={onLayoutFor('details_battingCagesDescription', { offsetKey: 'details' })}
-              style={{ position: 'relative', borderRadius: 8 }}
+              onLayout={onLayoutFor('details')}
+              style={[styles.section, { position: 'relative' }]}
             >
               <Animated.View
                 pointerEvents="none"
                 style={{
                   position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
-                  backgroundColor: '#fde68a', opacity: flashOpacity('details_battingCagesDescription'), borderRadius: 8
+                  backgroundColor: '#fde68a', opacity: flashOpacity('details'), borderRadius: 12
                 }}
               />
-              <Text style={styles.subtitle}>Shared Batting Cage Description</Text>
-              <Text style={styles.text}>{park.battingCages?.description || 'No data available'}</Text>
-            </Animated.View>
+              <Text style={styles.sectionTitle}>Additional Park Details</Text>
+              <Animated.View
+                onLayout={onLayoutFor('details_battingCagesDescription', { offsetKey: 'details' })}
+                style={{ position: 'relative', borderRadius: 8 }}
+              >
+                <Animated.View
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+                    backgroundColor: '#fde68a', opacity: flashOpacity('details_battingCagesDescription'), borderRadius: 8
+                  }}
+                />
+                {has(park.battingCages?.description) && (
+                  <>
+                    <Text style={styles.subtitle}>Shared Batting Cage Description</Text>
+                    <Text style={styles.text}>{park.battingCages.description}</Text>
+                  </>
+                )}
+              </Animated.View>
 
-            <Animated.View
-              onLayout={onLayoutFor('details_parkingLocation', { offsetKey: 'details' })}
-              style={{ position: 'relative', borderRadius: 8 }}
-            >
               <Animated.View
-                pointerEvents="none"
-                style={{
-                  position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
-                  backgroundColor: '#fde68a', opacity: flashOpacity('details_parkingLocation'), borderRadius: 8
-                }}
-              />
-              <Text style={styles.subtitle}>Parking Location</Text>
-              <Text style={styles.text}>{park.closestParkingToField || 'No data available'}</Text>
-            </Animated.View>
+                onLayout={onLayoutFor('details_parkingLocation', { offsetKey: 'details' })}
+                style={{ position: 'relative', borderRadius: 8 }}
+              >
+                <Animated.View
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+                    backgroundColor: '#fde68a', opacity: flashOpacity('details_parkingLocation'), borderRadius: 8
+                  }}
+                />
+                {has(park.closestParkingToField) && (
+                  <>
+                    <Text style={styles.subtitle}>Parking Location</Text>
+                    <Text style={styles.text}>{park.closestParkingToField}</Text>
+                  </>
+                )}
+              </Animated.View>
 
-            <Animated.View
-              onLayout={onLayoutFor('details_handicapSpots', { offsetKey: 'details' })}
-              style={{ position: 'relative', borderRadius: 8 }}
-            >
               <Animated.View
-                pointerEvents="none"
-                style={{
-                  position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
-                  backgroundColor: '#fde68a', opacity: flashOpacity('details_handicapSpots'), borderRadius: 8
-                }}
-              />
-              <Text style={styles.subtitle}>Number of Handicap Spots</Text>
-              <Text style={styles.text}>{park.parking?.handicapSpots || 'No data available'}</Text>
-            </Animated.View>
+                onLayout={onLayoutFor('details_handicapSpots', { offsetKey: 'details' })}
+                style={{ position: 'relative', borderRadius: 8 }}
+              >
+                <Animated.View
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+                    backgroundColor: '#fde68a', opacity: flashOpacity('details_handicapSpots'), borderRadius: 8
+                  }}
+                />
+                {park.parking && (typeof park.parking.handicapSpots === 'number') && (
+                  <>
+                    <Text style={styles.subtitle}>Number of Handicap Spots</Text>
+                    <Text style={styles.text}>{park.parking.handicapSpots}</Text>
+                  </>
+                )}
+              </Animated.View>
 
-            <Animated.View
-              onLayout={onLayoutFor('details_electricalOutletsForPublicUse', { offsetKey: 'details' })}
-              style={{ position: 'relative', borderRadius: 8 }}
-            >
               <Animated.View
-                pointerEvents="none"
-                style={{
-                  position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
-                  backgroundColor: '#fde68a', opacity: flashOpacity('details_electricalOutletsForPublicUse'), borderRadius: 8
-                }}
-              />
-              <Text style={styles.subtitle}>Electrical Outlets for Public Use</Text>
-              <Text style={styles.text}>{park.electricalOutletsForPublicUse ? 'Yes' : 'No'}</Text>
-            </Animated.View>
+                onLayout={onLayoutFor('details_electricalOutletsForPublicUse', { offsetKey: 'details' })}
+                style={{ position: 'relative', borderRadius: 8 }}
+              >
+                <Animated.View
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+                    backgroundColor: '#fde68a', opacity: flashOpacity('details_electricalOutletsForPublicUse'), borderRadius: 8
+                  }}
+                />
+                <Text style={styles.subtitle}>Electrical Outlets for Public Use</Text>
+                <Text style={styles.text}>{park.electricalOutletsForPublicUse ? 'Yes' : 'No'}</Text>
+              </Animated.View>
 
-            <Animated.View
-              onLayout={onLayoutFor('details_electricalOutletsLocation', { offsetKey: 'details' })}
-              style={{ position: 'relative', borderRadius: 8 }}
-            >
               <Animated.View
-                pointerEvents="none"
-                style={{
-                  position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
-                  backgroundColor: '#fde68a', opacity: flashOpacity('details_electricalOutletsLocation'), borderRadius: 8
-                }}
-              />
-              <Text style={styles.subtitle}>Location of Electrical Outlets</Text>
-              <Text style={styles.text}>{park.electricalOutletsLocation || 'No data available'}</Text>
-            </Animated.View>
+                onLayout={onLayoutFor('details_electricalOutletsLocation', { offsetKey: 'details' })}
+                style={{ position: 'relative', borderRadius: 8 }}
+              >
+                <Animated.View
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+                    backgroundColor: '#fde68a', opacity: flashOpacity('details_electricalOutletsLocation'), borderRadius: 8
+                  }}
+                />
+                {has(park.electricalOutletsLocation) && (
+                  <>
+                    <Text style={styles.subtitle}>Location of Electrical Outlets</Text>
+                    <Text style={styles.text}>{park.electricalOutletsLocation}</Text>
+                  </>
+                )}
+              </Animated.View>
 
-            <Animated.View
-              onLayout={onLayoutFor('details_sidewalks', { offsetKey: 'details' })}
-              style={{ position: 'relative', borderRadius: 8 }}
-            >
               <Animated.View
-                pointerEvents="none"
-                style={{
-                  position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
-                  backgroundColor: '#fde68a', opacity: flashOpacity('details_sidewalks'), borderRadius: 8
-                }}
-              />
-              <Text style={styles.subtitle}>Sidewalks</Text>
-              <Text style={styles.text}>{park.sidewalks || 'No data available'}</Text>
-            </Animated.View>
+                onLayout={onLayoutFor('details_sidewalks', { offsetKey: 'details' })}
+                style={{ position: 'relative', borderRadius: 8 }}
+              >
+                <Animated.View
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+                    backgroundColor: '#fde68a', opacity: flashOpacity('details_sidewalks'), borderRadius: 8
+                  }}
+                />
+                {has(park.sidewalks) && (
+                  <>
+                    <Text style={styles.subtitle}>Sidewalks</Text>
+                    <Text style={styles.text}>{park.sidewalks}</Text>
+                  </>
+                )}
+              </Animated.View>
 
-            <Animated.View
-              onLayout={onLayoutFor('details_stairsDescription', { offsetKey: 'details' })}
-              style={{ position: 'relative', borderRadius: 8 }}
-            >
               <Animated.View
-                pointerEvents="none"
-                style={{
-                  position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
-                  backgroundColor: '#fde68a', opacity: flashOpacity('details_stairsDescription'), borderRadius: 8
-                }}
-              />
-              <Text style={styles.subtitle}>Stairs Description</Text>
-              <Text style={styles.text}>{park.stairsDescription || 'No data available'}</Text>
-            </Animated.View>
+                onLayout={onLayoutFor('details_stairsDescription', { offsetKey: 'details' })}
+                style={{ position: 'relative', borderRadius: 8 }}
+              >
+                <Animated.View
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+                    backgroundColor: '#fde68a', opacity: flashOpacity('details_stairsDescription'), borderRadius: 8
+                  }}
+                />
+                {has(park.stairsDescription) && (
+                  <>
+                    <Text style={styles.subtitle}>Stairs Description</Text>
+                    <Text style={styles.text}>{park.stairsDescription}</Text>
+                  </>
+                )}
+              </Animated.View>
 
-            <Animated.View
-              onLayout={onLayoutFor('details_hillsDescription', { offsetKey: 'details' })}
-              style={{ position: 'relative', borderRadius: 8 }}
-            >
               <Animated.View
-                pointerEvents="none"
-                style={{
-                  position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
-                  backgroundColor: '#fde68a', opacity: flashOpacity('details_hillsDescription'), borderRadius: 8
-                }}
-              />
-              <Text style={styles.subtitle}>Hills Description</Text>
-              <Text style={styles.text}>{park.hillsDescription || 'No data available'}</Text>
-            </Animated.View>
+                onLayout={onLayoutFor('details_hillsDescription', { offsetKey: 'details' })}
+                style={{ position: 'relative', borderRadius: 8 }}
+              >
+                <Animated.View
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+                    backgroundColor: '#fde68a', opacity: flashOpacity('details_hillsDescription'), borderRadius: 8
+                  }}
+                />
+                {has(park.hillsDescription) && (
+                  <>
+                    <Text style={styles.subtitle}>Hills Description</Text>
+                    <Text style={styles.text}>{park.hillsDescription}</Text>
+                  </>
+                )}
+              </Animated.View>
 
-            <Animated.View
-              onLayout={onLayoutFor('details_spectatorConditions', { offsetKey: 'details' })}
-              style={{ position: 'relative', borderRadius: 8 }}
-            >
               <Animated.View
-                pointerEvents="none"
-                style={{
-                  position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
-                  backgroundColor: '#fde68a', opacity: flashOpacity('details_spectatorConditions'), borderRadius: 8
-                }}
-              />
-              <Text style={styles.subtitle}>Spectator Location Conditions</Text>
-              <Text style={styles.text}>
-                {park.spectatorConditions?.locationTypes?.length > 0
-                  ? park.spectatorConditions.locationTypes.join(', ')
-                  : 'No data available'}
-              </Text>
+                onLayout={onLayoutFor('details_spectatorConditions', { offsetKey: 'details' })}
+                style={{ position: 'relative', borderRadius: 8 }}
+              >
+                <Animated.View
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+                    backgroundColor: '#fde68a', opacity: flashOpacity('details_spectatorConditions'), borderRadius: 8
+                  }}
+                />
+                {Array.isArray(park.spectatorConditions?.locationTypes) && park.spectatorConditions.locationTypes.length > 0 && (
+                  <>
+                    <Text style={styles.subtitle}>Spectator Location Conditions</Text>
+                    <Text style={styles.text}>
+                      {park.spectatorConditions.locationTypes.join(', ')}
+                    </Text>
+                  </>
+                )}
+              </Animated.View>
             </Animated.View>
-          </Animated.View>
+          )}
 
           {/* Restrooms */}
           <Animated.View
@@ -878,24 +933,40 @@ export default function ParkDetails({ route, navigation }) {
               park.restrooms?.length > 0 ? (
                 park.restrooms.map((restroom, idx) => (
                   <View key={idx} style={{ marginBottom: 10 }}>
-                    <Text style={styles.subtitle}>📍 Location</Text>
-                    <Text style={styles.text}>{restroom.location || 'No data available'}</Text>
+                    {has(restroom.location) && (
+                      <>
+                        <Text style={styles.subtitle}>📍 Location</Text>
+                        <Text style={styles.text}>{restroom.location}</Text>
+                      </>
+                    )}
 
                     <Text style={styles.subtitle}>🚿 Running Water</Text>
                     <Text style={styles.text}>{restroom.runningWater ? 'Yes' : 'No'}</Text>
 
-                    <Text style={styles.subtitle}>🧷 Changing Table</Text>
-                    <Text style={styles.text}>
-                      {typeof restroom.changingTable === 'boolean'
-                        ? restroom.changingTable ? 'Yes' : 'No'
-                        : restroom.changingTable || 'No data available'}
-                    </Text>
+                    {(typeof restroom.changingTable === 'boolean' || has(restroom.changingTable)) && (
+                      <>
+                        <Text style={styles.subtitle}>🧷 Changing Table</Text>
+                        <Text style={styles.text}>
+                          {typeof restroom.changingTable === 'boolean'
+                            ? (restroom.changingTable ? 'Yes' : 'No')
+                            : restroom.changingTable}
+                        </Text>
+                      </>
+                    )}
 
-                    <Text style={styles.subtitle}>🚺 Women's Stalls</Text>
-                    <Text style={styles.text}>{restroom.womensStalls ?? 'No data available'}</Text>
+                    {(typeof restroom.womensStalls === 'number' || has(restroom.womensStalls)) && (
+                      <>
+                        <Text style={styles.subtitle}>🚺 Women's Stalls</Text>
+                        <Text style={styles.text}>{restroom.womensStalls}</Text>
+                      </>
+                    )}
 
-                    <Text style={styles.subtitle}>🚹 Men's Stalls/Urinals</Text>
-                    <Text style={styles.text}>{restroom.mensStalls ?? 'No data available'}</Text>
+                    {(typeof restroom.mensStalls === 'number' || has(restroom.mensStalls)) && (
+                      <>
+                        <Text style={styles.subtitle}>🚹 Men's Stalls/Urinals</Text>
+                        <Text style={styles.text}>{restroom.mensStalls}</Text>
+                      </>
+                    )}
                   </View>
                 ))
               ) : (
@@ -943,15 +1014,19 @@ export default function ParkDetails({ route, navigation }) {
             <Text style={styles.subtitle}>Drinks</Text>
             <Text style={styles.text}>{park.concessions?.drinks ? 'Yes' : 'No'}</Text>
 
-            <Text style={styles.subtitle}>Other Food Description</Text>
-            <Text style={styles.text}>{park.concessions?.otherFood || 'No data available'}</Text>
+            {has(park.concessions?.otherFood) && (
+              <>
+                <Text style={styles.subtitle}>Other Food Description</Text>
+                <Text style={styles.text}>{park.concessions.otherFood}</Text>
+              </>
+            )}
 
-            <Text style={styles.subtitle}>Payment Methods</Text>
-            <Text style={styles.text}>
-              {park.concessions?.paymentMethods?.length > 0
-                ? park.concessions.paymentMethods.join(', ')
-                : 'No data available'}
-            </Text>
+            {Array.isArray(park.concessions?.paymentMethods) && park.concessions.paymentMethods.length > 0 && (
+              <>
+                <Text style={styles.subtitle}>Payment Methods</Text>
+                <Text style={styles.text}>{park.concessions.paymentMethods.join(', ')}</Text>
+              </>
+            )}
           </Animated.View>
 
           {/* Fields */}
