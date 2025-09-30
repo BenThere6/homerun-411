@@ -47,6 +47,77 @@ export default function ParkDetails({ route, navigation }) {
   const [showAskTip, setShowAskTip] = useState(false);
   const TIP_BG = 'rgba(54, 65, 82, 0.8)';
 
+  // Inline “Help & More” forms
+  const [openForm, setOpenForm] = useState(null); // 'request' | 'suggest' | null
+  const [submitting, setSubmitting] = useState(false);
+
+  // Request (missing data on this park)
+  const [reqText, setReqText] = useState('');
+  const [reqEmail, setReqEmail] = useState('');
+
+  // Suggest (new metric to track)
+  const [sugName, setSugName] = useState('');
+  const [sugWhy, setSugWhy] = useState('');
+
+  // Common: get auth header if present
+  const getAuthHeaders = async () => {
+    const token = await AsyncStorage.getItem('token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  // Submit: request data for this park
+  const submitDataRequest = async () => {
+    if (!reqText.trim()) {
+      Alert.alert('Tell us what you need', 'Please describe the info you’re looking for.');
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await axios.post('/api/feedback/park-data-request', {
+        parkId: park._id,
+        parkName: park.name,
+        city: park.city,
+        state: park.state,
+        message: reqText.trim(),
+        contactEmail: reqEmail.trim() || undefined,
+        source: 'ParkDetails',
+      }, { headers: await getAuthHeaders() });
+
+      Alert.alert('Request sent', 'Thanks! We’ll work on collecting this.');
+      setReqText(''); setReqEmail('');
+      setOpenForm(null);
+    } catch (e) {
+      Alert.alert('Couldn’t send', e?.response?.data?.message || e.message || 'Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Submit: suggest a new thing to track
+  const submitNewMetric = async () => {
+    if (!sugName.trim()) {
+      Alert.alert('Add a name', 'What should we track? (e.g., “Shaded seating”)');
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await axios.post('/api/feedback/feature-request', {
+        title: sugName.trim(),
+        description: sugWhy.trim() || undefined,
+        parkContext: { parkId: park._id, parkName: park.name, city: park.city, state: park.state },
+        source: 'ParkDetails',
+      }, { headers: await getAuthHeaders() });
+
+      Alert.alert('Suggestion sent', 'Appreciate the idea!');
+      setSugName(''); setSugWhy('');
+      setOpenForm(null);
+    } catch (e) {
+      Alert.alert('Couldn’t send', e?.response?.data?.message || e.message || 'Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   // simple presence check for strings/arrays (keeps 0/false as present)
   const has = (v) =>
     !(v == null ||
@@ -314,7 +385,7 @@ export default function ParkDetails({ route, navigation }) {
           });
           const top = Number(data?.adminLevel) === 0 || data?.isTopAdmin === true;
           setIsTopAdmin(top);
-          console.log('🔐 profile:', { email: data?.email, adminLevel: data?.adminLevel, isTopAdmin: top });
+          // console.log('🔐 profile:', { email: data?.email, adminLevel: data?.adminLevel, isTopAdmin: top });
         } else {
           console.log('🔐 no token found; not logged in');
         }
@@ -1193,6 +1264,144 @@ export default function ParkDetails({ route, navigation }) {
             })}
           </Animated.View>
 
+          {/* Help & More */}
+          <View style={styles.moreCard}>
+            <Text style={styles.moreTitle}>Looking for something else?</Text>
+            <Text style={styles.moreSub}>
+              We track a lot of park details. If something doesn’t appear above, we don’t have it yet—here’s how to get it.
+            </Text>
+
+            <TouchableOpacity
+              style={styles.moreRow}
+              accessibilityRole="button"
+              accessibilityLabel="View everything we try to collect"
+              onPress={() => navigation.navigate('DataDictionary')}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="list-outline" size={20} color="#0f172a" />
+              <View style={{ marginLeft: 10, flex: 1 }}>
+                <Text style={styles.moreRowTitle}>View everything we track</Text>
+                <Text style={styles.moreRowSub}>See the full list of park data points</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#9ca3af" />
+            </TouchableOpacity>
+
+            {/* Row 2 — Request specific data for this park */}
+            <TouchableOpacity
+              style={styles.moreRow}
+              accessibilityRole="button"
+              accessibilityLabel="Request specific data for this park"
+              onPress={() => setOpenForm(openForm === 'request' ? null : 'request')}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="document-text-outline" size={20} color="#0f172a" />
+              <View style={{ marginLeft: 10, flex: 1 }}>
+                <Text style={styles.moreRowTitle}>Request data for this park</Text>
+                <Text style={styles.moreRowSub}>Tell us exactly what you’re missing</Text>
+              </View>
+              <Ionicons name={openForm === 'request' ? 'chevron-up' : 'chevron-forward'} size={16} color="#9ca3af" />
+            </TouchableOpacity>
+
+            {openForm === 'request' && (
+              <View style={styles.inlineForm}>
+                <Text style={styles.formLabel}>What info do you need?</Text>
+                <TextInput
+                  value={reqText}
+                  onChangeText={setReqText}
+                  placeholder="e.g., Are there field lights? outfield fence height?"
+                  style={styles.inputMultiline}
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                />
+                <Text style={styles.formHelp}>Optional: add an email if you want an update</Text>
+                <TextInput
+                  value={reqEmail}
+                  onChangeText={setReqEmail}
+                  placeholder="you@example.com (optional)"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  style={styles.input}
+                />
+                <TouchableOpacity
+                  style={[styles.submitBtn, submitting && { opacity: 0.6 }]}
+                  disabled={submitting}
+                  onPress={submitDataRequest}
+                >
+                  <Text style={styles.submitBtnText}>{submitting ? 'Sending…' : 'Submit request'}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Row 3 — Suggest a new thing to track */}
+            <TouchableOpacity
+              style={styles.moreRow}
+              accessibilityRole="button"
+              accessibilityLabel="Suggest a new metric for Parks App to track"
+              onPress={() => setOpenForm(openForm === 'suggest' ? null : 'suggest')}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="sparkles-outline" size={20} color="#0f172a" />
+              <View style={{ marginLeft: 10, flex: 1 }}>
+                <Text style={styles.moreRowTitle}>Suggest a new thing to track</Text>
+                <Text style={styles.moreRowSub}>Add an idea to our roadmap</Text>
+              </View>
+              <Ionicons name={openForm === 'suggest' ? 'chevron-up' : 'chevron-forward'} size={16} color="#9ca3af" />
+            </TouchableOpacity>
+
+            {openForm === 'suggest' && (
+              <View style={styles.inlineForm}>
+                <Text style={styles.formLabel}>What should we track?</Text>
+                <TextInput
+                  value={sugName}
+                  onChangeText={setSugName}
+                  placeholder="e.g., Shade percentage over bleachers"
+                  style={styles.input}
+                />
+                <Text style={styles.formLabel}>Why is it useful? (optional)</Text>
+                <TextInput
+                  value={sugWhy}
+                  onChangeText={setSugWhy}
+                  placeholder="Helps families choose comfortable seating in summer"
+                  style={styles.inputMultiline}
+                  multiline
+                  numberOfLines={3}
+                  textAlignVertical="top"
+                />
+                <TouchableOpacity
+                  style={[styles.submitBtn, submitting && { opacity: 0.6 }]}
+                  disabled={submitting}
+                  onPress={submitNewMetric}
+                >
+                  <Text style={styles.submitBtnText}>{submitting ? 'Sending…' : 'Send suggestion'}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            <TouchableOpacity
+              style={[styles.moreRow, styles.moreRowLast]}
+              accessibilityRole="button"
+              accessibilityLabel="Ask local users in the forum"
+              onPress={() => {
+                navigation.navigate('NewPostForm', {
+                  prefill: {
+                    park: { _id: park._id, name: park.name, city: park.city, state: park.state },
+                    title: `Question about ${park.name}`,
+                    contentPlaceholder: 'Ask local users your question…'
+                  }
+                });
+              }}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="chatbubble-ellipses-outline" size={20} color="#0f172a" />
+              <View style={{ marginLeft: 10, flex: 1 }}>
+                <Text style={styles.moreRowTitle}>Ask locals in the forum</Text>
+                <Text style={styles.moreRowSub}>Usually the fastest way to get an answer</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#9ca3af" />
+            </TouchableOpacity>
+          </View>
+
         </View>
       </ScrollView>
 
@@ -1469,4 +1678,61 @@ const styles = StyleSheet.create({
     color: '#374151', // darker gray than notes
     marginBottom: 2,
   },
+  moreCard: {
+    marginTop: 6,
+    marginBottom: 20,
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  moreTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a' },
+  moreSub: { fontSize: 12, color: '#475569', marginTop: 4, marginBottom: 6 },
+  moreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+  moreRowLast: { paddingBottom: 2 },
+  moreRowTitle: { fontSize: 14, fontWeight: '700', color: '#0f172a' },
+  moreRowSub: { fontSize: 12, color: '#64748b', marginTop: 2 },
+  inlineForm: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 8,
+  },
+  formLabel: { fontSize: 12, color: '#374151', marginTop: 6, marginBottom: 4, fontWeight: '600' },
+  formHelp: { fontSize: 11, color: '#6b7280', marginTop: 4, marginBottom: 6 },
+  input: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    fontSize: 14,
+  },
+  inputMultiline: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 14,
+    minHeight: 90,
+  },
+  submitBtn: {
+    marginTop: 10,
+    backgroundColor: '#1d4ed8',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  submitBtnText: { color: '#fff', fontWeight: '700' },
 });
