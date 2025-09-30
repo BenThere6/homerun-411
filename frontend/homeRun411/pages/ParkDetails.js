@@ -988,33 +988,70 @@ export default function ParkDetails({ route, navigation }) {
                           ? [...list].sort((a, b) => {
                             const ra = order[a.title] ?? 50;
                             const rb = order[b.title] ?? 50;
-                            // keep stable-ish order for non-L/C/R by secondary title sort
                             return ra - rb || a.title.localeCompare(b.title);
                           })
                           : list;
 
-                      return items.map((s) => {
-                        // build subItems (prefix pure-numeric field names with "Field ")
-                        const prettyName = (n) =>
-                          (typeof n === 'number' || /^\s*\d+\s*$/.test(String(n)))
-                            ? `Field ${String(n).trim()}`
-                            : n;
+                      // --- Accumulators for notes ---
+                      let anyFeetShown = false;                // for the "*" approximate note
+                      const aggregateNotes = [];               // for the "†" common-value note
 
+                      // util: pretty field name ("Field 3" when numeric)
+                      const prettyName = (n) =>
+                        (typeof n === 'number' || /^\s*\d+\s*$/.test(String(n)))
+                          ? `Field ${String(n).trim()}`
+                          : (n ?? '');
+
+                      // util: add " ft" when purely numeric
+                      const addFt = (val) => {
+                        if (val == null || val === '') return val;
+                        const str = String(val).trim();
+                        return /^\d+(\.\d+)?$/.test(str) ? `${str} ft` : str;
+                      };
+
+                      // All field names in this park (for “† applies to …” lists)
+                      const allFieldNames = (park.fields || []).map(f => prettyName(f?.name ?? f));
+
+                      const rows = items.map((s) => {
+                        // build subItems (prefix pure-numeric field names with "Field ")
                         let subItems = null;
                         if (s.tieAllDifferent) {
                           subItems = s.exceptions?.map(e => `${prettyName(e.fieldName)}: ${e.display}`);
                         } else if (s.exceptions?.length) {
                           subItems = s.exceptions.map(e => `${prettyName(e.fieldName)}: ${e.display}`);
                         }
-                        // only add " ft" for the Dimensions group
+
                         const isDimensions = g === 'Dimensions';
 
-                        // helper to append " ft" if the token is purely numeric (int or decimal)
-                        const addFt = (val) => {
-                          if (val == null) return val;
-                          const str = String(val).trim();
-                          return /^\d+(\.\d+)?$/.test(str) ? `${str} ft` : str;
-                        };
+                        // ----- Detect if this row printed a numeric feet value -----
+                        const numericCommon =
+                          isDimensions &&
+                          s.commonValueDisplay != null &&
+                          /^\d+(\.\d+)?$/.test(String(s.commonValueDisplay).trim());
+
+                        if (numericCommon) anyFeetShown = true;
+
+                        // ----- Detect if this row aggregates multiple fields (single value covers many) -----
+                        const hasAggregate = !!s.commonValueDisplay && Array.isArray(s.exceptions) && s.exceptions.length > 0;
+
+                        // If aggregated, compute which fields the common value covers
+                        let appliesTo = [];
+                        if (hasAggregate) {
+                          const exceptionNames = s.exceptions.map(e => prettyName(e.fieldName));
+                          appliesTo = allFieldNames.filter(n => !!n && !exceptionNames.includes(n));
+                          // Only meaningful if more than one field shares it
+                          if (appliesTo.length > 1) {
+                            aggregateNotes.push({
+                              title: s.title,
+                              fields: appliesTo
+                            });
+                          }
+                        }
+
+                        // Marker appears next to the primary value (not the header)
+                        const marker = (hasAggregate && appliesTo.length > 1) ? ' \u2020' /* † */ : '';
+                        const valueWithUnits = isDimensions ? addFt(s.commonValueDisplay) : s.commonValueDisplay;
+                        const valueDisplay = valueWithUnits != null ? `${valueWithUnits}${marker}` : valueWithUnits;
 
                         return (
                           <Animated.View
@@ -1033,7 +1070,7 @@ export default function ParkDetails({ route, navigation }) {
                             />
                             <SpecRow
                               title={s.title}
-                              value={isDimensions ? addFt(s.commonValueDisplay) : s.commonValueDisplay}
+                              value={valueDisplay}
                               subItems={
                                 isDimensions
                                   ? subItems?.map(line => {
@@ -1046,12 +1083,31 @@ export default function ParkDetails({ route, navigation }) {
                           </Animated.View>
                         );
                       });
+
+                      return (
+                        <>
+                          {rows}
+
+                          {/* † aggregate note (only when needed) */}
+                          {aggregateNotes.length > 0 && (
+                            <View style={{ marginTop: 6 }}>
+                              {aggregateNotes.map((n, idx) => (
+                                <Text key={idx} style={styles.fieldNote}>
+                                  {`\u2020 ${n.title}: applies to ${n.fields.join(', ')}`}
+                                </Text>
+                              ))}
+                            </View>
+                          )}
+
+                          {/* * approximate note (Dimensions only, and only when any feet were rendered) */}
+                          {g === 'Dimensions' && anyFeetShown && (
+                            <Text style={styles.dimNote}>
+                              * Distance measurements are approximate
+                            </Text>
+                          )}
+                        </>
+                      );
                     })()}
-                    {g === 'Dimensions' && (
-                      <Text style={styles.dimNote}>
-                        * Distance measurements are approximate
-                      </Text>
-                    )}
                   </SpecSection>
 
                   {/* divider between subheadings */}
@@ -1324,6 +1380,12 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 12,
     color: '#6b7280', // gray-500-ish
+    fontStyle: 'italic',
+  },
+  fieldNote: {
+    marginTop: 4,
+    fontSize: 12,
+    color: '#6b7280',
     fontStyle: 'italic',
   },
 });
