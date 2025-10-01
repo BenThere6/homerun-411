@@ -40,6 +40,15 @@ export default function ParkDetails({ route, navigation }) {
 
   // Back to top
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const backToTopOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(backToTopOpacity, {
+      toValue: showBackToTop ? 1 : 0,
+      duration: 180,
+      useNativeDriver: true,
+    }).start();
+  }, [showBackToTop, backToTopOpacity]);
 
   const [showRestrooms, setShowRestrooms] = useState(true);
 
@@ -1414,16 +1423,31 @@ export default function ParkDetails({ route, navigation }) {
         </View>
       </ScrollView>
 
-      {showBackToTop && (
+      <Animated.View
+        pointerEvents={showBackToTop ? 'auto' : 'none'}
+        style={[
+          styles.backToTopBtn,
+          {
+            opacity: backToTopOpacity,
+            transform: [{
+              scale: backToTopOpacity.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.9, 1],
+              })
+            }]
+          }
+        ]}
+      >
         <TouchableOpacity
-          style={styles.backToTopBtn}
-          onPress={() => {
-            scrollRef.current?.scrollTo({ y: 0, animated: true });
-          }}
+          onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
+          accessibilityRole="button"
+          accessibilityLabel="Back to top"
+          activeOpacity={0.85}
+          style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
         >
           <Ionicons name="arrow-up" size={22} color="#fff" />
         </TouchableOpacity>
-      )}
+      </Animated.View>
     </View>
   );
 }
