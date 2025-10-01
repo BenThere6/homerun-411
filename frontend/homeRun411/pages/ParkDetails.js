@@ -37,6 +37,10 @@ export default function ParkDetails({ route, navigation }) {
   const scrollRef = useRef(null);
 
   const [showFields, setShowFields] = useState(true);
+
+  // Back to top
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
   const [showRestrooms, setShowRestrooms] = useState(true);
 
   // NEW: controlled open state for Field sub-sections (Surfaces/Dimensions/Amenities/Other)
@@ -559,6 +563,11 @@ export default function ParkDetails({ route, navigation }) {
         style={styles.scrollContainer}
         contentContainerStyle={{ paddingBottom: 60 }}
         keyboardShouldPersistTaps="handled"
+        onScroll={e => {
+          const y = e.nativeEvent.contentOffset.y;
+          setShowBackToTop(y > 300); // show after 300px scroll
+        }}
+        scrollEventThrottle={16}
       >
         <View style={styles.contentContainer}>
           {/* Main Park Image */}
@@ -1405,6 +1414,16 @@ export default function ParkDetails({ route, navigation }) {
         </View>
       </ScrollView>
 
+      {showBackToTop && (
+        <TouchableOpacity
+          style={styles.backToTopBtn}
+          onPress={() => {
+            scrollRef.current?.scrollTo({ y: 0, animated: true });
+          }}
+        >
+          <Ionicons name="arrow-up" size={22} color="#fff" />
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -1735,4 +1754,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   submitBtnText: { color: '#fff', fontWeight: '700' },
+  backToTopBtn: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: '#1d4ed8',
+    borderRadius: 25,
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
+  },
 });
