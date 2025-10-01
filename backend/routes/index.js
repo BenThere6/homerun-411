@@ -37,7 +37,8 @@ router.use("/api/user-activity", userActivityRoutes);
 router.use("/api/app-feedback", appFeedbackRoutes);
 router.use("/api/image", imageRoutes);
 router.use("/api/upload", uploadRoutes); // ✅ Correctly added upload route
-router.use("/image-category", imageCategoryRoutes);
+router.use("/api/image-category", imageCategoryRoutes);
 router.use('/api/notifications', require('./api/notifications'))
+router.use('/api/feedback', require('./api/feedback'));
 
 module.exports = router;

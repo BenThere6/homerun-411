@@ -8,6 +8,7 @@ const bcrypt = require('bcrypt');
 const isAdmin = require('./middleware/isAdmin');
 const isTopAdmin = require('./middleware/isTopAdmin');
 const zipcodes = require('zipcodes');
+const authenticate = require('./middleware/authenticate');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -110,23 +111,6 @@ app.post('/api/auth/login', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
-
-// Middleware to authenticate using the refresh token
-const authenticate = (req, res, next) => {
-  const token = req.header('Authorization')?.replace('Bearer ', '');
-
-  if (!token) {
-    return res.status(401).json({ message: 'Access denied. No token provided.' });
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // Include adminLevel from token
-    next();
-  } catch (err) {
-    res.status(401).json({ message: 'Invalid token' });
-  }
-};
 
 // Logout Route
 app.post('/api/auth/logout', authenticate, async (req, res) => {
