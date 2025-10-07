@@ -47,15 +47,16 @@ export default function AdminDashboard() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-
+    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
       <HeaderTabs tab={tab} setTab={setTab} />
-      {tab === 'Home' && <HomeOverview />}
-      {tab === 'Data Requests' && <DataRequestsTab />}
-      {tab === 'Moderation' && <ModerationTab />}
-      {tab === 'Parks' && <Soon label="Parks table/editor (next pass)" />}
-      {tab === 'Users' && <Soon label="Users list/roles (next pass)" />}
-      {tab === 'Audit' && <Soon label="Audit log (next pass)" />}
+      <View style={styles.content}>
+        {tab === 'Home' && <HomeOverview />}
+        {tab === 'Data Requests' && <DataRequestsTab />}
+        {tab === 'Moderation' && <ModerationTab />}
+        {tab === 'Parks' && <Soon label="Parks table/editor (next pass)" />}
+        {tab === 'Users' && <Soon label="Users list/roles (next pass)" />}
+        {tab === 'Audit' && <Soon label="Audit log (next pass)" />}
+      </View>
     </SafeAreaView>
   );
 }
@@ -63,27 +64,29 @@ export default function AdminDashboard() {
 /* ---------------- UI: tabs header ---------------- */
 function HeaderTabs({ tab, setTab }) {
   return (
-    <ScrollView
-      horizontal
-      bounces={false}
-      showsHorizontalScrollIndicator={false}
-      contentInsetAdjustmentBehavior="never"
-      style={styles.tabsScroll}
-      contentContainerStyle={styles.tabsRow}
-    >
-      {TABS.map(t => {
-        const active = t === tab;
-        return (
-          <TouchableOpacity
-            key={t}
-            onPress={() => setTab(t)}
-            style={[styles.tabBtn, active && styles.tabBtnActive]}
-          >
-            <Text style={[styles.tabText, active && styles.tabTextActive]}>{t}</Text>
-          </TouchableOpacity>
-        );
-      })}
-    </ScrollView>
+    <View style={styles.tabsContainer}>
+      <ScrollView
+        horizontal
+        bounces={false}
+        showsHorizontalScrollIndicator={false}
+        contentInsetAdjustmentBehavior="never"
+        style={styles.tabsScroll}
+        contentContainerStyle={styles.tabsRow}
+      >
+        {TABS.map(t => {
+          const active = t === tab;
+          return (
+            <TouchableOpacity
+              key={t}
+              onPress={() => setTab(t)}
+              style={[styles.tabBtn, active && styles.tabBtnActive]}
+            >
+              <Text style={[styles.tabText, active && styles.tabTextActive]}>{t}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    </View>
   );
 }
 
@@ -118,7 +121,7 @@ function HomeOverview() {
   if (loading) return <Loading />;
 
   return (
-    <View style={{ padding: 12 }}>
+    <View style={{ paddingHorizontal: 12, paddingTop: 8, paddingBottom: 12 }}>
       <Card title="Queues">
         <Row icon="document-text-outline" label="New Data Requests" value={counts.dataNew} />
         <Row icon="flag-outline" label="Open Reports" value={counts.reportsOpen} />
@@ -438,21 +441,26 @@ function Soon({ label }) {
 /* ---------------- styles ---------------- */
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.sixty },
-  tabsScroll: {
+
+  // Fixed strip that clamps the pills to 36px and prevents ScrollView from stretching
+  tabsContainer: {
+    height: 44, // 28px pill + 8px top + 8px bottom
     backgroundColor: colors.sixty,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
-    height: 48,                  // <- fixes the tall white area
+    overflow: 'hidden',
   },
   tabsRow: {
+    height: 44,               // match tabsContainer for equal top/bottom space
     flexDirection: 'row',
-    alignItems: 'center',        // <- vertically center pills
+    alignItems: 'center',
     paddingHorizontal: 12,
     gap: 8,
   },
   tabBtn: {
-    height: 32,                  // <- much shorter
+    height: 28,
     paddingHorizontal: 12,
+    paddingVertical: 0, // keep pill height exact so spacing stays symmetric
     borderRadius: 10,
     backgroundColor: '#eef2f7',
     justifyContent: 'center',
@@ -461,13 +469,18 @@ const styles = StyleSheet.create({
   tabText: { color: '#1f2937', fontSize: 14, fontWeight: '700' },
   tabTextActive: { color: '#ffffff' },
 
-  card: { backgroundColor: '#fff', marginHorizontal: 12, marginTop: 12, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#d1d5db' },
+  card: { backgroundColor: '#fff', marginHorizontal: 12, marginTop: 8, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#d1d5db' },
   cardTitle: { fontSize: 18, fontWeight: '800', marginBottom: 8, color: '#0b1220' },
   cardRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderTopWidth: 1, borderTopColor: '#e5e7eb' },
   cardRowLabel: { fontSize: 16, color: '#0b1220' },
   cardRowValue: { fontSize: 16, fontWeight: '900', color: '#0b1220' },
 
-  listHeader: { paddingHorizontal: 12, paddingTop: 12, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  content: {
+    flex: 1,
+    paddingTop: 8,           // single, consistent gap under the pills
+  },
+
+  listHeader: { paddingHorizontal: 12, paddingTop: 8, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   listHeaderTitle: { fontSize: 20, fontWeight: '900', color: '#0b1220' },
   searchBar: { marginHorizontal: 12, marginBottom: 10, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#d1d5db', paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', alignItems: 'center' },
 
