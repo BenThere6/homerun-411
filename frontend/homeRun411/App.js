@@ -11,7 +11,7 @@ import ProfilePage from './pages/Profile';
 import ParkDetails from './pages/ParkDetails';
 import NotificationsPage from './pages/Notifications';
 import EtiquettePage from './pages/Etiquette';
-import AdminPage from './pages/Admin';
+import AdminPage from './pages/AdminDashboard';
 import GameDayPage from './pages/GameDay';
 import SettingsPage from './pages/Settings';
 import LoginPage from './pages/Login';
@@ -27,13 +27,14 @@ import HomePlateIcon_Selected from './components/icons/HomePlateIcon_Selected';
 import { initUserLocation } from './utils/initUserLocation';
 import { connectSocket } from './utils/socket';
 import { TouchableOpacity } from 'react-native';
-
+import DataDictionary from './pages/DataDictionary';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
 // Tabs Navigator
 function TabsNavigator() {
+  const { isAdmin } = useAuth();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -95,6 +96,23 @@ function TabsNavigator() {
           ),
         })}
       />
+      {isAdmin && (
+        <Tab.Screen
+          name="Admin"
+          component={AdminPage}
+          options={{
+            headerShown: true,
+            headerTitle: 'Admin',
+            tabBarIcon: ({ color, size, focused }) => (
+              <Ionicons
+                name={focused ? 'shield-checkmark' : 'shield-checkmark-outline'}
+                size={size}
+                color={color}
+              />
+            ),
+          }}
+        />
+      )}
     </Tab.Navigator>
   );
 }
@@ -113,13 +131,8 @@ export default function App() {
 
 // Main stack of the application
 function MainStack() {
-  const { isLoggedIn, setIsLoggedIn } = useAuth();
+  const { isLoggedIn, setIsLoggedIn, setUser } = useAuth();
   const [loading, setLoading] = useState(true);
-
-  const checkToken = async () => {
-    const token = await AsyncStorage.getItem('token');
-    setIsLoggedIn(!!token);
-  };
 
   useEffect(() => {
     const startApp = async () => {
@@ -132,11 +145,12 @@ function MainStack() {
           return;
         }
 
-        // ✅ Validate token against the backend
-        await api.get('/api/auth/profile');
+        // ✅ Validate token and get profile
+        const { data: profile } = await api.get('/api/auth/profile');
 
         // Token is valid
         setIsLoggedIn(true);
+        setUser(profile);
         await initUserLocation();
       } catch (e) {
         // Token is missing/invalid/expired → force logout
@@ -155,6 +169,7 @@ function MainStack() {
     setUnauthorizedHandler(async () => {
       await AsyncStorage.removeItem('token');
       setIsLoggedIn(false);
+      setUser(null);
     });
   }, [setIsLoggedIn]);
 
@@ -183,6 +198,11 @@ function MainStack() {
             options={{ headerShown: false, title: 'Home' }}
           />
           <Stack.Screen name="ParkDetails" component={ParkDetails} />
+          <Stack.Screen
+            name="DataDictionary"
+            component={DataDictionary}
+            options={{ title: 'Data Dictionary' }}
+          />
           <Stack.Screen
             name="Notifications"
             component={NotificationsPage}
@@ -213,7 +233,11 @@ function MainStack() {
               headerTitleAlign: 'center',
             }}
           />
-          <Stack.Screen name="Admin" component={AdminPage} />
+          <Stack.Screen
+            name="Admin"
+            component={AdminPage}
+            options={{ title: 'Admin', headerTitleAlign: 'center' }}
+          />
           <Stack.Screen name="Settings" component={SettingsPage} />
           <Stack.Screen
             name="EditProfile"
