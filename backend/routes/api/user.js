@@ -332,47 +332,6 @@ router.get('/profile', auth, async (req, res) => {
   }
 });
 
-// Change a user's admin level (top-admin only)
-router.patch('/admin/users/:id/role', auth, isAdmin, async (req, res) => {
-  try {
-    const acting = await User.findById(req.user.id).select('adminLevel');
-    if (!acting || acting.adminLevel !== 0) {
-      return res.status(403).json({ message: 'Only top admins can change roles.' });
-    }
-
-    const { id } = req.params;
-    const { adminLevel } = req.body; // 0=top-admin, 1=admin, 2=user
-
-    if (![0, 1, 2].includes(Number(adminLevel))) {
-      return res.status(400).json({ message: 'Invalid adminLevel. Use 0, 1, or 2.' });
-    }
-
-    // prevent accidental self-demote if you want (optional):
-    // if (String(req.user.id) === String(id)) return res.status(400).json({ message: 'Cannot change your own role.' });
-
-    const updated = await User.findByIdAndUpdate(
-      id,
-      { adminLevel: Number(adminLevel) },
-      { new: true, runValidators: true, select: '_id email profile adminLevel createdAt' }
-    );
-
-    if (!updated) return res.status(404).json({ message: 'User not found' });
-
-    const role = updated.adminLevel === 0 ? 'top-admin' : (updated.adminLevel === 1 ? 'admin' : 'user');
-    return res.json({
-      _id: updated._id,
-      email: updated.email,
-      profile: updated.profile,
-      adminLevel: updated.adminLevel,
-      role,
-      createdAt: updated.createdAt
-    });
-  } catch (err) {
-    console.error('change role error', err);
-    res.status(500).json({ message: err.message });
-  }
-});
-
 // PATCH /api/user/admin/users/:userId/role
 // Only top-admin (adminLevel === 0) can change another user's adminLevel
 router.patch('/admin/users/:userId/role', auth, isAdmin, async (req, res) => {

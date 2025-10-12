@@ -169,7 +169,6 @@ function DataRequestsTab() {
       if (!replace) setLoading(true);
       const data = await safeGet(ENDPOINTS.dataRequestsList, { status, page: pageNum, q: query || undefined });
       const list = data?.items || [];
-      console.log('Users API → page', pageNum, 'role', role, 'query', query, 'got', list.length);
       setHasMore(list.length > 0);
       setItems(prev => (replace ? list : [...prev, ...list]));
     } catch (e) {
@@ -527,42 +526,86 @@ function UserRow({ item, myLevel, myId, onChanged }) {
         {!!item.postsCount && <Text style={styles.userMeta}>{item.postsCount} posts</Text>}
 
         {canChange && (
-          <>
-            {item.adminLevel === 2 && (
-              <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
-                <TouchableOpacity style={styles.smallBtn} disabled={saving} onPress={() => changeLevel(1)}>
-                  <Text style={styles.smallBtnText}>Make Admin</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.smallBtn, { backgroundColor: '#111827' }]} disabled={saving} onPress={() => changeLevel(0)}>
-                  <Text style={[styles.smallBtnText, { color: '#fff' }]}>Make Top</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {item.adminLevel === 1 && (
-              <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
-                <TouchableOpacity style={[styles.smallBtn, { backgroundColor: '#111827' }]} disabled={saving} onPress={() => changeLevel(0)}>
-                  <Text style={[styles.smallBtnText, { color: '#fff' }]}>Make Top</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.smallBtn} disabled={saving} onPress={() => changeLevel(2)}>
-                  <Text style={styles.smallBtnText}>Demote → User</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {item.adminLevel === 0 && (
-              <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
-                <TouchableOpacity style={styles.smallBtn} disabled={saving} onPress={() => changeLevel(1)}>
-                  <Text style={styles.smallBtnText}>Demote → Admin</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.smallBtn} disabled={saving} onPress={() => changeLevel(2)}>
-                  <Text style={styles.smallBtnText}>Demote → User</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </>
+          <MoreMenu
+            currentLevel={item.adminLevel}
+            disabled={saving}
+            onPick={(nextLevel, label) => {
+              Alert.alert(
+                'Confirm role change',
+                `Are you sure you want to ${label.toLowerCase()} for ${title}?`,
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Confirm',
+                    style: 'destructive',
+                    onPress: () => changeLevel(nextLevel),
+                  },
+                ]
+              );
+            }}
+          />
         )}
+
       </View>
+    </View>
+  );
+}
+
+function MoreMenu({ currentLevel, onPick, disabled }) {
+  const [open, setOpen] = useState(false);
+
+  // Available actions based on current level
+  const actions =
+    currentLevel === 2
+      ? [
+        { label: 'Make Admin', level: 1 },
+        { label: 'Make Top Admin', level: 0 },
+      ]
+      : currentLevel === 1
+        ? [
+          { label: 'Make Top Admin', level: 0 },
+          { label: 'Demote → User', level: 2 },
+        ]
+        : [
+          { label: 'Demote → Admin', level: 1 },
+          { label: 'Demote → User', level: 2 },
+        ];
+
+  return (
+    <View style={{ position: 'relative', marginTop: 4 }}>
+      <TouchableOpacity
+        style={styles.iconBtn}
+        onPress={() => setOpen(v => !v)}
+        disabled={disabled}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="ellipsis-horizontal" size={16} color={colors.primaryText} />
+      </TouchableOpacity>
+
+      {open && (
+        <>
+          {/* tap outside to close */}
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            onPress={() => setOpen(false)}
+          />
+          <View style={styles.menu}>
+            {actions.map(a => (
+              <TouchableOpacity
+                key={a.label}
+                style={styles.menuItem}
+                onPress={() => {
+                  setOpen(false);
+                  onPick?.(a.level, a.label);
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.menuItemText}>{a.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </>
+      )}
     </View>
   );
 }
@@ -795,6 +838,33 @@ const styles = StyleSheet.create({
   },
   roleChipTextActive: {
     color: '#ffffff',
+  },
+
+  menu: {
+    position: 'absolute',
+    top: 36,
+    right: 0,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    paddingVertical: 6,
+    minWidth: 180,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+    zIndex: 100,
+  },
+  menuItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  menuItemText: {
+    fontSize: 14,
+    color: '#0b1220',
+    fontWeight: '700',
   },
 
 });
