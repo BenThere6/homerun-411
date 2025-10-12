@@ -11,7 +11,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const ENDPOINTS = {
   dataRequestsList: '/api/admin/feedback/data-requests',
   reportsList: '/api/admin/mod/reports',
+  usersList: '/api/user',        // hits router.get('/', auth, isAdmin, listAdminUsers)
+  usersSummary: '/api/user',     // same
 };
+
+function startOfTodayISO() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString();
+}
 
 // Graceful GET that treats 404/HTML error pages as "no data yet" instead of crashing
 async function safeGet(url, params) {
@@ -54,7 +62,7 @@ export default function AdminDashboard() {
         {tab === 'Data Requests' && <DataRequestsTab />}
         {tab === 'Moderation' && <ModerationTab />}
         {tab === 'Parks' && <Soon label="Parks table/editor (next pass)" />}
-        {tab === 'Users' && <Soon label="Users list/roles (next pass)" />}
+        {tab === 'Users' && <UsersTab />}
         {tab === 'Audit' && <Soon label="Audit log (next pass)" />}
       </View>
     </SafeAreaView>
@@ -93,20 +101,30 @@ function HeaderTabs({ tab, setTab }) {
 /* ---------------- Home / overview ---------------- */
 function HomeOverview() {
   const [loading, setLoading] = useState(true);
-  const [counts, setCounts] = useState({ dataNew: 0, reportsOpen: 0, usersToday: 0, postsToday: 0, parksEdited: 0 });
+  const [counts, setCounts] = useState({ dataNew: 0, reportsOpen: 0, usersToday: 0, totalUsers: 0, postsToday: 0, parksEdited: 0 });
 
   useEffect(() => {
     (async () => {
       try {
         // Lightweight summary calls; adjust if you have a summary endpoint.
-        const [dr, rep] = await Promise.all([
+        const [dr, rep, users] = await Promise.all([
           safeGet(ENDPOINTS.dataRequestsList, { status: 'new', page: 1 }),
           safeGet(ENDPOINTS.reportsList, { status: 'open', page: 1 }),
+          safeGet(ENDPOINTS.usersSummary, { since: startOfTodayISO(), page: 1 }),
         ]);
+
+        const rawUsers = users.items || [];
+        const todayStart = new Date(startOfTodayISO()).getTime();
+        const usersToday = rawUsers.filter(u => {
+          const ts = new Date(u.createdAt || u.created_at || 0).getTime();
+          return ts >= todayStart;
+        }).length;
+
         setCounts({
           dataNew: (dr.items || []).length,
           reportsOpen: (rep.items || []).length,
-          usersToday: 0,
+          usersToday,
+          totalUsers: users.total ?? (users.items || []).length,
           postsToday: 0,
           parksEdited: 0,
         });
@@ -127,6 +145,7 @@ function HomeOverview() {
         <Row icon="flag-outline" label="Open Reports" value={counts.reportsOpen} />
       </Card>
       <Card title="Today">
+        <Row icon="people-outline" label="Total Users" value={counts.totalUsers} />
         <Row icon="people-outline" label="New Users" value={counts.usersToday} />
         <Row icon="chatbubbles-outline" label="Posts" value={counts.postsToday} />
         <Row icon="create-outline" label="Parks Edited" value={counts.parksEdited} />
@@ -150,6 +169,7 @@ function DataRequestsTab() {
       if (!replace) setLoading(true);
       const data = await safeGet(ENDPOINTS.dataRequestsList, { status, page: pageNum, q: query || undefined });
       const list = data?.items || [];
+      console.log('Users API → page', pageNum, 'role', role, 'query', query, 'got', list.length);
       setHasMore(list.length > 0);
       setItems(prev => (replace ? list : [...prev, ...list]));
     } catch (e) {
@@ -325,6 +345,228 @@ function ReportRow({ item, onChanged }) {
   );
 }
 
+/* ---------------- Users tab ---------------- */
+const PAGE_LIMIT = 25; // request a fixed page size so we can know when to stop
+
+function UsersTab() {
+  const [query, setQuery] = useState('');
+  const [role, setRole] = useState('all');   // all | user | admin | top-admin (shown via badge)
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [items, setItems] = useState([]);
+  const [hasMore, setHasMore] = useState(true);
+  const [myLevel, setMyLevel] = useState(null);
+  const [myId, setMyId] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await api.get('/api/user/profile');
+        const lvl = r?.data?.adminLevel ?? (r?.data?.role === 'top-admin' ? 0 : r?.data?.role === 'admin' ? 1 : 2);
+        setMyLevel(lvl);
+        setMyId(r?.data?._id);
+      } catch (e) {
+        console.log('profile load failed', e?.response?.data || e.message);
+      }
+    })();
+  }, []);
+
+  const fetchPage = useCallback(async (pageNum, replace = false) => {
+    try {
+      if (!replace) setLoading(true);
+      const data = await safeGet(ENDPOINTS.usersList, {
+        page: pageNum,
+        limit: PAGE_LIMIT,
+        q: query || undefined,
+        role: role === 'all' ? undefined : role,
+      });
+      const list = data?.items || [];
+
+      // If backend ignores pagination, de-dupe and stop when we see a repeat set.
+      setItems(prev => {
+        const combined = replace ? list : [...prev, ...list];
+        const seen = new Set();
+        const uniq = [];
+        for (const u of combined) {
+          const id = u?._id || u?.id || u?.email; // stable fallback
+          if (!id || seen.has(id)) continue;
+          seen.add(id);
+          uniq.push(u);
+        }
+        return uniq;
+      });
+
+      // End if fewer than PAGE_LIMIT returned (or nothing)
+      setHasMore(list.length === PAGE_LIMIT);
+    } catch (e) {
+      Alert.alert('Load failed', e?.response?.data?.message || e.message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [query, role]);
+
+  useEffect(() => {
+    setPage(1);
+    fetchPage(1, true);
+  }, [role, fetchPage]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setPage(1);
+    fetchPage(1, true);
+  };
+
+  const loadMore = () => {
+    if (loading || !hasMore) return;
+    const next = page + 1;
+    setPage(next);
+    fetchPage(next);
+  };
+
+  // Client-side filter so chips instantly affect the rendered list
+  const filteredItems = useMemo(() => {
+    if (role === 'all') return items;
+    return items.filter(u => {
+      const r =
+        u.role ??
+        (u.adminLevel === 0 ? 'top-admin' : u.adminLevel === 1 ? 'admin' : 'user');
+      // "Admins" chip should include top-admins
+      if (role === 'admin') return r === 'admin' || r === 'top-admin';
+      return r === role;
+    });
+  }, [items, role]);
+
+  return (
+    <View style={{ flex: 1 }}>
+      <ListHeader
+        title="Users"
+        right={
+          <RoleChips
+            value={role}
+            onChange={(r) => { setRole(r); setPage(1); fetchPage(1, true); }}
+          />
+        }
+      />
+      <SearchBar
+        value={query}
+        onChange={setQuery}
+        onSubmit={() => { setPage(1); fetchPage(1, true); }}
+        placeholder="Filter by name or email"
+      />
+      {loading && page === 1 ? (
+        <Loading />
+      ) : (
+        <FlatList
+          data={filteredItems}
+          keyExtractor={(it, idx) => String(it?._id || it?.id || it?.email || idx)}
+          renderItem={({ item }) => <UserRow item={item} myLevel={myLevel} myId={myId} onChanged={() => { setPage(1); fetchPage(1, true); }} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          onEndReachedThreshold={0.3}
+          onEndReached={loadMore}
+          ListEmptyComponent={<Empty label="No users" />}
+          contentContainerStyle={{ padding: 12 }}
+        />
+      )}
+    </View>
+  );
+}
+
+function deriveNameFromEmail(email = '') {
+  const local = String(email).split('@')[0] || '';
+  if (!local) return '';
+  // "john.doe_smith" -> "John Doe Smith"
+  return local
+    .replace(/[._-]+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function UserRow({ item, myLevel, myId, onChanged }) {
+  const createdLabel = new Date(item.createdAt || item.created_at || 0).toLocaleString();
+  const role =
+    item.role ||
+    (item.adminLevel === 0 ? 'top-admin' : item.adminLevel === 1 ? 'admin' : 'user');
+
+  const title =
+    (item.profile?.firstName || item.profile?.lastName
+      ? `${item.profile?.firstName ?? ''} ${item.profile?.lastName ?? ''}`.trim()
+      : null) ||
+    item.name ||
+    item.displayName ||
+    deriveNameFromEmail(item.email) ||
+    'User';
+
+  const canChange = myLevel === 0 && String(item._id || item.id) !== String(myId || '');
+  const [saving, setSaving] = useState(false);
+
+  const changeLevel = async (newLevel) => {
+    try {
+      setSaving(true);
+      await api.patch(`/api/user/admin/users/${item._id || item.id}/role`, { adminLevel: newLevel });
+      onChanged?.();
+    } catch (e) {
+      Alert.alert('Update failed', e?.response?.data?.message || e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <View style={styles.userCard}>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.userTitle}>{title}</Text>
+        {!!item.email && <Text style={styles.userSub}>{item.email}</Text>}
+        <Text style={styles.userMeta}>Joined: {createdLabel}</Text>
+      </View>
+
+      <View style={{ alignItems: 'flex-end' }}>
+
+        <StatusBadge status={role} />
+        {!!item.postsCount && <Text style={styles.userMeta}>{item.postsCount} posts</Text>}
+
+        {canChange && (
+          <>
+            {item.adminLevel === 2 && (
+              <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
+                <TouchableOpacity style={styles.smallBtn} disabled={saving} onPress={() => changeLevel(1)}>
+                  <Text style={styles.smallBtnText}>Make Admin</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.smallBtn, { backgroundColor: '#111827' }]} disabled={saving} onPress={() => changeLevel(0)}>
+                  <Text style={[styles.smallBtnText, { color: '#fff' }]}>Make Top</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {item.adminLevel === 1 && (
+              <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
+                <TouchableOpacity style={[styles.smallBtn, { backgroundColor: '#111827' }]} disabled={saving} onPress={() => changeLevel(0)}>
+                  <Text style={[styles.smallBtnText, { color: '#fff' }]}>Make Top</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.smallBtn} disabled={saving} onPress={() => changeLevel(2)}>
+                  <Text style={styles.smallBtnText}>Demote → User</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {item.adminLevel === 0 && (
+              <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
+                <TouchableOpacity style={styles.smallBtn} disabled={saving} onPress={() => changeLevel(1)}>
+                  <Text style={styles.smallBtnText}>Demote → Admin</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.smallBtn} disabled={saving} onPress={() => changeLevel(2)}>
+                  <Text style={styles.smallBtnText}>Demote → User</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </>
+        )}
+      </View>
+    </View>
+  );
+}
+
 /* ---------------- small shared bits ---------------- */
 function Card({ title, children }) {
   return (
@@ -360,6 +602,11 @@ function StatusBadge({ status }) {
     done: { bg: '#dcfce7', fg: '#166534', label: 'Done' },
     open: { bg: '#fff7ed', fg: '#9a3412', label: 'Open' },
     closed: { bg: '#dcfce7', fg: '#166534', label: 'Closed' },
+
+    // roles
+    user: { bg: '#e5e7eb', fg: '#111827', label: 'user' },
+    admin: { bg: '#DBEAFE', fg: '#1E40AF', label: 'admin' },
+    'top-admin': { bg: '#E0E7FF', fg: '#3730A3', label: 'top admin' },
   };
   const s = map[status] || { bg: '#e5e7eb', fg: '#111827', label: status };
   return (
@@ -368,20 +615,33 @@ function StatusBadge({ status }) {
     </View>
   );
 }
-function Segment({ value, setValue, options }) {
+function RoleChips({ value, onChange }) {
+  const options = [
+    { value: 'all', label: 'All' },
+    { value: 'user', label: 'Users' },
+    { value: 'admin', label: 'Admins' }, // includes top-admin on the backend
+  ];
   return (
-    <View style={styles.segment}>
+    <View style={styles.roleChips}>
       {options.map(o => {
         const active = o.value === value;
         return (
-          <TouchableOpacity key={o.value} onPress={() => setValue(o.value)} style={[styles.segmentBtn, active && styles.segmentBtnActive]}>
-            <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{o.label}</Text>
+          <TouchableOpacity
+            key={o.value}
+            onPress={() => onChange(o.value)}
+            style={[styles.roleChip, active && styles.roleChipActive]}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.roleChipText, active && styles.roleChipTextActive]}>
+              {o.label}
+            </Text>
           </TouchableOpacity>
         );
       })}
     </View>
   );
 }
+
 function StatusSegment({ status, setStatus }) {
   return (
     <Segment
@@ -495,4 +755,46 @@ const styles = StyleSheet.create({
   smallBtnText: { fontSize: 13, fontWeight: '800', color: '#0b1220' },
 
   iconBtn: { padding: 8, backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb' },
+
+  userCard: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    flexDirection: 'row',
+    gap: 12,
+  },
+  userTitle: { fontSize: 16, fontWeight: '900', color: '#0b1220' },
+  userSub: { fontSize: 13, color: '#475569', marginTop: 2 },
+  userMeta: { fontSize: 12, color: '#6b7280', marginTop: 6 },
+
+  roleChips: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  roleChip: {
+    height: 28,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+  },
+  roleChipActive: {
+    backgroundColor: '#111827',
+    borderColor: '#111827',
+  },
+  roleChipText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  roleChipTextActive: {
+    color: '#ffffff',
+  },
+
 });
