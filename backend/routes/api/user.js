@@ -482,34 +482,6 @@ router.patch('/:id', auth, getUser, async (req, res) => {
   }
 });
 
-// Update user profile
-router.patch('/profile', auth, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    if (req.body.firstName !== undefined) {
-      user.profile.firstName = req.body.firstName;
-    }
-    if (req.body.lastName !== undefined) {
-      user.profile.lastName = req.body.lastName;
-    }
-    if (req.body.avatarUrl !== undefined) {
-      user.profile.avatarUrl = req.body.avatarUrl;
-    }
-    if (req.body.bio !== undefined) {
-      user.profile.bio = req.body.bio;
-    }
-
-    const updatedUser = await user.save();
-    res.json(updatedUser);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-});
-
 // Record recently viewed park
 router.post('/recently-viewed/:parkId', auth, async (req, res) => {
   try {
