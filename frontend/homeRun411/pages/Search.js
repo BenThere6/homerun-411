@@ -17,6 +17,8 @@ import Fuse from 'fuse.js';
 import colors from '../assets/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from '../utils/axiosInstance';
+import { getWithCache } from '../utils/fetchWithCache';
+import { getWithCache } from '../utils/fetchWithCache';
 import ParkCard from '../components/ParkCard';
 import { getCoordinatesFromZip } from '../utils/zipLookup';
 import { BlurView } from 'expo-blur';
@@ -146,12 +148,11 @@ export default function SearchPage() {
   useEffect(() => {
     const fetchParks = async () => {
       try {
-        const res = await axios.get('/api/park');
-        const parksData = res.data;
+        const parksData = await getWithCache('parks:all', '/api/park');
         setParks(parksData.map(park => ({ ...park, imageError: false })));
 
-        const favoritesRes = await axios.get('/api/user/home-parks');
-        const favorites = favoritesRes.data.favorites.map(p => p._id);
+        const favData = await getWithCache('user:favorites', '/api/user/home-parks');
+        const favorites = (favData?.favorites ?? []).map(p => p._id);
         setFavoriteIds(favorites);
       } catch (err) {
         console.error('Error fetching data:', err);

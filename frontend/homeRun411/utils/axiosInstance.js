@@ -1,11 +1,19 @@
 // utils/axiosInstance.js
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { BACKEND_URL } from '@env';
+import Constants from 'expo-constants';
 
-// Fallback: if BACKEND_URL isn't set, keep it local in dev.
-// (On device this won't work unless you use a tunnel, so prefer setting BACKEND_URL.)
-const baseURL = BACKEND_URL || 'http://localhost:5001';
+// Works in dev (Expo Go) and prod (TestFlight)
+const EXTRA =
+  Constants.expoConfig?.extra ||
+  Constants.manifest?.extra || // legacy fallback
+  {};
+
+const baseURL = EXTRA.BACKEND_URL;
+
+if (!baseURL) {
+  console.warn('BACKEND_URL is missing from app config extra. Check app.config.js and EAS Variables.');
+}
 
 const api = axios.create({
   baseURL,

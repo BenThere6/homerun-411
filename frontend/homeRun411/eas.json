@@ -14,7 +14,11 @@
       "channel": "preview"
     },
     "production": {
-      "channel": "production"
+      "channel": "production",
+      "ios": {
+        "image": "latest"
+      },
+      "autoIncrement": true
     }
   },
   "submit": {

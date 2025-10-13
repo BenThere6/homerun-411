@@ -22,6 +22,7 @@ import EditProfile from './pages/EditProfile';
 import colors from './assets/colors';
 import { AuthProvider, useAuth } from './AuthContext';
 import api, { setUnauthorizedHandler } from './utils/axiosInstance';
+import OfflineNotice from './components/OfflineNotice';
 import HomePlateIcon from './components/icons/HomePlateIcon';
 import HomePlateIcon_Selected from './components/icons/HomePlateIcon_Selected';
 import { initUserLocation } from './utils/initUserLocation';
@@ -122,9 +123,12 @@ export default function App() {
   useEffect(() => { connectSocket(); }, []);
   return (
     <AuthProvider>
-      <NavigationContainer>
-        <MainStack />
-      </NavigationContainer>
+      <>
+        <OfflineNotice />
+        <NavigationContainer>
+          <MainStack />
+        </NavigationContainer>
+      </>
     </AuthProvider>
   );
 }
