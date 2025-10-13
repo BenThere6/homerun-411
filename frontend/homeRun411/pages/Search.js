@@ -18,7 +18,6 @@ import colors from '../assets/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from '../utils/axiosInstance';
 import { getWithCache } from '../utils/fetchWithCache';
-import { getWithCache } from '../utils/fetchWithCache';
 import ParkCard from '../components/ParkCard';
 import { getCoordinatesFromZip } from '../utils/zipLookup';
 import { BlurView } from 'expo-blur';

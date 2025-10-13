@@ -55,7 +55,11 @@ export default ({ config }) => {
       plugins: ["expo-font"],
       extra: {
         eas: { projectId: "28c1b134-de87-4ced-abb2-a68b218c1c13" },
-        BACKEND_URL
+        BACKEND_URL,
+        OPENWEATHER_API_KEY: process.env.OPENWEATHER_API_KEY,
+        POSITIONSTACK_API_KEY: process.env.POSITIONSTACK_API_KEY,
+        CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
+        CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY
       },
       owner: "benthere7",
       updates: { url: "https://u.expo.dev/28c1b134-de87-4ced-abb2-a68b218c1c13" }

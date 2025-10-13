@@ -1,6 +1,8 @@
 // utils/getWeather.js
 import axios from 'axios';
-import { OPENWEATHER_API_KEY } from '@env';
+import Constants from 'expo-constants';
+const EXTRA = Constants.expoConfig?.extra || Constants.manifest?.extra || {};
+const OPENWEATHER_API_KEY = EXTRA.OPENWEATHER_API_KEY;
 
 export async function getWeather(lat, lon) {
   try {

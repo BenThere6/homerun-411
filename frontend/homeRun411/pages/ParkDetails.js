@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from '../utils/axiosInstance';
+import { getWithCache } from '../utils/fetchWithCache';
 import { buildSummaries } from '../utils/fieldSummaries';
 import { SpecRow, SpecSection } from '../components/SpecList';
 import { View, Text, StyleSheet, ScrollView, ImageBackground, TouchableOpacity, Platform, Linking, TextInput, Animated, Alert, ActionSheetIOS } from 'react-native';
@@ -179,11 +180,11 @@ export default function ParkDetails({ route, navigation }) {
       try {
         setLoadingPosts(true);
 
-        const { data } = await axios.get('/api/post', {
-          params: { referencedPark: park._id, sort: 'desc' } // server may ignore; we’ll filter locally
+        const posts = await getWithCache(`posts:park:${park._id}`, '/api/post', {
+          params: { referencedPark: park._id, sort: 'desc' }
         });
 
-        const raw = Array.isArray(data?.items) ? data.items : (Array.isArray(data) ? data : []);
+        const raw = Array.isArray(posts?.items) ? posts.items : (Array.isArray(posts) ? posts : []);
         const filtered = raw.filter(p => {
           const rp = p?.referencedPark;
           const id = typeof rp === 'string' ? rp : (rp?._id || rp?.id);
@@ -232,7 +233,7 @@ export default function ParkDetails({ route, navigation }) {
       if (hasDetails) return;
 
       try {
-        const { data } = await axios.get(`/api/park/${incomingId}`);
+        const data = await getWithCache(`park:${incomingId}`, `/api/park/${incomingId}`);
         setPark(data);
 
         const newImg = data?.pictures?.mainImageUrl || data?.mainImageUrl || defaultImage;

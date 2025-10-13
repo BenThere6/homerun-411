@@ -1,5 +1,7 @@
 import axios from 'axios';
-import { POSITIONSTACK_API_KEY } from '@env';
+import Constants from 'expo-constants';
+const EXTRA = Constants.expoConfig?.extra || Constants.manifest?.extra || {};
+const POSITIONSTACK_API_KEY = EXTRA.POSITIONSTACK_API_KEY;
 
 export async function getCoordinatesFromZip(zip) {
   try {
