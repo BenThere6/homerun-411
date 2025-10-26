@@ -36,8 +36,11 @@ const Stack = createStackNavigator();
 // Tabs Navigator
 function TabsNavigator() {
   const { isAdmin } = useAuth();
+
   return (
     <Tab.Navigator
+      // 🔑 Force the whole tab tree to rebuild whenever admin status changes
+      key={`tabs-${isAdmin ? 'admin' : 'user'}`}
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           if (route.name === 'Home') {
@@ -55,6 +58,8 @@ function TabsNavigator() {
             iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
+          } else if (route.name === 'Admin') {
+            iconName = focused ? 'shield-checkmark' : 'shield-checkmark-outline';
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -83,7 +88,6 @@ function TabsNavigator() {
           headerTitleAlign: 'center',
           headerStyle: { backgroundColor: colors.sixty },
           headerTintColor: colors.primaryText,
-          // the gear
           headerRight: () => (
             <TouchableOpacity
               onPress={() => navigation.navigate('Settings')}
@@ -104,13 +108,6 @@ function TabsNavigator() {
           options={{
             headerShown: true,
             headerTitle: 'Admin',
-            tabBarIcon: ({ color, size, focused }) => (
-              <Ionicons
-                name={focused ? 'shield-checkmark' : 'shield-checkmark-outline'}
-                size={size}
-                color={color}
-              />
-            ),
           }}
         />
       )}
@@ -149,10 +146,9 @@ function MainStack() {
           return;
         }
 
-        // ✅ Validate token and get profile
-        const { data: profile } = await api.get('/api/auth/profile');
+        // ✅ Validate token and get profile (authoritative user endpoint)
+        const { data: profile } = await api.get('/api/user/profile');
 
-        // Token is valid
         setIsLoggedIn(true);
         setUser(profile);
         await initUserLocation();

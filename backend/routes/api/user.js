@@ -311,23 +311,34 @@ router.get('/activity', auth, async (req, res) => {
 router.get('/profile', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const derivedRole = user.adminLevel === 0 ? 'top-admin' : (user.adminLevel === 1 ? 'admin' : 'user');
+    const role = user.adminLevel === 0 ? 'top-admin'
+      : user.adminLevel === 1 ? 'admin'
+        : 'user';
+
+    // 🚫 Prevent caching anywhere
+    res.set('Cache-Control', 'no-store');
+    // 🧭 Hint clients when to refresh
+    if (typeof user.roleVersion !== 'undefined') {
+      res.set('X-Role-Version', String(user.roleVersion));
+    }
 
     res.json({
       _id: user._id,
+      email: user.email,
       profile: user.profile,
       createdAt: user.createdAt,
       location: user.location,
-      email: user.email,
-      adminLevel: user.adminLevel, // 0 top, 1 admin, 2 user
-      role: user.adminLevel === 0 ? 'top-admin' : user.adminLevel === 1 ? 'admin' : 'user',
       zipCode: user.zipCode,
+
+      // role fields the client can key off of
+      adminLevel: user.adminLevel,
+      role,
+      roleVersion: user.roleVersion ?? 0,
     });
   } catch (err) {
+    console.error('GET /profile error', err);
     res.status(500).json({ message: err.message });
   }
 });
