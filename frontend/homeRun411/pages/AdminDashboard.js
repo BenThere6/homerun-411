@@ -40,11 +40,19 @@ async function safeGet(url, params) {
   }
 }
 
-const TABS = ['Home', 'Data Requests', 'Moderation', 'Parks', 'Users', 'Audit'];
-
 export default function AdminDashboard() {
-  const { isAdmin } = useAuth();
-  const [tab, setTab] = useState('Home');
+  const { isTopAdmin, isAdmin } = useAuth();
+
+  const TABS = useMemo(() => ([
+    { key: 'home', label: 'Home' },
+    { key: 'data', label: 'Data Requests' },
+    { key: 'mod', label: 'Moderation' },
+    { key: 'parks', label: 'Parks' },
+    ...(isTopAdmin ? [{ key: 'users', label: 'Users' }] : []),
+    { key: 'audit', label: 'Audit' },
+  ]), [isTopAdmin]);
+
+  const [tab, setTab] = useState(TABS[0].label);
 
   if (!isAdmin) {
     return (
@@ -56,7 +64,7 @@ export default function AdminDashboard() {
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
-      <HeaderTabs tab={tab} setTab={setTab} />
+      <HeaderTabs tab={tab} setTab={setTab} tabs={TABS} />
       <View style={styles.content}>
         {tab === 'Home' && <HomeOverview />}
         {tab === 'Data Requests' && <DataRequestsTab />}
@@ -70,7 +78,7 @@ export default function AdminDashboard() {
 }
 
 /* ---------------- UI: tabs header ---------------- */
-function HeaderTabs({ tab, setTab }) {
+function HeaderTabs({ tab, setTab, tabs }) {
   return (
     <View style={styles.tabsContainer}>
       <ScrollView
@@ -81,15 +89,15 @@ function HeaderTabs({ tab, setTab }) {
         style={styles.tabsScroll}
         contentContainerStyle={styles.tabsRow}
       >
-        {TABS.map(t => {
-          const active = t === tab;
+        {tabs.map(t => {
+          const active = t.label === tab;
           return (
             <TouchableOpacity
-              key={t}
-              onPress={() => setTab(t)}
+              key={t.key}
+              onPress={() => setTab(t.label)}
               style={[styles.tabBtn, active && styles.tabBtnActive]}
             >
-              <Text style={[styles.tabText, active && styles.tabTextActive]}>{t}</Text>
+              <Text style={[styles.tabText, active && styles.tabTextActive]}>{t.label}</Text>
             </TouchableOpacity>
           );
         })}
@@ -685,6 +693,29 @@ function RoleChips({ value, onChange }) {
   );
 }
 
+// Generic segmented control (re-uses your chip styles)
+function Segment({ value, setValue, options }) {
+  return (
+    <View style={styles.roleChips}>
+      {options.map((o) => {
+        const active = o.value === value;
+        return (
+          <TouchableOpacity
+            key={o.value}
+            onPress={() => setValue(o.value)}
+            style={[styles.roleChip, active && styles.roleChipActive]}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.roleChipText, active && styles.roleChipTextActive]}>
+              {o.label}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
+
 function StatusSegment({ status, setStatus }) {
   return (
     <Segment
@@ -698,6 +729,7 @@ function StatusSegment({ status, setStatus }) {
     />
   );
 }
+
 function SearchBar({ value, onChange, onSubmit, placeholder }) {
   return (
     <View style={styles.searchBar}>

@@ -22,11 +22,20 @@ export const AuthProvider = ({ children }) => {
   const appStateRef = useRef(AppState.currentState);
 
   // Flexible admin check (top-admin or adminLevel==0 or role=='admin')
-  const isAdmin = !!user && (
-    Number(user?.adminLevel) === 0 ||
-    user?.role === 'top-admin' ||
-    user?.role === 'admin'
-  );
+  const isAdmin =
+    !!user &&
+    (
+      user.isTopAdmin === true ||
+      Number(user?.adminLevel) === 0 ||
+      user?.role === 'admin'
+    );
+
+  const isTopAdmin =
+    !!user &&
+    (
+      Number(user?.adminLevel) === 0 ||
+      user?.role === 'top-admin'
+    );
 
   const refreshProfile = useCallback(async () => {
     try {
@@ -68,7 +77,14 @@ export const AuthProvider = ({ children }) => {
   }, [refreshProfile]);
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, setIsLoggedIn, user, setUser, isAdmin, refreshProfile }}>
+    <AuthContext.Provider value={{
+      isLoggedIn,
+      setIsLoggedIn,
+      user,
+      setUser,
+      isAdmin,
+      isTopAdmin
+    }}>
       {children}
     </AuthContext.Provider>
   );
