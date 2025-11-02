@@ -1,5 +1,5 @@
 // pages/Profile.jsx
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
   SafeAreaView,
   FlatList,
   RefreshControl,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,6 +19,7 @@ import { useNavigation } from '@react-navigation/native';
 import axios from '../utils/axiosInstance';
 import ParkCard from '../components/ParkCard';
 import colors from '../assets/colors';
+import * as ImagePicker from 'expo-image-picker';
 
 export default function ProfilePage() {
   const navigation = useNavigation();
@@ -26,6 +29,7 @@ export default function ProfilePage() {
   const [activity, setActivity] = useState({ posts: [], comments: [], likes: [] });
   const [favoriteParks, setFavoriteParks] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   // ---------- Data ----------
   const fetchProfile = async () => {
@@ -60,6 +64,56 @@ export default function ProfilePage() {
     setFavoriteParks(res.data.favorites || []);
   };
 
+  const handlePickAvatar = useCallback(async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'We need access to your photos to update your picture.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (result.canceled) return;
+
+      const asset = result.assets[0];
+      setUploadingAvatar(true);
+
+      const token = await AsyncStorage.getItem('token');
+      const form = new FormData();
+      form.append('avatar', {
+        uri: asset.uri,
+        name: 'avatar.jpg',
+        type: 'image/jpeg',
+      });
+
+      const uploadRes = await axios.post('/api/user/profile/avatar', form, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      // assume backend returns { profile: { ... } }
+      if (uploadRes?.data?.profile) {
+        setProfile((prev) => ({ ...prev, ...uploadRes.data.profile }));
+      } else {
+        // fallback: refetch full profile
+        fetchProfile();
+      }
+    } catch (err) {
+      console.error('avatar upload failed', err?.response?.data || err.message);
+      Alert.alert('Upload failed', 'Could not update your photo right now.');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchProfile();
     fetchActivity();
@@ -82,15 +136,6 @@ export default function ProfilePage() {
     }
   }, [createdAt]);
 
-  const stats = useMemo(
-    () => [
-      { key: 'favorites', label: 'Favorites', value: favoriteParks.length, icon: 'star' },
-      { key: 'posts', label: 'Posts', value: activity.posts.length, icon: 'document-text' },
-      { key: 'comments', label: 'Comments', value: activity.comments.length, icon: 'chatbox-ellipses' },
-    ],
-    [favoriteParks.length, activity.posts.length, activity.comments.length]
-  );
-
   // ---------- Render ----------
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -103,26 +148,28 @@ export default function ProfilePage() {
       >
         {/* Hero Header */}
         <View style={styles.heroCard}>
-          <Image
-            source={{
-              uri: profile.avatarUrl || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
-            }}
-            style={styles.avatar}
-          />
+          <TouchableOpacity onPress={handlePickAvatar} activeOpacity={0.75}>
+            <View style={{ position: 'relative' }}>
+              <Image
+                source={{
+                  uri: profile.avatarUrl || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+                }}
+                style={styles.avatar}
+              />
+              {uploadingAvatar && (
+                <View style={styles.avatarOverlay}>
+                  <ActivityIndicator />
+                </View>
+              )}
+              <View style={styles.avatarEditBadge}>
+                <Ionicons name="camera-outline" size={14} color="#fff" />
+              </View>
+            </View>
+          </TouchableOpacity>
           <Text style={styles.name}>
             {(profile.firstName || '').trim()} {(profile.lastName || '').trim()}
           </Text>
           {!!memberSince && <Text style={styles.memberSince}>Member Since: {memberSince}</Text>}
-
-          <View style={styles.statsRow}>
-            {stats.map((s, idx) => (
-              <View key={s.key} style={[styles.stat, idx !== 0 && styles.statDivider]}>
-                <Ionicons name={s.icon} size={16} color={colors.secondaryText} style={{ marginBottom: 4 }} />
-                <Text style={styles.statValue}>{s.value}</Text>
-                <Text style={styles.statLabel}>{s.label}</Text>
-              </View>
-            ))}
-          </View>
         </View>
 
         {/* Favorites */}
@@ -222,8 +269,17 @@ export default function ProfilePage() {
           )}
         </Section>
 
+        <TouchableOpacity
+          style={styles.manageBtn}
+          onPress={() => navigation.navigate('Settings')}
+        >
+          <Ionicons name="settings-outline" size={16} color="#fff" />
+          <Text style={styles.manageBtnText}>Manage Account</Text>
+        </TouchableOpacity>
+
         {/* Bottom spacer */}
         <View style={{ height: 28 }} />
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -291,13 +347,13 @@ function fmtDate(d) {
 /* ----------------------------- Styles ---------------------------- */
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.sixty },
-  screen: { flex: 1, backgroundColor: colors.sixty },
+  safeArea: { flex: 1, backgroundColor: colors.lightBlue },
+  screen: { flex: 1, backgroundColor: colors.lightBlue },
   scrollContainer: { paddingBottom: 24 },
 
   /* Hero */
   heroCard: {
-    // backgroundColor: colors.lightBlue,
+    backgroundColor: 'rgba(255,255,255,0.9)',
     margin: 16,
     padding: 20,
     borderRadius: 16,
@@ -378,4 +434,33 @@ const styles = StyleSheet.create({
   activityTitle: { fontSize: 15, fontWeight: '500', color: colors.primaryText },
   activityMeta: { fontSize: 12, color: colors.secondaryText },
   activityDate: { fontSize: 12, color: colors.secondaryText },
+
+  avatarOverlay: {
+    position: 'absolute',
+    inset: 0,
+    backgroundColor: 'rgba(255,255,255,0.45)',
+    borderRadius: 57,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  changePhoto: {
+    fontSize: 12,
+    color: colors.secondaryText,
+    marginTop: 6,
+  },
+  manageBtn: {
+    flexDirection: 'row',
+    alignSelf: 'center',
+    backgroundColor: '#ff944d',
+    paddingHorizontal: 20,
+    paddingVertical: 11,
+    borderRadius: 999,
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 12,
+  },
+  manageBtnText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
 });

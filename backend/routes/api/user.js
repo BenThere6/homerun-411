@@ -10,6 +10,7 @@ const Comment = require('../../models/Comment');
 const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage() });
 const cloudinary = require('cloudinary').v2;
+const streamifier = require('streamifier');
 
 // Ensure these env vars are set in your backend:
 // CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
@@ -484,28 +485,53 @@ router.post('/recently-viewed/:parkId', auth, async (req, res) => {
   }
 });
 
-// POST /api/user/upload-avatar
+// routes/api/user.js
 router.post('/upload-avatar', auth, upload.single('avatar'), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
 
-    const uploadRes = await cloudinary.uploader.upload_stream(
-      { folder: 'hr411/avatars', resource_type: 'image', transformation: [{ width: 512, height: 512, crop: 'fill', gravity: 'face' }] },
-      (err, result) => {
-        if (err) {
-          console.error('Cloudinary error', err);
-          return res.status(500).json({ message: 'Upload failed' });
-        }
-        return res.json({ secureUrl: result.secure_url, publicId: result.public_id });
-      }
-    );
+    // turn cloudinary upload_stream into a promise
+    const streamUpload = (buffer) => {
+      return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            folder: 'hr411/avatars',
+            resource_type: 'image',
+            transformation: [
+              // square-ish, face-centered
+              { width: 512, height: 512, crop: 'fill', gravity: 'face' },
+              { quality: 'auto', fetch_format: 'auto' },
+            ],
+          },
+          (error, result) => {
+            if (error) return reject(error);
+            resolve(result);
+          }
+        );
 
-    // Stream buffer to Cloudinary
-    const stream = uploadRes;
-    stream.end(req.file.buffer);
-  } catch (e) {
-    console.error('Upload avatar failed:', e);
-    res.status(500).json({ message: 'Server error' });
+        streamifier.createReadStream(buffer).pipe(stream);
+      });
+    };
+
+    const cldResult = await streamUpload(req.file.buffer);
+
+    // save it on the logged-in user
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { 'profile.avatarUrl': cldResult.secure_url },
+      { new: true }
+    ).select('profile');
+
+    return res.json({
+      message: 'Avatar uploaded',
+      avatarUrl: cldResult.secure_url,
+      profile: user.profile,
+    });
+  } catch (err) {
+    console.error('Upload avatar failed:', err);
+    return res.status(500).json({ message: 'Upload failed' });
   }
 });
 
