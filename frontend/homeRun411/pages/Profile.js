@@ -92,7 +92,7 @@ export default function ProfilePage() {
         type: 'image/jpeg',
       });
 
-      const uploadRes = await axios.post('/api/user/profile/avatar', form, {
+      const uploadRes = await axios.post('/api/user/upload-avatar', form, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',
