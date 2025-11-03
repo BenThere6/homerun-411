@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../../models/User');
-const auth = require('../../middleware/auth');
+const authenticate = require('../../middleware/authenticate');
 const isAdmin = require('../../middleware/isAdmin');
 const zipcodes = require('zipcodes');
 const Park = require('../../models/Park');
@@ -74,7 +74,7 @@ router.post('/', async (req, res) => {
 });
 
 // Add a favorite park
-router.post('/favorite-parks/:parkId', auth, async (req, res) => {
+router.post('/favorite-parks/:parkId', authenticate, async (req, res) => {
   try {
     const parkId = req.params.parkId;
 
@@ -118,7 +118,7 @@ function calculateDistanceInMiles(userCoords, parkCoords) {
   return Math.round((R * c) * 10) / 10; // Rounded to 1 decimal
 }
 
-router.get('/home-parks', auth, async (req, res) => {
+router.get('/home-parks', authenticate, async (req, res) => {
   try {
     const user = await User.findById(req.user.id)
       .populate('favoriteParks')
@@ -134,8 +134,6 @@ router.get('/home-parks', auth, async (req, res) => {
       : (Array.isArray(user.location?.coordinates) ? user.location.coordinates : null);
 
     console.log('📨 Received override coords:', overrideLat, overrideLon, '→ using', userCoords);
-
-    console.log('📨 Received override coords:', overrideLat, overrideLon);
 
     if (!user) return res.status(404).json({ message: 'User not found' });
 
@@ -258,13 +256,13 @@ async function listAdminUsers(req, res) {
 }
 
 // New admin endpoint used by the app
-router.get('/admin/users', auth, isAdmin, listAdminUsers);
+router.get('/admin/users', authenticate, isAdmin, listAdminUsers);
 
 // Keep legacy "/" but make it paginated as well for safety
-router.get('/', auth, isAdmin, listAdminUsers);
+router.get('/', authenticate, isAdmin, listAdminUsers);
 
 // Search users by email (admin only)
-router.get('/search', auth, isAdmin, async (req, res) => {
+router.get('/search', authenticate, isAdmin, async (req, res) => {
   try {
     const userEmail = req.query.email;
     const users = await User.find({ email: { $regex: userEmail, $options: 'i' } });
@@ -276,7 +274,7 @@ router.get('/search', auth, isAdmin, async (req, res) => {
 });
 
 // GET /api/user/activity
-router.get('/activity', auth, async (req, res) => {
+router.get('/activity', authenticate, async (req, res) => {
   const userId = req.user?.id || req.user?._id;
   if (!userId) {
     return res.status(401).json({ message: 'Unauthorized' });
@@ -312,7 +310,7 @@ router.get('/activity', auth, async (req, res) => {
 });
 
 // Get user profile
-router.get('/profile', auth, async (req, res) => {
+router.get('/profile', authenticate, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -349,7 +347,7 @@ router.get('/profile', auth, async (req, res) => {
 
 // PATCH /api/user/admin/users/:userId/role
 // Only top-admin (adminLevel === 0) can change another user's adminLevel
-router.patch('/admin/users/:userId/role', auth, isAdmin, async (req, res) => {
+router.patch('/admin/users/:userId/role', authenticate, isAdmin, async (req, res) => {
   try {
     // Ensure requester is a top-admin
     const acting = await User.findById(req.user.id).select('adminLevel');
@@ -392,7 +390,7 @@ router.patch('/admin/users/:userId/role', auth, isAdmin, async (req, res) => {
 });
 
 // Get user settings
-router.get('/settings', auth, async (req, res) => {
+router.get('/settings', authenticate, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
     if (!user) {
@@ -406,7 +404,7 @@ router.get('/settings', auth, async (req, res) => {
 });
 
 // Update user settings
-router.patch('/settings', auth, async (req, res) => {
+router.patch('/settings', authenticate, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
     if (!user) {
@@ -434,12 +432,12 @@ router.patch('/settings', auth, async (req, res) => {
 });
 
 // Get a specific user by ID
-router.get('/:id', auth, getUser, (req, res) => {
+router.get('/:id', authenticate, getUser, (req, res) => {
   res.json(res.user);
 });
 
 // Update a specific user by ID
-router.patch('/:id', auth, getUser, async (req, res) => {
+router.patch('/:id', authenticate, getUser, async (req, res) => {
   const updateFields = ['email', 'passwordHash', 'role', 'location', 'zipCode'];
 
   updateFields.forEach(field => {
@@ -457,7 +455,7 @@ router.patch('/:id', auth, getUser, async (req, res) => {
 });
 
 // Record recently viewed park
-router.post('/recently-viewed/:parkId', auth, async (req, res) => {
+router.post('/recently-viewed/:parkId', authenticate, async (req, res) => {
   try {
     const { parkId } = req.params;
     const user = await User.findById(req.user.id);
@@ -489,7 +487,7 @@ router.post('/recently-viewed/:parkId', auth, async (req, res) => {
 });
 
 // routes/api/user.js
-router.post('/upload-avatar', auth, upload.single('avatar'), async (req, res) => {
+router.post('/upload-avatar', authenticate, upload.single('avatar'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -541,7 +539,7 @@ router.post('/upload-avatar', auth, upload.single('avatar'), async (req, res) =>
 });
 
 // Update user profile
-router.patch('/profile', auth, async (req, res) => {
+router.patch('/profile', authenticate, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -581,7 +579,7 @@ router.patch('/profile', auth, async (req, res) => {
 });
 
 // Delete a specific user by ID
-router.delete('/:userId', auth, isAdmin, async (req, res) => {
+router.delete('/:userId', authenticate, isAdmin, async (req, res) => {
   try {
     const userId = req.params.userId;
     const user = await User.findByIdAndDelete(userId);
@@ -597,7 +595,7 @@ router.delete('/:userId', auth, isAdmin, async (req, res) => {
 });
 
 // Remove a favorite park
-router.delete('/favorite-parks/:parkId', auth, async (req, res) => {
+router.delete('/favorite-parks/:parkId', authenticate, async (req, res) => {
   try {
     const parkId = req.params.parkId;
 

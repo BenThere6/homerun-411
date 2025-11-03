@@ -41,12 +41,6 @@ app.get('/health', (req, res) => {
   res.send('ok');
 });
 
-const fileUpload = require('express-fileupload');
-app.use(fileUpload({
-  useTempFiles: true, // good for Cloudinary
-  tempFileDir: '/tmp'
-}));
-
 // Connect to MongoDB
 connectDB();
 

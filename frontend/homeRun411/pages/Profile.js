@@ -89,10 +89,13 @@ export default function ProfilePage() {
       const token = await AsyncStorage.getItem('token');
 
       const form = new FormData();
+      const mime = asset.mimeType || (asset.uri?.toLowerCase().endsWith('.heic') ? 'image/heic' : 'image/jpeg');
+      const ext = (mime.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+
       form.append('avatar', {
-        uri: asset.uri, // should be file://
-        name: asset.fileName || 'avatar.jpg',
-        type: asset.mimeType || 'image/jpeg',
+        uri: asset.uri,
+        name: asset.fileName || `avatar.${ext}`,
+        type: mime,
       });
 
       const uploadRes = await axios.post('/api/user/upload-avatar', form, {
