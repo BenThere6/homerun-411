@@ -12,6 +12,7 @@ import { getWeather } from '../utils/getWeather';
 import WeatherWidget from '../components/WeatherWidget';
 import * as Clipboard from 'expo-clipboard';
 import { ActivityIndicator } from 'react-native';
+import colors from '../assets/colors';
 
 export default function ParkDetails({ route, navigation }) {
   // Pull in whatever was passed, but manage our own park state
@@ -801,7 +802,13 @@ export default function ParkDetails({ route, navigation }) {
                 backgroundColor: '#fde68a', opacity: flashOpacity('amenities'), borderRadius: 12
               }}
             />
-            <Text style={styles.sectionTitle}>Amenities & Features</Text>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionHeaderLeft}>
+                <View style={styles.sectionAccent} />
+                <Ionicons name="leaf-outline" size={18} color={colors.brandNavyDark} />
+                <Text style={styles.sectionHeaderText}>Amenities & Features</Text>
+              </View>
+            </View>
             <Text style={styles.subtitle}>Pet Friendly</Text>
             <Text style={styles.text}>{park.isPetFriendly ? 'Yes' : 'No'}</Text>
             <Text style={styles.subtitle}>Entrance Fee</Text>
@@ -831,7 +838,13 @@ export default function ParkDetails({ route, navigation }) {
                   backgroundColor: '#fde68a', opacity: flashOpacity('details'), borderRadius: 12
                 }}
               />
-              <Text style={styles.sectionTitle}>Additional Park Details</Text>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionHeaderLeft}>
+                  <View style={styles.sectionAccent} />
+                  <Ionicons name="information-circle-outline" size={18} color={colors.brandNavyDark} />
+                  <Text style={styles.sectionHeaderText}>Additional Park Details</Text>
+                </View>
+              </View>
               <Animated.View
                 onLayout={onLayoutFor('details_battingCagesDescription', { offsetKey: 'details' })}
                 style={{ position: 'relative', borderRadius: 8 }}
@@ -1015,8 +1028,16 @@ export default function ParkDetails({ route, navigation }) {
                 backgroundColor: '#fde68a', opacity: flashOpacity('restrooms'), borderRadius: 12
               }}
             />
-            <TouchableOpacity onPress={() => toggleSection('restrooms')}>
-              <Text style={styles.sectionTitle}>🚻 Restrooms {showRestrooms ? '▲' : '▼'}</Text>
+            <TouchableOpacity
+              onPress={() => toggleSection('restrooms')}
+              style={styles.sectionHeader}
+              activeOpacity={0.85}
+            >
+              <View style={styles.sectionHeaderLeft}>
+                <View style={styles.sectionAccent} />
+                <Text style={styles.sectionHeaderText}>🚻 Restrooms</Text>
+              </View>
+              <Ionicons name={showRestrooms ? 'chevron-up' : 'chevron-down'} size={16} color={colors.brandNavyDark} />
             </TouchableOpacity>
 
             {showRestrooms && (
@@ -1085,7 +1106,13 @@ export default function ParkDetails({ route, navigation }) {
               />
             )}
 
-            <Text style={styles.sectionTitle}>Concessions</Text>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionHeaderLeft}>
+                <View style={styles.sectionAccent} />
+                <Ionicons name="fast-food-outline" size={18} color={colors.brandNavyDark} />
+                <Text style={styles.sectionHeaderText}>Concessions</Text>
+              </View>
+            </View>
             <Text style={styles.subtitle}>Available</Text>
             <Text style={styles.text}>{park.concessions?.available ? 'Yes' : 'No'}</Text>
 
@@ -1132,7 +1159,13 @@ export default function ParkDetails({ route, navigation }) {
                 backgroundColor: '#fde68a', opacity: flashOpacity('fields'), borderRadius: 12
               }}
             />
-            <Text style={styles.sectionTitle}>Field Details</Text>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionHeaderLeft}>
+                <View style={styles.sectionAccent} />
+                <Ionicons name="grid-outline" size={18} color={colors.brandNavyDark} />
+                <Text style={styles.sectionHeaderText}>Field Details</Text>
+              </View>
+            </View>
 
             {['Surfaces', 'Dimensions', 'Amenities', 'Other'].map((g, i, arr) => {
               const list = grouped.get(g);
@@ -1446,7 +1479,7 @@ export default function ParkDetails({ route, navigation }) {
           activeOpacity={0.85}
           style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
         >
-          <Ionicons name="arrow-up" size={22} color="#fff" />
+          <Ionicons name="arrow-up" size={22} color='#fff' />
         </TouchableOpacity>
       </Animated.View>
     </View>
@@ -1535,15 +1568,14 @@ const styles = StyleSheet.create({
   },
   centeredText: {
     fontSize: 16,
-    fontWeight: '600', // or 'bold' for even more pop
-    color: '#1b5e20',  // deeper green for visual contrast
-    // marginBottom: 4,
+    fontWeight: '600',
+    color: colors.brandNavyDark,
     textAlign: 'center',
   },
   locationText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1b5e20',
+    color: colors.brandNavyDark,
     textAlign: 'center',
     marginBottom: 2,
   },
@@ -1783,7 +1815,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 20,
     right: 20,
-    backgroundColor: '#1d4ed8',
+    backgroundColor: colors.brandGold,
     borderRadius: 25,
     width: 50,
     height: 50,
@@ -1794,5 +1826,34 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 3,
     elevation: 5,
+  },
+  // --- Colored section headers (navy theme) ---
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.brandBlueSoft,      // soft navy-tinted pill
+    borderColor: colors.quickLinkBorder,        // subtle navy border
+    borderWidth: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    marginBottom: 12,
+  },
+  sectionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  sectionAccent: {
+    display: 'none',
+    width: 0,
+    height: 0,
+    marginRight: 0,
+  },  
+  sectionHeaderText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.brandNavyDark,                // navy text
+    marginLeft: 8,
   },
 });
