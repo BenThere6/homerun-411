@@ -101,7 +101,7 @@ const PostHeader = ({
                     {showEdited && <Text style={styles.editedTag}>(edited)</Text>}
                     {post.pinned && (
                         <View style={styles.pinChip}>
-                            <Ionicons name="pin" size={12} color="#b45309" />
+                            <Ionicons name="pin" size={12} color={colors.brandGold} />
                         </View>
                     )}
                 </View>
@@ -116,7 +116,7 @@ const PostHeader = ({
                         borderRadius: 10, borderWidth: 1, borderColor: '#ffe0bf', marginBottom: 8
                     }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                        <Ionicons name="location-outline" size={16} color="#f28b02" />
+                        <Ionicons name="location-outline" size={16} color={colors.thirty} />
                         <View style={{ marginLeft: 8, flex: 1 }}>
                             <Text numberOfLines={1} style={{ fontWeight: '700', color: '#333', fontSize: 14 }}>
                                 {post.referencedPark.name}
@@ -667,8 +667,10 @@ export default function ForumPage({ navigation }) {
     useLayoutEffect(() => {
         navigation.setOptions({
             title: 'Forum',
-            headerStyle: { backgroundColor: '#ffd699' },
+            headerStyle: { backgroundColor: colors.brandNavyDark },
             headerTitleAlign: 'center',
+            headerTintColor: '#fff',
+            headerTitleStyle: { color: '#fff', fontWeight: '700' },
 
             // Show a back chevron only while a post is open
             // Show a back chevron only while a post is open
@@ -689,7 +691,7 @@ export default function ForumPage({ navigation }) {
                     };
                     return (
                         <TouchableOpacity onPress={onBackFromPost} style={{ paddingLeft: 8 }}>
-                            <Ionicons name="chevron-back" size={24} color="#333" />
+                            <Ionicons name="chevron-back" size={24} color="#fff" />
                         </TouchableOpacity>
                     );
                 }
@@ -738,7 +740,7 @@ export default function ForumPage({ navigation }) {
                         style={{ paddingRight: 12 }}
                     >
                         <View>
-                            <Ionicons name="filter-outline" size={22} color="#333" />
+                            <Ionicons name="filter-outline" size={22} color="#fff" />
                             {!!appliedFiltersCount && (
                                 <View
                                     style={{
@@ -748,7 +750,7 @@ export default function ForumPage({ navigation }) {
                                         minWidth: 16,
                                         height: 16,
                                         borderRadius: 8,
-                                        backgroundColor: '#ef4444',
+                                        backgroundColor: colors.brandGold,
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         paddingHorizontal: 3,
@@ -1606,7 +1608,7 @@ export default function ForumPage({ navigation }) {
                                             <View key={id} style={styles.chip}>
                                                 <Text style={styles.chipText} numberOfLines={1}>{p.name}</Text>
                                                 <Pressable onPress={() => togglePendingPark(p)} style={{ paddingLeft: 6 }}>
-                                                    <Ionicons name="close" size={14} color="#7c2d12" />
+                                                    <Ionicons name="close" size={14} color={colors.thirty} />
                                                 </Pressable>
                                             </View>
                                         );
@@ -1623,7 +1625,7 @@ export default function ForumPage({ navigation }) {
                                             <Ionicons
                                                 name={selected ? 'checkbox' : 'square-outline'}
                                                 size={20}
-                                                color={selected ? '#f28b02' : '#64748b'}
+                                                color={selected ? colors.thirty : '#64748b'}
                                             />
                                             <View style={{ marginLeft: 10, flex: 1 }}>
                                                 <Text style={styles.rowTitle} numberOfLines={1}>{p.name}</Text>
@@ -1692,7 +1694,7 @@ export default function ForumPage({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#fffaf0' },
+    container: { flex: 1, backgroundColor: colors.sixty },
     listContent: { padding: 16 },
     card: {
         backgroundColor: '#fff',
@@ -1728,8 +1730,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         alignSelf: 'flex-start',
-        backgroundColor: '#fff7ed',
-        borderColor: '#fed7aa',
+        backgroundColor: 'rgba(42,45,116,0.06)',
+        borderColor: 'rgba(42,45,116,0.20)',
         borderWidth: 1,
         paddingHorizontal: 6,
         paddingVertical: 2,
@@ -1746,7 +1748,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 20,
         right: 20,
-        backgroundColor: '#f28b02',
+        backgroundColor: colors.brandGold,
         borderRadius: 28,
         width: 56,
         height: 56,
@@ -1833,12 +1835,12 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingVertical: 10,
         paddingHorizontal: 12,
-        backgroundColor: '#fff8ee',
+        backgroundColor: 'rgba(42,45,116,0.05)',
         borderRadius: 10,
         marginTop: 8,
         marginBottom: 10,
         borderWidth: 1,
-        borderColor: '#ffe0bf',
+        borderColor: 'rgba(42,45,116,0.15)',
     },
     parkChipLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
     parkChipName: { fontWeight: '700', color: '#333', fontSize: 14 },
@@ -1939,9 +1941,9 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#e5e7eb',
     },
-    pillActive: { backgroundColor: '#eef2ff', borderColor: '#c7d2fe' },
+    pillActive: { backgroundColor: 'rgba(42,45,116,0.08)', borderColor: 'rgba(42,45,116,0.25)' },
+    pillTextActive: { color: colors.thirty },
     pillText: { color: '#334155', fontSize: 13, fontWeight: '600' },
-    pillTextActive: { color: '#3730a3' },
     toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, marginBottom: 6 },
     toggleText: { color: '#334155', fontSize: 14, fontWeight: '600' },
     currentFilterBox: {
@@ -1949,14 +1951,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 8,
         marginTop: 10,
-        backgroundColor: '#fff8ee',
+        backgroundColor: 'rgba(42,45,116,0.06)',
         borderWidth: 1,
-        borderColor: '#ffe0bf',
+        borderColor: 'rgba(42,45,116,0.20)',
         borderRadius: 10,
         paddingVertical: 8,
         paddingHorizontal: 10,
     },
-    currentFilterText: { color: '#7c2d12', fontWeight: '700' },
+    currentFilterText: { color: colors.thirty, fontWeight: '700' },
     sheetButtons: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 16, gap: 10 },
     sheetBtn: { flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: 10 },
     btnPrimary: { backgroundColor: '#f28b02' },
@@ -2000,15 +2002,15 @@ const styles = StyleSheet.create({
     chip: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#fff8ee',
+        backgroundColor: 'rgba(42,45,116,0.06)',
         borderWidth: 1,
-        borderColor: '#ffe0bf',
+        borderColor: 'rgba(42,45,116,0.20)',
         borderRadius: 16,
         paddingHorizontal: 10,
         paddingVertical: 6,
         maxWidth: '100%',
     },
-    chipText: { color: '#7c2d12', fontWeight: '700', maxWidth: 200 },
+    chipText: { color: colors.thirty, fontWeight: '700', maxWidth: 200 },
     rowItem: {
         flexDirection: 'row',
         alignItems: 'center',
