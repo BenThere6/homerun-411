@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons'; // For icons
 import { useNavigation } from '@react-navigation/native'; // For navigation
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -12,17 +13,17 @@ import * as Location from 'expo-location';
 import { getWeather } from '../utils/getWeather';
 import WeatherWidget from '../components/WeatherWidget';
 import zipcodes from 'zipcodes'; // You may need to `npm install zipcodes`
+import { LinearGradient } from 'expo-linear-gradient';
+import { useAuth } from '../AuthContext';
+import SectionHeader from '../components/SectionHeader';
 
 const quickLinks = [
-  // { id: '1', icon: 'location', label: 'Nearby Facilities', screen: 'Facilities' },
   { id: '2', icon: 'book', label: 'Baseball Etiquette', screen: 'Etiquette' },
   { id: '3', icon: 'briefcase', label: 'Game Day Necessities', screen: 'GameDay' },
   { id: '4', icon: 'cog', label: 'Settings', screen: 'Settings' },
 ];
 
 export default function Homepage() {
-  const [firstName, setFirstName] = useState(''); // State to store first name
-  const [role, setRole] = useState('User'); // State to store role (default is 'User')
   const [favoriteParks, setFavoriteParks] = useState([]);
   const [nearbyParks, setNearbyParks] = useState([]);
   const [recentlyViewedParks, setRecentlyViewedParks] = useState([]);
@@ -35,6 +36,8 @@ export default function Homepage() {
   const [cityName, setCityName] = useState(null);
   const [weatherLabel, setWeatherLabel] = useState('');
   const [userCoords, setUserCoords] = useState(null);
+  const { user, isAdmin } = useAuth();
+  const greetingName = (user?.firstName || user?.name || '').split(' ')[0];
 
   useEffect(() => {
     const fetchLocationAndWeather = async () => {
@@ -164,12 +167,12 @@ export default function Homepage() {
   );
 
   // Conditionally add the admin link if the user is an admin
-  const updatedQuickLinks = role === 'Admin'
-    ? [...quickLinks, { id: '4', icon: 'construct', label: 'Admin', screen: 'Admin' }]
+  const updatedQuickLinks = isAdmin
+    ? [...quickLinks, { id: 'admin', icon: 'construct', label: 'Admin', screen: 'Admin' }]
     : quickLinks;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* Include the Header component */}
       <Header />
 
@@ -177,95 +180,112 @@ export default function Homepage() {
       <View style={styles.divider} />
 
       {/* Scrollable content */}
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {/* Welcome Message */}
-        <Text style={styles.welcomeMessage}>
-          {firstName ? `Welcome back, ${firstName}!` : 'Welcome back!'}
-        </Text>
+      <View style={styles.body}>
+        <ScrollView contentContainerStyle={styles.scrollContainer} style={styles.scroll}>
 
-        <WeatherWidget weather={weather} locationLabel={weatherLabel} />
+          {/* Welcome Message */}
+          <Text style={styles.welcomeMessage}>
+            {greetingName ? `Welcome back, ${greetingName}!` : 'Welcome back!'}
+          </Text>
 
-        <Text style={styles.sectionTitle}>Quick Links</Text>
+          {/* <WeatherWidget weather={weather} locationLabel={weatherLabel} /> */}
 
-        {/* Quick Links with Horizontal Scroll */}
-        <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} style={styles.quickLinksContainer}>
-          {updatedQuickLinks.map((link, index) => (
-            <TouchableOpacity
-              key={link.id}
-              style={[
-                styles.linkCard,
-                index === 0 && styles.firstLinkCard, // Apply margin to the first card
-                index === updatedQuickLinks.length - 1 && styles.lastLinkCard, // Apply margin to the last card
-              ]}
-              onPress={() => navigation.navigate(link.screen)}
-            >
-              <Ionicons name={link.icon} size={30} color={colors.ten} />
-              <View style={styles.labelContainer}>
-                <Text style={styles.linkLabel}>{link.label}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+          <SectionHeader title="Quick Links" />
+
+          {/* Quick Links with Horizontal Scroll */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickLinksContainer}>
+            {updatedQuickLinks.map((link, index) => (
+              <TouchableOpacity
+                key={link.id}
+                activeOpacity={0.85}
+                style={[
+                  styles.linkCard,
+                  index === 0 && styles.firstLinkCard,
+                  index === updatedQuickLinks.length - 1 && styles.lastLinkCard,
+                ]}
+                onPress={() => navigation.navigate(link.screen)}
+              >
+                <LinearGradient
+                  colors={colors.quickLinkGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.linkCardBg}
+                >
+                  {/* soft glossy highlight */}
+                  <LinearGradient
+                    colors={['rgba(255,255,255,0.35)', 'rgba(255,255,255,0.08)', 'transparent']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    style={styles.gloss}
+                  />
+
+                  {/* translucent icon pill */}
+                  <View style={styles.iconPill}>
+                    <Ionicons name={link.icon} size={26} color="#fff" />
+                  </View>
+
+                  <View style={styles.labelContainer}>
+                    <Text numberOfLines={2} style={styles.linkLabelColored}>{link.label}</Text>
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          {favoriteParks.length > 0 && (
+            <View style={styles.sectionContainer}>
+              <TouchableOpacity onPress={() => setExpandFavorites(prev => !prev)}>
+                <SectionHeader title={`Favorite Parks ${expandFavorites ? '▼' : '▲'}`} />
+              </TouchableOpacity>
+              {expandFavorites && favoriteParks.map(park => (
+                <ParkCard
+                  key={park._id}
+                  park={park}
+                  isFavorited={favoriteIds.includes(park._id)}
+                  onToggleFavorite={() => toggleFavorite(park)}
+                />
+              ))}
+            </View>
+          )}
+
+          {nearbyParks.length > 0 && (
+            <View style={styles.sectionContainer}>
+              <TouchableOpacity onPress={() => setExpandNearby(prev => !prev)}>
+                <SectionHeader title={`Parks near ${cityName || 'you'} ${expandNearby ? '▼' : '▲'}`} />
+              </TouchableOpacity>
+              {expandNearby && nearbyParks.map(park => (
+                <ParkCard
+                  key={park._id}
+                  park={park}
+                  isFavorited={favoriteIds.includes(park._id)}
+                  onToggleFavorite={() => toggleFavorite(park)}
+                />
+              ))}
+            </View>
+          )}
+
+          {recentlyViewedParks.length > 0 && (
+            <View style={styles.sectionContainer}>
+              <TouchableOpacity onPress={() => setExpandRecentlyViewed(prev => !prev)}>
+                <SectionHeader title={`Recently Viewed Parks ${expandRecentlyViewed ? '▼' : '▲'}`} />
+              </TouchableOpacity>
+              {expandRecentlyViewed && recentlyViewedParks.map(park => (
+                <ParkCard
+                  key={park._id}
+                  park={park}
+                  isFavorited={favoriteIds.includes(park._id)}
+                  onToggleFavorite={() => toggleFavorite(park)}
+                />
+              ))}
+            </View>
+          )}
+
+          {favoriteParks.length === 0 && nearbyParks.length === 0 && recentlyViewedParks.length === 0 && (
+            <Text style={styles.noDataText}>No parks to show right now. Start exploring!</Text>
+          )}
+
         </ScrollView>
-
-        {favoriteParks.length > 0 && (
-          <View style={styles.sectionContainer}>
-            <TouchableOpacity onPress={() => setExpandFavorites(prev => !prev)}>
-              <Text style={styles.sectionTitle}>
-                Favorite Parks {expandFavorites ? '▼' : '▲'}
-              </Text>
-            </TouchableOpacity>
-            {expandFavorites && favoriteParks.map(park => (
-              <ParkCard
-                key={park._id}
-                park={park}
-                isFavorited={favoriteIds.includes(park._id)}
-                onToggleFavorite={() => toggleFavorite(park)}
-              />
-            ))}
-          </View>
-        )}
-
-        {nearbyParks.length > 0 && (
-          <View style={styles.sectionContainer}>
-            <TouchableOpacity onPress={() => setExpandNearby(prev => !prev)}>
-              <Text style={styles.sectionTitle}>
-                Parks near {cityName || 'you'} {expandNearby ? '▼' : '▲'}
-              </Text>
-            </TouchableOpacity>
-            {expandNearby && nearbyParks.map(park => (
-              <ParkCard
-                key={park._id}
-                park={park}
-                isFavorited={favoriteIds.includes(park._id)}
-                onToggleFavorite={() => toggleFavorite(park)}
-              />
-            ))}
-          </View>
-        )}
-
-        {recentlyViewedParks.length > 0 && (
-          <View style={styles.sectionContainer}>
-            <TouchableOpacity onPress={() => setExpandRecentlyViewed(prev => !prev)}>
-              <Text style={styles.sectionTitle}>
-                Recently Viewed Parks {expandRecentlyViewed ? '▼' : '▲'}
-              </Text>
-            </TouchableOpacity>
-            {expandRecentlyViewed && recentlyViewedParks.map(park => (
-              <ParkCard
-                key={park._id}
-                park={park}
-                isFavorited={favoriteIds.includes(park._id)}
-                onToggleFavorite={() => toggleFavorite(park)}
-              />
-            ))}
-          </View>
-        )}
-
-        {favoriteParks.length === 0 && nearbyParks.length === 0 && recentlyViewedParks.length === 0 && (
-          <Text style={styles.noDataText}>No parks to show right now. Start exploring!</Text>
-        )}
-
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -276,8 +296,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.sixty,
   },
+  homeTopSafe: {
+    backgroundColor: colors.brandNavyDark,
+  },
   scrollContainer: {
     paddingBottom: 20,
+  },
+  scroll: {
+    backgroundColor: colors.sixty,
+  },
+  body: {
+    flex: 1,
+    backgroundColor: colors.sixty,
   },
 
   /* Welcome Message */
@@ -291,7 +321,7 @@ const styles = StyleSheet.create({
   /* Divider */
   divider: {
     height: 1,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: 'rgba(0,0,0,0.06)',
     marginTop: 10,
   },
 
@@ -302,19 +332,9 @@ const styles = StyleSheet.create({
     paddingLeft: 20,
   },
   linkCard: {
-    width: 90,
-    height: 90,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 15,
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-    marginRight: 15,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    width: 110,   // wider for 2-line labels
+    height: 100,
+    marginRight: 15, // shadows/border now live on linkCardBg
   },
   firstLinkCard: {
     marginLeft: 0,
@@ -388,4 +408,54 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
+
+  linkCardBg: {
+    flex: 1,
+    borderRadius: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    overflow: 'hidden',
+
+    borderWidth: 1,
+    borderColor: colors.quickLinkBorder,    // <— from colors.js
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+
+  gloss: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 38, // was 45
+  },
+
+  iconPill: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.thirty,   // brand navy
+    borderWidth: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 3,
+    borderColor: 'rgba(42,45,116,0.10)',  // was colors.quickLinkBorder (ok too)
+    shadowOpacity: 0.10,                  // was 0.12 (slightly softer)
+    borderRadius: 18,                     // was 16, looks nicer with the misty gradient
+  },
+
+  linkLabelColored: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.thirty,                   // <— brand navy
+    textAlign: 'center',
+    lineHeight: 15,
+  },
+
 });

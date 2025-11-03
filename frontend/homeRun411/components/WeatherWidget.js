@@ -1,70 +1,92 @@
 // components/WeatherWidget.js
 import React, { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import colors from '../assets/colors';
 import iconMap from '../utils/weatherIconMap';
 
 const CARD_HEIGHT = 112;
+const CHIP_H = 24;      // smaller chip
+const CHIP_GAP = 8;     // gap above chip
+const RESERVED = CHIP_H + CHIP_GAP; // space reserved at card bottom for chip
 
-export default function WeatherWidget({ weather, locationLabel }) {
+export default function WeatherWidget({ weather }) {
   const [cardSize, setCardSize] = useState({ w: 0, h: CARD_HEIGHT });
 
   if (!weather) {
     return (
-      <View style={[styles.card, styles.loadingCard]}>
+      <View style={[styles.cardBase, styles.loadingCard]}>
         <Text style={styles.loadingText}>Loading weather...</Text>
       </View>
     );
   }
 
   const IconComponent = iconMap[weather.condition] || iconMap['Clear'];
-  const { backgroundColor, textColor, iconColor } =
-    getCardStyle(weather.condition, weather.description);
+  const { bg, textColor, iconColor } = getCardStyle(weather.condition, weather.description);
 
-  const label =
-    (weather?.city || weather?.name || weather?.locationName || locationLabel || '').trim();
+  const h = Math.max(cardSize.h || CARD_HEIGHT, 96);
+  const iconSize = Math.min(56, Math.round(h * 0.48));
+  const tempSize = Math.round(h * 0.56);
+  const unitSize = Math.round(tempSize * 0.34);
 
-  // sizes scale with the card height
-  const h = Math.max(cardSize.h || CARD_HEIGHT, 80);
-  const tempSize = Math.round(h * 0.58);   // big number
-  const unitSize = Math.round(tempSize * 0.34); // °F
-  const iconSize = Math.round(h * 0.58);
-  const gap = Math.round(h * 0.12);
+  const gradientColors = ['#FFFFFF', bg, 'rgba(42,45,116,0.05)'];
 
   return (
-    <View
-      style={[styles.card, { backgroundColor }]}
+    <LinearGradient
+      colors={gradientColors}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.cardBase}
       onLayout={(e) => setCardSize(e.nativeEvent.layout)}
     >
-      <View style={styles.centerRow}>
-        <IconComponent width={iconSize} height={iconSize} fill={iconColor} />
-        <View style={{ marginLeft: gap }}>
-          <Text
-            allowFontScaling={false}
-            style={[styles.tempNumber, { color: textColor, fontSize: tempSize, lineHeight: tempSize }]}
-          >
-            {Math.round(weather.temperature)}
+      {/* soft top sheen */}
+      <LinearGradient
+        colors={['rgba(255,255,255,0.50)', 'rgba(255,255,255,0.10)', 'transparent']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.sheen}
+      />
+
+      {/* Absolute center region (excludes bottom chip area) */}
+      <View style={[styles.centerRegion, { bottom: RESERVED }]}>
+        <View style={styles.row}>
+          {/* icon */}
+          <View style={[styles.iconWrap, { width: iconSize, height: iconSize }]}>
+            <View style={styles.iconHalo} />
+            <View style={styles.iconPill}>
+              <IconComponent width={Math.round(iconSize * 0.9)} height={Math.round(iconSize * 0.9)} fill={iconColor} />
+            </View>
+          </View>
+
+          {/* temp vertically centered in a box matching icon height */}
+          <View style={{ height: iconSize, justifyContent: 'center' }}>
             <Text
               allowFontScaling={false}
-              style={[styles.tempUnit, { color: textColor, fontSize: unitSize, lineHeight: unitSize }]}
+              style={[styles.tempNumber, { color: textColor, fontSize: tempSize, lineHeight: tempSize }]}
             >
-              °F
+              {Math.round(weather.temperature)}
+              <Text
+                allowFontScaling={false}
+                style={[styles.tempUnit, { color: textColor, fontSize: unitSize, lineHeight: unitSize }]}
+              >
+                °F
+              </Text>
             </Text>
-          </Text>
+          </View>
         </View>
       </View>
 
-      {!!label && (
-        <View style={styles.labelPill}>
-          <Text allowFontScaling={false} style={styles.labelText} numberOfLines={1}>
-            {label}
-          </Text>
-        </View>
-      )}
-    </View>
+      {/* bottom-center chip (doesn't affect centering) */}
+      <View style={[styles.labelPill, { height: CHIP_H }]}>
+        <Text allowFontScaling={false} numberOfLines={1} style={styles.labelText}>
+          Weather at this park
+        </Text>
+      </View>
+    </LinearGradient>
   );
 }
 
-/* --- colors & helpers (unchanged) --- */
+/* helpers (unchanged) */
 const WEATHER_COLORS = {
   Clear: '#A7D8F5',
   'Few Clouds': '#CDE5F7',
@@ -104,57 +126,87 @@ const getCardStyle = (condition, description) => {
   const key = normalizeCondition(condition, description);
   const bg = WEATHER_COLORS[key] || WEATHER_COLORS.Default;
   const light = isLightColor(bg);
-  return {
-    backgroundColor: bg,
-    textColor: light ? '#111111' : '#FFFFFF',
-    iconColor: light ? '#333333' : '#FFFFFF',
-  };
+  return { bg, textColor: light ? colors.thirty : '#FFFFFF', iconColor: '#FFFFFF' };
 };
 
-/* --- styles --- */
+/* styles */
 const styles = StyleSheet.create({
-  card: {
+  cardBase: {
     position: 'relative',
     height: CARD_HEIGHT,
     marginHorizontal: 20,
     marginTop: 15,
     marginBottom: 10,
     paddingHorizontal: 16,
-    borderRadius: 12,
+    borderRadius: 18,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(42,45,116,0.10)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  centerRow: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',     // vertical center
-    justifyContent: 'center', // horizontal center
-  },
-  tempNumber: {
-    fontWeight: '400',
-    includeFontPadding: false,     // Android: tighter baseline
-    textAlignVertical: 'center',   // Android
-  },
-  tempUnit: {
-    fontWeight: '400',
-    includeFontPadding: false,
+  sheen: { position: 'absolute', top: 0, left: 0, right: 0, height: 36 },
+
+  // absolute area we center within
+  centerRegion: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    top: 6,
+    // bottom set dynamically to RESERVED
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    columnGap: 14,
+  },
+
+  iconWrap: { position: 'relative', borderRadius: 999, overflow: 'visible' },
+  iconHalo: {
+    position: 'absolute', top: 6, left: 6, right: 6, bottom: 6,
+    borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.35)',
+  },
+  iconPill: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    borderRadius: 999, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.thirty,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.10, shadowRadius: 3,
+  },
+
+  tempNumber: { fontWeight: '400', includeFontPadding: false, textAlignVertical: 'center' },
+  tempUnit: { fontWeight: '400', includeFontPadding: false },
+
+  // compact chip
   labelPill: {
     position: 'absolute',
-    left: 12,
-    bottom: 3,
+    bottom: 8,
+    alignSelf: 'center',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
-    maxWidth: '80%',
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderWidth: 1,
+    borderColor: 'rgba(42,45,116,0.12)',
+    maxWidth: '90%',
   },
-  labelText: { color: 'gray', fontSize: 12, fontWeight: '600' },
+  labelText: { color: colors.thirty, fontSize: 12, fontWeight: '700' },
 
-  loadingCard: { backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center' },
+  loadingCard: {
+    height: CARD_HEIGHT,
+    marginHorizontal: 20,
+    marginTop: 15,
+    marginBottom: 10,
+    borderRadius: 18,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   loadingText: { fontSize: 14, color: 'gray' },
 });

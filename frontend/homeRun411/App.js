@@ -27,8 +27,9 @@ import HomePlateIcon from './components/icons/HomePlateIcon';
 import HomePlateIcon_Selected from './components/icons/HomePlateIcon_Selected';
 import { initUserLocation } from './utils/initUserLocation';
 import { connectSocket } from './utils/socket';
-import { TouchableOpacity } from 'react-native';
+import { TouchableOpacity, StyleSheet } from 'react-native';
 import DataDictionary from './pages/DataDictionary';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -39,7 +40,6 @@ function TabsNavigator() {
 
   return (
     <Tab.Navigator
-      // 🔑 Force the whole tab tree to rebuild whenever admin status changes
       key={`tabs-${isAdmin ? 'admin' : 'user'}`}
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
@@ -50,23 +50,43 @@ function TabsNavigator() {
               <HomePlateIcon color={color} size={size} />
             );
           }
-
           let iconName;
-          if (route.name === 'Search') {
-            iconName = focused ? 'search' : 'search-outline';
-          } else if (route.name === 'Forum') {
-            iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
-          } else if (route.name === 'Profile') {
-            iconName = focused ? 'person' : 'person-outline';
-          } else if (route.name === 'Admin') {
-            iconName = focused ? 'shield-checkmark' : 'shield-checkmark-outline';
-          }
-
+          if (route.name === 'Search') iconName = focused ? 'search' : 'search-outline';
+          else if (route.name === 'Forum') iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
+          else if (route.name === 'Profile') iconName = focused ? 'person' : 'person-outline';
+          else if (route.name === 'Admin') iconName = focused ? 'shield-checkmark' : 'shield-checkmark-outline';
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: colors.thirty,
-        tabBarInactiveTintColor: colors.secondaryText,
-        tabBarStyle: { backgroundColor: colors.sixty },
+
+        // NEW: dark gradient footer
+        tabBarBackground: () => (
+          <LinearGradient
+            colors={colors.footerGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={StyleSheet.absoluteFillObject}
+          />
+        ),
+        tabBarActiveTintColor: colors.tabActive,
+        tabBarInactiveTintColor: colors.tabInactive,
+        tabBarShowLabel: false,
+        tabBarLabelStyle: { display: 'none' },
+        safeAreaInsets: { bottom: 8 },
+
+        // shape & elevation
+        tabBarStyle: {
+          backgroundColor: 'transparent',
+          borderTopWidth: 0,
+          height: 70,
+          paddingBottom: 12,
+          paddingTop: 6,
+          elevation: 10,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.18,
+          shadowRadius: 4,
+        },
+
         headerShown: false,
       })}
     >
