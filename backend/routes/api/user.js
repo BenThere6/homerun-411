@@ -19,6 +19,9 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
+if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+  console.warn('⚠️ Missing Cloudinary env vars (CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET)');
+}
 
 // Middleware function to fetch a user by ID
 async function getUser(req, res, next) {
@@ -489,7 +492,9 @@ router.post('/recently-viewed/:parkId', auth, async (req, res) => {
 router.post('/upload-avatar', auth, upload.single('avatar'), async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
+      return res.status(400).json({
+        message: 'No file uploaded (expecting field "avatar"). If you set Content-Type manually, remove it so the boundary is included.'
+      });
     }
 
     // turn cloudinary upload_stream into a promise
@@ -531,7 +536,7 @@ router.post('/upload-avatar', auth, upload.single('avatar'), async (req, res) =>
     });
   } catch (err) {
     console.error('Upload avatar failed:', err);
-    return res.status(500).json({ message: 'Upload failed' });
+    return res.status(500).json({ message: err?.message || 'Upload failed' });
   }
 });
 

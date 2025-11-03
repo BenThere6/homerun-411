@@ -73,7 +73,9 @@ export default function ProfilePage() {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ImagePicker?.MediaType
+          ? [ImagePicker.MediaType.Image]     // new API (array)
+          : ImagePicker.MediaTypeOptions.Images, // fallback for older SDKs
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
@@ -85,17 +87,18 @@ export default function ProfilePage() {
       setUploadingAvatar(true);
 
       const token = await AsyncStorage.getItem('token');
+
       const form = new FormData();
       form.append('avatar', {
-        uri: asset.uri,
-        name: 'avatar.jpg',
-        type: 'image/jpeg',
+        uri: asset.uri, // should be file://
+        name: asset.fileName || 'avatar.jpg',
+        type: asset.mimeType || 'image/jpeg',
       });
 
       const uploadRes = await axios.post('/api/user/upload-avatar', form, {
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
+          // DO NOT set Content-Type; Axios will add the correct boundary.
         },
       });
 
@@ -107,8 +110,12 @@ export default function ProfilePage() {
         fetchProfile();
       }
     } catch (err) {
-      console.error('avatar upload failed', err?.response?.data || err.message);
-      Alert.alert('Upload failed', 'Could not update your photo right now.');
+      console.error('avatar upload failed', err?.response?.data || err?.message);
+      Alert.alert(
+        'Upload failed',
+        String(err?.response?.data?.message || err?.message || 'Unknown error')
+      );
+
     } finally {
       setUploadingAvatar(false);
     }
