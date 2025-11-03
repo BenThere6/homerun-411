@@ -172,21 +172,21 @@ export default function Homepage() {
     : quickLinks;
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={styles.container} edges={[]}>
+
       {/* Include the Header component */}
       <Header />
-
-      {/* Gray line (divider) */}
-      <View style={styles.divider} />
 
       {/* Scrollable content */}
       <View style={styles.body}>
         <ScrollView contentContainerStyle={styles.scrollContainer} style={styles.scroll}>
 
           {/* Welcome Message */}
-          <Text style={styles.welcomeMessage}>
-            {greetingName ? `Welcome back, ${greetingName}!` : 'Welcome back!'}
-          </Text>
+          {/* <View style={styles.welcomeWrap}>
+            <Text style={styles.welcomeMessage}>
+              {greetingName ? `Welcome back, ${greetingName}!` : 'Welcome back!'}
+            </Text>
+          </View> */}
 
           {/* <WeatherWidget weather={weather} locationLabel={weatherLabel} /> */}
 
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brandNavyDark,
   },
   scrollContainer: {
-    paddingBottom: 20,
+    paddingBottom: 0,
   },
   scroll: {
     backgroundColor: colors.sixty,
@@ -311,11 +311,18 @@ const styles = StyleSheet.create({
   },
 
   /* Welcome Message */
+  welcomeWrap: {
+    paddingTop: 12,
+    paddingBottom: 8,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+  },
   welcomeMessage: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: colors.primaryText,
-    padding: 20,
+    fontSize: 26,
+    fontWeight: '800',
+    color: colors.thirty,      // brand navy for a cohesive look
+    textAlign: 'center',
+    letterSpacing: 0.2,
   },
 
   /* Divider */
@@ -328,7 +335,7 @@ const styles = StyleSheet.create({
   /* Quick Links */
   quickLinksContainer: {
     paddingBottom: 15,
-    paddingTop: 10,
+    paddingTop: 0,
     paddingLeft: 20,
   },
   linkCard: {
