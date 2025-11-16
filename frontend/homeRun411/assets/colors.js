@@ -28,10 +28,14 @@ const colors = {
     brandBlueMid: palette.blueMid,
     brandBlueSoft: palette.blueSoft,
     brandGold: palette.gold,
+    brandRed: palette.red,
 
     // Quick links (already used)
     quickLinkGradient: ['#FFFFFF', 'rgba(42,45,116,0.06)'],
     quickLinkBorder: 'rgba(42,45,116,0.12)',
+
+    // Red accent frame for primary clickable cards/buttons
+    clickableRedFrame: 'rgba(227, 29, 26, 0.9)',
 
     // NEW: header/footer/section gradients
     headerGradient: [palette.navyDark, palette.navyDark],

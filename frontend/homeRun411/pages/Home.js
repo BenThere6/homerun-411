@@ -190,8 +190,6 @@ export default function Homepage() {
 
           {/* <WeatherWidget weather={weather} locationLabel={weatherLabel} /> */}
 
-          <SectionHeader title="Quick Links" />
-
           {/* Quick Links with Horizontal Scroll */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickLinksContainer}>
             {updatedQuickLinks.map((link, index) => (
@@ -335,7 +333,7 @@ const styles = StyleSheet.create({
   /* Quick Links */
   quickLinksContainer: {
     paddingBottom: 15,
-    paddingTop: 0,
+    paddingTop: 16,
     paddingLeft: 20,
   },
   linkCard: {
