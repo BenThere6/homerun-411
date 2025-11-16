@@ -281,9 +281,9 @@ export default function ProfilePage() {
 
         <TouchableOpacity
           style={styles.manageBtn}
-          onPress={() => navigation.navigate('Settings')}
+          onPress={() => navigation.navigate('EditProfile')}
         >
-          <Ionicons name="settings-outline" size={16} color="#fff" />
+          {/* <Ionicons name="settings-outline" size={16} color="#fff" /> */}
           <Text style={styles.manageBtnText}>Manage Account</Text>
         </TouchableOpacity>
 
@@ -357,29 +357,33 @@ function fmtDate(d) {
 /* ----------------------------- Styles ---------------------------- */
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.lightBlue },
-  screen: { flex: 1, backgroundColor: colors.lightBlue },
+  safeArea: { flex: 1, backgroundColor: colors.sixty },
+  screen: { flex: 1, backgroundColor: colors.sixty },
   scrollContainer: { paddingBottom: 24 },
 
   /* Hero */
   heroCard: {
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: colors.sixty,
     margin: 16,
     padding: 20,
     borderRadius: 16,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.quickLinkBorder,
     shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 2,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
+
   avatar: {
     width: 114,
     height: 114,
     borderRadius: 57,
-    backgroundColor: '#e6eef7',
+    backgroundColor: colors.brandBlueSoft,
     marginBottom: 10,
   },
+
   name: { fontSize: 22, fontWeight: '700', color: colors.primaryText },
   memberSince: { fontSize: 13, color: colors.secondaryText, marginTop: 4 },
 
@@ -401,16 +405,18 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.primaryText,
+    color: colors.thirty,
     marginBottom: 10,
     paddingHorizontal: 4,
   },
+
   emptyWrap: {
     alignItems: 'center',
     paddingVertical: 24,
     paddingHorizontal: 20,
   },
-  emptyTitle: { color: colors.primaryText, fontWeight: '600' },
+  emptyTitle: { color: colors.thirty, fontWeight: '600' },
+
   emptySubtitle: { color: colors.secondaryText, marginTop: 4, textAlign: 'center' },
 
   /* Activity */
@@ -436,11 +442,12 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: '#f3f6fb',
+    backgroundColor: colors.brandBlueSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
   },
+
   activityTitle: { fontSize: 15, fontWeight: '500', color: colors.primaryText },
   activityMeta: { fontSize: 12, color: colors.secondaryText },
   activityDate: { fontSize: 12, color: colors.secondaryText },
@@ -461,14 +468,20 @@ const styles = StyleSheet.create({
   manageBtn: {
     flexDirection: 'row',
     alignSelf: 'center',
-    backgroundColor: '#ff944d',
-    paddingHorizontal: 20,
-    paddingVertical: 11,
+    backgroundColor: colors.brandNavy,
+    paddingHorizontal: 22,
+    paddingVertical: 12,
     borderRadius: 999,
     alignItems: 'center',
     gap: 6,
-    marginTop: 12,
+    marginTop: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+    elevation: 3,
   },
+
   manageBtnText: {
     color: '#fff',
     fontWeight: '600',
