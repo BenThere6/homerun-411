@@ -31,7 +31,7 @@ const colors = {
     brandRed: palette.red,
 
     // Quick links (already used)
-    quickLinkGradient: ['#FFFFFF', 'rgba(42,45,116,0.06)'],
+    quickLinkGradient: ['#FFFFFF', palette.blueSoft],
     quickLinkBorder: 'rgba(42,45,116,0.12)',
 
     // Red accent frame for primary clickable cards/buttons

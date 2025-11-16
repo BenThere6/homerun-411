@@ -450,17 +450,15 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 3,
-    borderColor: 'rgba(42,45,116,0.10)',  // was colors.quickLinkBorder (ok too)
+    borderColor: colors.brandGold,
     shadowOpacity: 0.10,                  // was 0.12 (slightly softer)
     borderRadius: 18,                     // was 16, looks nicer with the misty gradient
   },
-
   linkLabelColored: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.thirty,                   // <— brand navy
+    color: colors.thirty,
     textAlign: 'center',
     lineHeight: 15,
   },
-
 });
