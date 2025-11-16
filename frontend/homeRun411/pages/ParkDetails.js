@@ -210,9 +210,12 @@ export default function ParkDetails({ route, navigation }) {
     if (park?.name) {
       navigation.setOptions({
         title: park.name,
-        headerStyle: { backgroundColor: '#ffffff' },
-        headerTitleStyle: { color: '#111111' },
-        headerTintColor: '#111111',
+        headerStyle: { backgroundColor: colors.brandNavyDark },
+        headerTitleStyle: {
+          color: '#ffffff',
+          fontWeight: '700',
+        },
+        headerTintColor: '#ffffff',   // back arrow, etc.
         headerRight: undefined,
       });
     }
@@ -649,30 +652,26 @@ export default function ParkDetails({ route, navigation }) {
                 fontSize: 14,
               }}
             />
-            <View style={{ flexDirection: 'row', marginTop: 8 }}>
+            <View style={styles.filterRow}>
               {['Concessions', 'Parking', 'Restrooms', 'Fields'].map((label, idx) => {
                 return (
                   <TouchableOpacity
                     key={label}
                     onPress={() => chipPress(label)}
-                    style={{
-                      flex: 1,
-                      backgroundColor: '#f1f5f9',
-                      borderWidth: 1,
-                      borderColor: '#e5e7eb',
-                      borderRadius: 14,
-                      paddingVertical: 8,
-                      alignItems: 'center',
-                      marginRight: idx < 3 ? 8 : 0, // edges hug left/right, even spacing
-                    }}
+                    style={[
+                      styles.filterChip,
+                      idx < 3 && styles.filterChipSpacing,
+                    ]}
                     accessibilityRole="button"
                     accessibilityLabel={`Jump to ${label}`}
+                    activeOpacity={0.85}
                   >
-                    <Text style={{ fontSize: 12, color: '#0f172a' }}>{label}</Text>
+                    <Text style={styles.filterChipLabel}>{label}</Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
+
           </View>
 
           <WeatherWidget
@@ -1692,22 +1691,25 @@ const styles = StyleSheet.create({
   actionBar: {
     marginTop: 10,
     marginBottom: 14,
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
   },
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    backgroundColor: '#f9fafb', // unified background (light gray)
+    marginBottom: 8,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.brandGold,        // gold ring
+    backgroundColor: '#fefcf5',          // soft warm card
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 1,
   },
   actionRowLast: {
-    borderBottomWidth: 0,
+    marginBottom: 0,
   },
   actionTitle: {
     fontSize: 15,
@@ -1760,8 +1762,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
     borderRadius: 12,
     padding: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
   },
   moreTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a' },
   moreSub: { fontSize: 12, color: '#475569', marginTop: 4, marginBottom: 6 },
@@ -1769,10 +1769,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    paddingHorizontal: 10,
+    marginTop: 8,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: colors.brandGold,       // gold ring
+    backgroundColor: '#fefcf5',
   },
-  moreRowLast: { paddingBottom: 2 },
+  moreRowLast: { paddingBottom: 12 },
   moreRowTitle: { fontSize: 14, fontWeight: '700', color: '#0f172a' },
   moreRowSub: { fontSize: 12, color: '#64748b', marginTop: 2 },
   inlineForm: {
@@ -1805,10 +1809,13 @@ const styles = StyleSheet.create({
   },
   submitBtn: {
     marginTop: 10,
-    backgroundColor: '#1d4ed8',
+    backgroundColor: colors.brandNavyDark,
     paddingVertical: 12,
-    borderRadius: 10,
+    paddingHorizontal: 18,
+    borderRadius: 999,
     alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.brandGold,      // gold ring around pill
   },
   submitBtnText: { color: '#fff', fontWeight: '700' },
   backToTopBtn: {
@@ -1849,11 +1856,32 @@ const styles = StyleSheet.create({
     width: 0,
     height: 0,
     marginRight: 0,
-  },  
+  },
   sectionHeaderText: {
     fontSize: 18,
     fontWeight: '800',
     color: colors.brandNavyDark,                // navy text
     marginLeft: 8,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    marginTop: 8,
+  },
+  filterChip: {
+    flex: 1,
+    backgroundColor: '#fefcf5',           // soft warm background
+    borderWidth: 1.5,
+    borderColor: colors.brandGold,        // gold ring
+    borderRadius: 16,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  filterChipSpacing: {
+    marginRight: 8,
+  },
+  filterChipLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.brandNavyDark,
   },
 });
