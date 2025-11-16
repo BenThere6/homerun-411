@@ -423,8 +423,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     overflow: 'hidden',
 
-    borderWidth: 1,
-    borderColor: colors.quickLinkBorder,    // <— from colors.js
+    borderWidth: 2,
+    borderColor: colors.brandGold,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.12,
@@ -446,14 +446,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.thirty,   // brand navy
-    borderWidth: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 3,
-    borderColor: colors.brandGold,
-    shadowOpacity: 0.10,                  // was 0.12 (slightly softer)
-    borderRadius: 18,                     // was 16, looks nicer with the misty gradient
+    shadowOpacity: 0.10,
+    borderRadius: 18,
   },
+
   linkLabelColored: {
     fontSize: 12,
     fontWeight: '700',
