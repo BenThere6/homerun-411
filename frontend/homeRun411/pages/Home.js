@@ -350,7 +350,12 @@ const styles = StyleSheet.create({
   labelContainer: {
     paddingHorizontal: 5,
     width: '100%',
+    minHeight: 32,              // enough for two lines of text
+    justifyContent: 'center',   // vertically center text
+    alignItems: 'center',       // horizontally center text
+    paddingTop: 5,
   },
+
   linkLabel: {
     fontSize: 12,
     fontWeight: '500',
