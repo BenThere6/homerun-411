@@ -544,12 +544,21 @@ router.patch('/profile', authenticate, async (req, res) => {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const { firstName, lastName, avatarUrl, bio, zipCode } = req.body;
+    const { firstName, lastName, avatarUrl, bio, zipCode, email } = req.body;
 
     if (firstName !== undefined) user.profile.firstName = firstName;
     if (lastName !== undefined) user.profile.lastName = lastName;
     if (avatarUrl !== undefined) user.profile.avatarUrl = avatarUrl;
     if (bio !== undefined) user.profile.bio = bio;
+
+    // 🔐 Email update + uniqueness
+    if (email !== undefined && email !== user.email) {
+      const existing = await User.findOne({ email });
+      if (existing && String(existing._id) !== String(user._id)) {
+        return res.status(409).json({ message: 'Email already in use' });
+      }
+      user.email = email;
+    }
 
     if (zipCode !== undefined && zipCode !== user.zipCode) {
       const loc = zipcodes.lookup(zipCode);

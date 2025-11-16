@@ -19,7 +19,6 @@ import { useNavigation } from '@react-navigation/native';
 import axios from '../utils/axiosInstance';
 import ParkCard from '../components/ParkCard';
 import colors from '../assets/colors';
-import * as ImagePicker from 'expo-image-picker';
 
 export default function ProfilePage() {
   const navigation = useNavigation();
@@ -29,7 +28,6 @@ export default function ProfilePage() {
   const [activity, setActivity] = useState({ posts: [], comments: [], likes: [] });
   const [favoriteParks, setFavoriteParks] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   // ---------- Data ----------
   const fetchProfile = async () => {
@@ -158,24 +156,12 @@ export default function ProfilePage() {
       >
         {/* Hero Header */}
         <View style={styles.heroCard}>
-          <TouchableOpacity onPress={handlePickAvatar} activeOpacity={0.75}>
-            <View style={{ position: 'relative' }}>
-              <Image
-                source={{
-                  uri: profile.avatarUrl || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
-                }}
-                style={styles.avatar}
-              />
-              {uploadingAvatar && (
-                <View style={styles.avatarOverlay}>
-                  <ActivityIndicator />
-                </View>
-              )}
-              <View style={styles.avatarEditBadge}>
-                <Ionicons name="camera-outline" size={14} color="#fff" />
-              </View>
-            </View>
-          </TouchableOpacity>
+          <Image
+            source={{
+              uri: profile.avatarUrl || 'https://cdn-icons-png.flaticon.com/512/149/149071.png',
+            }}
+            style={styles.avatar}
+          />
           <Text style={styles.name}>
             {(profile.firstName || '').trim()} {(profile.lastName || '').trim()}
           </Text>
