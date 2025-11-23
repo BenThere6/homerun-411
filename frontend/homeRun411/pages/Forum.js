@@ -112,8 +112,8 @@ const PostHeader = ({
                 <TouchableOpacity onPress={() => onPressPark(post.referencedPark)}
                     style={{
                         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-                        paddingVertical: 10, paddingHorizontal: 12, backgroundColor: '#fff8ee',
-                        borderRadius: 10, borderWidth: 1, borderColor: '#ffe0bf', marginBottom: 8
+                        paddingVertical: 10, paddingHorizontal: 12, backgroundColor: '#FFF1F2',
+                        borderRadius: 10, borderWidth: 1, borderColor: '#FECACA', marginBottom: 8
                     }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                         <Ionicons name="location-outline" size={16} color={colors.thirty} />
@@ -667,7 +667,7 @@ export default function ForumPage({ navigation }) {
     useLayoutEffect(() => {
         navigation.setOptions({
             title: 'Forum',
-            headerStyle: { backgroundColor: colors.brandNavyDark },
+            headerStyle: { backgroundColor: '#CC0000' },
             headerTitleAlign: 'center',
             headerTintColor: '#fff',
             headerTitleStyle: { color: '#fff', fontWeight: '700' },
@@ -690,8 +690,8 @@ export default function ForumPage({ navigation }) {
                         }
                     };
                     return (
-                        <TouchableOpacity onPress={onBackFromPost} style={{ paddingLeft: 8 }}>
-                            <Ionicons name="chevron-back" size={24} color="#fff" />
+                        <TouchableOpacity onPress={onBack} style={{ paddingLeft: 8 }}>
+                            <Ionicons name="chevron-back" size={24} color="#fff" />  {/* was #333 */}
                         </TouchableOpacity>
                     );
                 }
@@ -1835,12 +1835,12 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingVertical: 10,
         paddingHorizontal: 12,
-        backgroundColor: 'rgba(42,45,116,0.05)',
+        backgroundColor: '#FFF1F2',      // light red/pink
         borderRadius: 10,
         marginTop: 8,
         marginBottom: 10,
         borderWidth: 1,
-        borderColor: 'rgba(42,45,116,0.15)',
+        borderColor: '#FECACA',          // matching light red border
     },
     parkChipLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
     parkChipName: { fontWeight: '700', color: '#333', fontSize: 14 },

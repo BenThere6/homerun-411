@@ -73,6 +73,8 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 3.84,
         overflow: 'hidden',
+        borderWidth: 2,
+        borderColor: '#CC0000',
     },
     parkImageBackground: { flex: 1, width: '100%', height: '100%' },
     parkContent: {

@@ -38,13 +38,16 @@ const colors = {
     clickableRedFrame: 'rgba(227, 29, 26, 0.9)',
 
     // NEW: header/footer/section gradients
-    headerGradient: [palette.navyDark, palette.navyDark],
+    // headerGradient: [palette.navyDark, palette.navyDark],
+    headerGradient: ['#CC0000', '#CC0000'],
     footerGradient: [palette.navy, palette.navyDark],     // tab bar
     sectionPillGradient: ['#FFFFFF', palette.blueSoft],   // centered section pill
 
     // Tab icon tints on dark footer
     tabActive: '#FFFFFF',
     tabInactive: 'rgba(255,255,255,0.70)',
+
+    americanRed: '#B3261E',
 };
 
 export default colors;  

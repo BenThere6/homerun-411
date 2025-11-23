@@ -648,7 +648,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 10,
-    backgroundColor: colors.sixty,
+    backgroundColor: '#CC0000',   // ← was colors.sixty
     alignItems: 'center',
     paddingBottom: 10,
   },

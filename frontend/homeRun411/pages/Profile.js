@@ -1,5 +1,5 @@
 // pages/Profile.jsx
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -23,6 +23,17 @@ import colors from '../assets/colors';
 export default function ProfilePage() {
   const navigation = useNavigation();
 
+  // Make the top navigation/header red with white text/icons
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: 'Profile',
+      headerStyle: { backgroundColor: '#CC0000' },
+      headerTitleAlign: 'center',
+      headerTintColor: '#fff',
+      headerTitleStyle: { color: '#fff', fontWeight: '700' },
+    });
+  }, [navigation]);
+
   const [profile, setProfile] = useState({});
   const [createdAt, setCreatedAt] = useState('');
   const [activity, setActivity] = useState({ posts: [], comments: [], likes: [] });
@@ -31,12 +42,16 @@ export default function ProfilePage() {
 
   // ---------- Data ----------
   const fetchProfile = async () => {
-    const token = await AsyncStorage.getItem('token');
-    const res = await axios.get('/api/user/profile', {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    setProfile(res.data.profile);
-    setCreatedAt(res.data.createdAt);
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const res = await axios.get('/api/user/profile', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setProfile(res.data.profile);
+      setCreatedAt(res.data.createdAt);
+    } catch (error) {
+      console.log('fetchProfile error:', error.response?.status, error.config?.url);
+    }
   };
 
   const fetchActivity = async () => {
@@ -50,16 +65,21 @@ export default function ProfilePage() {
     } catch (error) {
       const status = error.response?.status;
       const msg = error.response?.data?.message || error.message;
-      console.error('❌ Error fetching activity:', status, msg);
+      const url = error.config?.url;
+      console.error('❌ Error fetching activity:', status, msg, 'URL:', url);
     }
   };
 
   const fetchFavorites = async () => {
-    const token = await AsyncStorage.getItem('token');
-    const res = await axios.get('/api/user/home-parks', {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    setFavoriteParks(res.data.favorites || []);
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const res = await axios.get('/api/user/home-parks', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setFavoriteParks(res.data.favorites || []);
+    } catch (error) {
+      console.log('fetchFavorites error:', error.response?.status, error.config?.url);
+    }
   };
 
   const handlePickAvatar = useCallback(async () => {
