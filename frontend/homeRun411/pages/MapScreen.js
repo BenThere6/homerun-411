@@ -40,11 +40,13 @@ const KIND_PRIORITY = {
     parking: 90,
     parking_entrance: 85,
     entrance: 85,
+    handicap_parking: 88,
     restroom: 80,
     bullpen: 70,
     batting_cage: 70,
     concession: 65,
     playground: 60,
+    sand_volleyball: 55,
     boundary: 50,
     distance_marker: 40,
     default: 10,
@@ -73,6 +75,9 @@ function labelSpacingMetersForZoom(z) {
 function shouldSuppressKind(kind, z) {
     const k = String(kind || '').toLowerCase();
 
+    // Sand volleyball courts only when zoomed in very close
+    if (k.includes('volleyball')) return z < 17;
+
     // At far zoom, only show essentials
     if (z < 15) {
         const essentials = new Set(['parking', 'parking_entrance', 'entrance', 'restroom', 'boundary', 'field']);
@@ -100,6 +105,7 @@ const KIND_COLORS = {
     restroom: '#16a34a',
     concession: '#b45309',
     playground: '#9333ea',
+    sand_volleyball: '#eab308',
     batting_cage: '#0ea5e9',
     bullpen: '#ea580c',
     distance_marker: '#334155',
@@ -111,10 +117,20 @@ const KIND_COLORS = {
 const KIND_ICONS = {
     field: { lib: 'ion', name: 'baseball-outline', color: '#ef4444' },
     parking: { lib: 'ion', name: 'car-outline', color: '#2563eb' },
-    parking_entrance: { lib: 'mci', name: 'door-open', color: '#f59e0b' }, // ⟵ explicit
-    handicap_parking: { lib: 'mci', name: 'human-wheelchair', color: '#2563eb' },
+    parking_entrance: { lib: 'mci', name: 'door-open', color: '#f59e0b' },
+
+    // Better wheelchair icon for ADA parking
+    handicap_parking: { lib: 'mci', name: 'wheelchair-accessibility', color: '#2563eb' },
+
     restroom: { lib: 'mci', name: 'toilet', color: '#16a34a' },
     concession: { lib: 'ion', name: 'fast-food-outline', color: '#b45309' },
+
+    // Dedicated playground icon
+    playground: { lib: 'mci', name: 'slide', color: '#9333ea' },
+
+    // Sand volleyball courts icon
+    sand_volleyball: { lib: 'mci', name: 'volleyball', color: '#eab308' },
+
     entrance: { lib: 'mci', name: 'door-open', color: '#f59e0b' },
     default: { lib: 'ion', name: 'location-outline', color: '#334155' },
 };
@@ -132,6 +148,17 @@ function shouldHideIconByName(name = '') {
     return /football|tennis/i.test(String(name));
 }
 
+// Names that should be rendered as text labels only (no icon)
+const LABEL_ONLY_NAME_PATTERNS = [
+    /^field\s*\d+/i, // Field 1, Field 2, Field 3, etc. for all parks
+];
+
+// Exact names that are special one-offs (like Wall Ave, Parking Lot)
+const LABEL_ONLY_EXACT_NAMES = new Set([
+    'Wall Ave.',
+    'Parking Lot',
+]);
+
 // Always-visible label chip  
 const LabelChip = ({ text, dim = false }) => (
     <View style={{
@@ -146,20 +173,103 @@ const LabelChip = ({ text, dim = false }) => (
 function PointMarker({ feature, zoom, focusedId, allowedLabelIds, onPress }) {
     const { geometry: g, properties: p } = feature;
     const [lng, lat] = g.coordinates;
-    const icon = iconFor(p?.kind);
-    const title = p?.name || (p?.kind ? p.kind.replace(/_/g, ' ') : '');
-    const isFocused = focusedId === p?.id;
+
+    const name = (p?.name || '').trim();
+
+    // Infer kind from name when it's missing so icons look right
+    let kind = String(p?.kind || '').toLowerCase();
+    if (!kind) {
+        if (/play\s*ground/i.test(name)) {
+            kind = 'playground';
+        } else if (/wheelchair/i.test(name)) {
+            kind = 'handicap_parking';
+        } else if (/sand\s+volleyball/i.test(name)) {
+            kind = 'sand_volleyball';
+        }
+
+        if (kind && p && !p.kind) {
+            p.kind = kind;
+        }
+    }
 
     const lod = lodForZoom(zoom);
+    const isFocused = focusedId === p?.id;
+
+    // 1) LABEL-ONLY ITEMS (no icon)
+    //    - Generic: "Field 1", "Field 2", "Field 3", etc. (any park)
+    //    - Custom: "Wall Ave.", "Parking Lot" (4th St Park outliers)
+    const isFieldLabel = LABEL_ONLY_NAME_PATTERNS.some(re => re.test(name));
+    const isCustomLabelOnly = LABEL_ONLY_EXACT_NAMES.has(name);
+    const isLabelOnly = isFieldLabel || isCustomLabelOnly;
+
+    // Slightly larger font for street-style labels (Wall Ave, 5th St, etc.)
+    const isStreetLabel = /\b(ave\.?|st\.?|rd\.?|blvd\.?|dr\.?)\b/i.test(name);
+
+    // Vertical label names (Wall Ave + Parking Lot)
+    const isVerticalLabel = name === 'Wall Ave.' || name === 'Parking Lot';
+
+    if (isLabelOnly) {
+        // Hide when zoomed way out
+        if (lod === 'overview') return null;
+
+        return (
+            <Marker
+                coordinate={{ latitude: lat, longitude: lng }}
+                anchor={{ x: 0.5, y: 0.5 }}
+                onPress={() => onPress?.(p?.id)}
+            >
+                <View
+                    style={
+                        isVerticalLabel
+                            ? { transform: [{ rotate: '-90deg' }] } // vertical along the street
+                            : null
+                    }
+                >
+                    <Text
+                        style={{
+                            color: '#ffffff',
+                            fontSize: isFieldLabel ? 24 : (isStreetLabel ? 22 : 20),
+                            fontWeight: '900',
+                            // “Border” / outline effect
+                            textShadowColor: '#000000',
+                            textShadowOffset: { width: 0, height: 0 },
+                            textShadowRadius: 4,
+                        }}
+                    >
+                        {name}
+                    </Text>
+                </View>
+            </Marker>
+        );
+    }
+
+    // 2) EVERYTHING ELSE: icon bubble + optional label (existing behavior)
+    const title =
+        name ||
+        (kind
+            ? kind.replace(/_/g, ' ')
+            : (p?.kind ? p.kind.replace(/_/g, ' ') : ''));
+
+    const iconSpec = iconFor(kind);
+    const ringColor = KIND_COLORS[kind] || '#334155';
+
     const showLabel =
         isFocused ||
         (lod === 'detail' &&
-            kindPriority(p?.kind) >= 70 &&
+            kindPriority(kind) >= 70 &&
             allowedLabelIds.has(p?.id));
 
-    const hideForKind = shouldSuppressKind(p?.kind, zoom) || shouldHideIconByName(p?.name);
+    // Only show icons for important/selected features at low zoom
+    const showIcon =
+        isFocused ||
+        lod === 'detail' ||
+        allowedLabelIds.has(p?.id);
 
-    if (hideForKind) return null;
+    const hideForKind =
+        shouldSuppressKind(kind, zoom) ||
+        shouldHideIconByName(p?.name);
+
+    if (hideForKind || !showIcon) return null;
 
     return (
         <Marker
@@ -168,7 +278,27 @@ function PointMarker({ feature, zoom, focusedId, allowedLabelIds, onPress }) {
             onPress={() => onPress?.(p?.id)}
         >
             <View style={{ alignItems: 'center' }}>
-                <RenderIcon spec={icon} size={24} />
+                {/* Circular bubble behind the icon */}
+                <View
+                    style={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: 15,
+                        backgroundColor: 'white',
+                        borderWidth: isFocused ? 2 : 1,
+                        borderColor: ringColor,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        shadowColor: '#000',
+                        shadowOpacity: 0.18,
+                        shadowRadius: 2,
+                        shadowOffset: { width: 0, height: 1 },
+                        elevation: 2,
+                    }}
+                >
+                    <RenderIcon spec={iconSpec} size={18} />
+                </View>
+
                 {showLabel && !!title && (
                     <View style={{ marginTop: 3 }}>
                         <LabelChip text={title} dim={!isFocused} />
@@ -186,9 +316,11 @@ function PolygonWithLabel({ feature, color, zoom, focusedId, allowedLabelIds, on
     const [clng, clat] = center.geometry.coordinates;
     const title = p?.name || p?.kind;
     const isFocused = focusedId === p?.id;
+    const isField = String(p?.kind).toLowerCase() === 'field';
 
     const lod = lodForZoom(zoom);
     const showLabel =
+        isField || // always label fields
         isFocused ||
         (lod !== 'overview' && allowedLabelIds.has(p?.id));
 
@@ -207,8 +339,31 @@ function PolygonWithLabel({ feature, color, zoom, focusedId, allowedLabelIds, on
                 onPress={() => onPress?.(p?.id)}
             />
             {showLabel && !!title && (
-                <Marker coordinate={{ latitude: clat, longitude: clng }} anchor={{ x: 0.5, y: 0.5 }} onPress={() => onPress?.(p?.id)}>
-                    <LabelChip text={title} dim={!isFocused} />
+                <Marker
+                    coordinate={{ latitude: clat, longitude: clng }}
+                    anchor={{ x: 0.5, y: 0.5 }}
+                    onPress={() => onPress?.(p?.id)}
+                >
+                    <View
+                        style={{
+                            paddingHorizontal: isField ? 10 : 6,
+                            paddingVertical: isField ? 4 : 2,
+                            borderRadius: isField ? 999 : 6,
+                            backgroundColor: isField
+                                ? 'rgba(0,0,0,0.55)'
+                                : (isFocused ? 'rgba(17,24,39,0.78)' : 'rgba(17,24,39,0.55)'),
+                        }}
+                    >
+                        <Text
+                            style={{
+                                color: '#fff',
+                                fontSize: isField ? 18 : 11,
+                                fontWeight: isField ? '800' : '600',
+                            }}
+                        >
+                            {title}
+                        </Text>
+                    </View>
                 </Marker>
             )}
         </>
@@ -266,6 +421,7 @@ function iconFor(kind = '') {
     if (k.includes('restroom') || k.includes('toilet')) return KIND_ICONS.restroom;
     if (k.includes('concession') || k.includes('snack')) return KIND_ICONS.concession;
     if (k.includes('parking')) return KIND_ICONS.parking;
+    if (k.includes('volleyball')) return KIND_ICONS.sand_volleyball;
     if (k.includes('field') || k.includes('diamond') || k.includes('softball') || k.includes('baseball') || k.includes('football')) return KIND_ICONS.field;
 
     return KIND_ICONS.default;
@@ -283,6 +439,7 @@ export default function MapScreen({ route, navigation }) {
     const [region, setRegion] = useState(null);
     const [zoom, setZoom] = useState(16);
     const [focusedId, setFocusedId] = useState(null);
+    const [legendOpen, setLegendOpen] = useState(false);
 
     useEffect(() => {
         let mounted = true;
@@ -292,6 +449,11 @@ export default function MapScreen({ route, navigation }) {
                 const { data } = await axios.get(`/api/park/${parkId}/map`);
                 if (!mounted) return;
                 setBundle(data);
+
+                // If this park has custom map features, default to focusing on those
+                if (Array.isArray(data?.mapFeatures?.features) && data.mapFeatures.features.length > 0) {
+                    setShowNearby(false);
+                }
 
                 // fit once
                 requestAnimationFrame(() => {
@@ -446,6 +608,7 @@ export default function MapScreen({ route, navigation }) {
             <MapView
                 ref={mapRef}
                 style={{ flex: 1 }}
+                mapType="satellite"
                 initialRegion={{
                     latitude: center?.lat || 40,
                     longitude: center?.lng || -111,
@@ -476,10 +639,34 @@ export default function MapScreen({ route, navigation }) {
                     <Marker
                         key={n.placeId}
                         coordinate={{ latitude: n.location.lat, longitude: n.location.lng }}
-                        title={n.name}
-                        description={(n.categories || []).slice(0, 3).join(', ')}
                     >
-                        <Ionicons name="location-sharp" size={20} color="#1d4ed8" />
+                        <View style={{ alignItems: 'center' }}>
+                            <View
+                                style={{
+                                    width: 26,
+                                    height: 26,
+                                    borderRadius: 13,
+                                    backgroundColor: 'white',
+                                    borderWidth: 1,
+                                    borderColor: '#1d4ed8',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    shadowColor: '#000',
+                                    shadowOpacity: 0.18,
+                                    shadowRadius: 2,
+                                    shadowOffset: { width: 0, height: 1 },
+                                    elevation: 2,
+                                }}
+                            >
+                                <Ionicons name="location-sharp" size={16} color="#1d4ed8" />
+                            </View>
+
+                            {!!n.name && (
+                                <View style={{ marginTop: 3 }}>
+                                    <LabelChip text={n.name} />
+                                </View>
+                            )}
+                        </View>
                     </Marker>
                 ))}
             </MapView>
@@ -512,6 +699,23 @@ export default function MapScreen({ route, navigation }) {
                 </TouchableOpacity>
             </View>
 
+            {/* Legend overlay */}
+            {legendOpen && (
+                <View style={[styles.legendCard, { bottom: showNearby ? 120 : 60 }]}>
+                    <View style={styles.legendHeader}>
+                        <Text style={styles.legendTitle}>Map Legend</Text>
+                        <TouchableOpacity onPress={() => setLegendOpen(false)}>
+                            <Ionicons name="close" size={16} />
+                        </TouchableOpacity>
+                    </View>
+                    <Text style={styles.legendRow}>⚾ Fields / diamonds</Text>
+                    <Text style={styles.legendRow}>🅿 Parking / entrances</Text>
+                    <Text style={styles.legendRow}>🚻 Restrooms</Text>
+                    <Text style={styles.legendRow}>🍔 Concessions</Text>
+                    <Text style={styles.legendRow}>👨‍👩‍👧 Spectator / warm-up</Text>
+                </View>
+            )}
+
             {/* Top chips */}
             <View style={styles.topBar}>
                 <TouchableOpacity
@@ -531,6 +735,13 @@ export default function MapScreen({ route, navigation }) {
                 <TouchableOpacity style={styles.chip} onPress={() => fitToEverything()}>
                     <Ionicons name="scan-outline" size={14} />
                     <Text style={styles.chipText}>Fit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.chip}
+                    onPress={() => setLegendOpen(true)}
+                >
+                    <Ionicons name="help-circle-outline" size={14} />
+                    <Text style={styles.chipText}>Legend</Text>
                 </TouchableOpacity>
             </View>
 
@@ -613,5 +824,29 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 2,
         shadowOffset: { width: 0, height: 1 },
+    },
+    legendCard: {
+        position: 'absolute',
+        left: 12,
+        padding: 10,
+        borderRadius: 8,
+        backgroundColor: 'white',
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+        width: 220,
+    },
+    legendHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 4,
+    },
+    legendTitle: {
+        fontSize: 12,
+        fontWeight: '700',
+    },
+    legendRow: {
+        fontSize: 11,
+        marginTop: 2,
     },
 });
