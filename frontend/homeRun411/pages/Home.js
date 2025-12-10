@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useAuth } from '../AuthContext';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons'; // For icons
 import { useNavigation } from '@react-navigation/native'; // For navigation
@@ -14,7 +15,6 @@ import { getWeather } from '../utils/getWeather';
 import WeatherWidget from '../components/WeatherWidget';
 import zipcodes from 'zipcodes'; // You may need to `npm install zipcodes`
 import { LinearGradient } from 'expo-linear-gradient';
-import { useAuth } from '../AuthContext';
 import SectionHeader from '../components/SectionHeader';
 
 const quickLinks = [
@@ -51,6 +51,17 @@ export default function Homepage() {
   const [userCoords, setUserCoords] = useState(null);
   const { user, isAdmin } = useAuth();
   const greetingName = (user?.firstName || user?.name || '').split(' ')[0];
+
+  const { width: screenWidth } = useWindowDimensions();
+
+  // We want ~3 full cards plus a bit of the 4th
+  const CARD_PEEK_COUNT = 3.2;       // 3 full + 0.2 of the next
+  const CARD_SPACING = 12;           // space between cards
+  const HORIZONTAL_PADDING = 20;     // matches quickLinksContainer paddingLeft
+
+  const cardWidth =
+    (screenWidth - HORIZONTAL_PADDING - CARD_SPACING * (CARD_PEEK_COUNT - 1)) /
+    CARD_PEEK_COUNT;
 
   useEffect(() => {
     const fetchLocationAndWeather = async () => {
@@ -210,6 +221,7 @@ export default function Homepage() {
                 activeOpacity={0.85}
                 style={[
                   styles.linkCard,
+                  { width: cardWidth },                 // ⬅️ responsive width
                   index === 0 && styles.firstLinkCard,
                   index === quickLinks.length - 1 && styles.lastLinkCard,
                 ]}
@@ -353,17 +365,18 @@ const styles = StyleSheet.create({
     paddingBottom: 15,
     paddingTop: 16,
     paddingLeft: 20,
+    paddingRight: 0,
   },
   linkCard: {
-    width: 110,   // wider for 2-line labels
+    // width: 110,
     height: 100,
-    marginRight: 15, // shadows/border now live on linkCardBg
+    marginRight: 12, // shadows/border now live on linkCardBg
   },
   firstLinkCard: {
     marginLeft: 0,
   },
   lastLinkCard: {
-    marginRight: 40,
+    marginRight: 24,
   },
   labelContainer: {
     paddingHorizontal: 5,
