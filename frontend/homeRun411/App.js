@@ -10,6 +10,9 @@ import ForumPage from './pages/Forum';
 import ProfilePage from './pages/Profile';
 import ParkDetails from './pages/ParkDetails';
 import NotificationsPage from './pages/Notifications';
+import RecVsTravelBallPage from './pages/RecVsTravelBall';
+import PitcherGloveGuidePage from './pages/PitcherGloveGuide';
+import YouthBatGuidePage from './pages/YouthBatGuide';
 import EtiquettePage from './pages/Etiquette';
 import AdminPage from './pages/AdminDashboard';
 import GameDayPage from './pages/GameDay';
@@ -249,6 +252,37 @@ function MainStack() {
             options={{
               title: 'Game Day Necessities',
               headerStyle: { backgroundColor: '#90cdf4' },
+              headerTintColor: 'black',
+              headerTitleAlign: 'center',
+            }}
+          />
+          {/* 👇 NEW SCREEN HERE */}
+          <Stack.Screen
+            name="RecVsTravelBall"
+            component={RecVsTravelBallPage}
+            options={{
+              title: 'Rec vs Travel Ball',
+              headerStyle: { backgroundColor: '#ffe9a9' }, // soft gold to match app vibe
+              headerTintColor: 'black',
+              headerTitleAlign: 'center',
+            }}
+          />
+          <Stack.Screen
+            name="PitcherGloveGuide"
+            component={PitcherGloveGuidePage}
+            options={{
+              title: "Pitcher's Glove Guide",
+              headerStyle: { backgroundColor: '#e9d4ff' },
+              headerTintColor: 'black',
+              headerTitleAlign: 'center',
+            }}
+          />
+          <Stack.Screen
+            name="YouthBatGuide"
+            component={YouthBatGuidePage}
+            options={{
+              title: 'Youth Bat Buying Guide',
+              headerStyle: { backgroundColor: '#c6f6ff' },
               headerTintColor: 'black',
               headerTitleAlign: 'center',
             }}

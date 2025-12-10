@@ -20,6 +20,19 @@ import SectionHeader from '../components/SectionHeader';
 const quickLinks = [
   { id: '2', icon: 'book', label: 'Baseball Etiquette', screen: 'Etiquette' },
   { id: '3', icon: 'briefcase', label: 'Game Day Necessities', screen: 'GameDay' },
+  { id: '5', icon: 'baseball-outline', label: 'Rec vs. Travel Ball', screen: 'RecVsTravelBall' },
+  {
+    id: '6',
+    icon: 'hand-left-outline',     // glove-ish; swap if needed
+    label: "Pitcher's Glove Guide",
+    screen: 'PitcherGloveGuide',
+  },
+  {
+    id: '7',
+    icon: 'stats-chart-outline',   // for sizing/metrics; swap if needed
+    label: 'Youth Bat Guide',
+    screen: 'YouthBatGuide',
+  },
   { id: '4', icon: 'cog', label: 'Settings', screen: 'Settings' },
 ];
 
@@ -166,11 +179,6 @@ export default function Homepage() {
     }, [userCoords])
   );
 
-  // Conditionally add the admin link if the user is an admin
-  const updatedQuickLinks = isAdmin
-    ? [...quickLinks, { id: 'admin', icon: 'construct', label: 'Admin', screen: 'Admin' }]
-    : quickLinks;
-
   return (
     <SafeAreaView style={styles.container} edges={[]}>
 
@@ -191,15 +199,19 @@ export default function Homepage() {
           {/* <WeatherWidget weather={weather} locationLabel={weatherLabel} /> */}
 
           {/* Quick Links with Horizontal Scroll */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickLinksContainer}>
-            {updatedQuickLinks.map((link, index) => (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.quickLinksContainer}
+          >
+            {quickLinks.map((link, index) => (
               <TouchableOpacity
                 key={link.id}
                 activeOpacity={0.85}
                 style={[
                   styles.linkCard,
                   index === 0 && styles.firstLinkCard,
-                  index === updatedQuickLinks.length - 1 && styles.lastLinkCard,
+                  index === quickLinks.length - 1 && styles.lastLinkCard,
                 ]}
                 onPress={() => navigation.navigate(link.screen)}
               >
@@ -211,7 +223,11 @@ export default function Homepage() {
                 >
                   {/* soft glossy highlight */}
                   <LinearGradient
-                    colors={['rgba(255,255,255,0.35)', 'rgba(255,255,255,0.08)', 'transparent']}
+                    colors={[
+                      'rgba(255,255,255,0.35)',
+                      'rgba(255,255,255,0.08)',
+                      'transparent',
+                    ]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 0, y: 1 }}
                     style={styles.gloss}
@@ -223,7 +239,9 @@ export default function Homepage() {
                   </View>
 
                   <View style={styles.labelContainer}>
-                    <Text numberOfLines={2} style={styles.linkLabelColored}>{link.label}</Text>
+                    <Text numberOfLines={2} style={styles.linkLabelColored}>
+                      {link.label}
+                    </Text>
                   </View>
                 </LinearGradient>
               </TouchableOpacity>
@@ -284,7 +302,7 @@ export default function Homepage() {
 
         </ScrollView>
       </View>
-    </SafeAreaView>
+    </SafeAreaView >
   );
 }
 
