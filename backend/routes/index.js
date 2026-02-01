@@ -40,5 +40,6 @@ router.use("/api/upload", uploadRoutes); // ✅ Correctly added upload route
 router.use("/api/image-category", imageCategoryRoutes);
 router.use('/api/notifications', require('./api/notifications'))
 router.use('/api/feedback', require('./api/feedback'));
+router.use('/api/push', require('./api/push'));
 
 module.exports = router;

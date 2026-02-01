@@ -5,7 +5,7 @@ const notificationSchema = new mongoose.Schema(
     {
         user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },   // recipient (post owner)
         actor: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },  // who liked/commented
-        type: { type: String, enum: ['like', 'comment'], required: true },
+        type: { type: String, enum: ['like', 'comment', 'comment_like'], required: true },
         post: { type: mongoose.Schema.Types.ObjectId, ref: 'Post', required: true },
         comment: { type: mongoose.Schema.Types.ObjectId, ref: 'Comment', default: null },
         read: { type: Boolean, default: false },

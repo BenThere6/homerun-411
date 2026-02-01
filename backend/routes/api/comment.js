@@ -118,6 +118,28 @@ router.post('/:id/like', auth, async (req, res) => {
       });
 
       if (!exists) {
+        const recipient = await User.findById(post.author).select('settings push');
+        if (recipient?.settings?.notifications === false) {
+          // user turned off notifications entirely
+        } else {
+          // create Notification + socket emit + push send
+        }
+
+        const { sendExpoPush } = require('../../utils/expoPush');
+
+        if (recipient?.settings?.notifications !== false) {
+          const notif = await Notification.create({ ... });
+
+          const io = req.app.get('io');
+          io?.to(`user:${post.author}`).emit('notification:new', ...);
+
+          await sendExpoPush(recipient.push?.expoTokens, {
+            title: 'New comment',
+            body: `${user.profile.firstName} commented on your post`,
+            data: { type: 'comment', postId: String(postId) },
+          });
+        }
+
         const notif = await Notification.create({
           user: comment.author,        // recipient (comment owner)
           actor: userId,               // the one who liked

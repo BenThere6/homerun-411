@@ -61,6 +61,15 @@ const userSchema = new mongoose.Schema({
     shareLocation: { type: Boolean, default: false },
     contentFilter: { type: String, enum: ['all', 'favorites', 'none'], default: 'all' },
   },
+
+  push: {
+    expoTokens: [{
+      token: { type: String, required: true },
+      platform: { type: String, enum: ['ios', 'android'], required: true },
+      updatedAt: { type: Date, default: Date.now },
+    }],
+  },
+  
 }, { timestamps: true });
 
 // 🔧 Bump roleVersion whenever adminLevel changes

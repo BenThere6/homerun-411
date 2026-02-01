@@ -52,7 +52,16 @@ export default ({ config }) => {
       web: {
         favicon: "./assets/favicon.png"
       },
-      plugins: ["expo-font"],
+      plugins: [
+        "expo-font",
+        [
+          "expo-notifications",
+          {
+            "icon": "./assets/icon.png",
+            "color": "#ffffff"
+          }
+        ]
+      ],
       extra: {
         eas: { projectId: "28c1b134-de87-4ced-abb2-a68b218c1c13" },
         BACKEND_URL,
